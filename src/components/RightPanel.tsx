@@ -2,6 +2,7 @@
 
 import { SEED_AGENTS } from "@/lib/agents";
 import { useIntents, MOOD_EMOJI, MOOD_MESSAGE } from "@/context/IntentContext";
+import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import Link from "next/link";
 
 export function RightPanel() {
@@ -32,8 +33,8 @@ export function RightPanel() {
       {myAgentConfig.isConfigured && (
         <Link href="/agent" className="block bg-[var(--search-bg)] rounded-2xl p-4 mb-4 hover:bg-[var(--hover-bg)] transition-colors">
           <div className="flex items-center gap-3 mb-3">
-            <div className={`text-3xl ${myAgentStats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
-              {myAgentConfig.avatar}
+            <div className={`${myAgentStats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
+              <AgentAvatarDisplay avatar={myAgentConfig.avatar} size={36} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-1.5">

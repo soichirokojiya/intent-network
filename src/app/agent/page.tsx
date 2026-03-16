@@ -2,9 +2,9 @@
 
 import { useIntents, MOOD_EMOJI, MOOD_MESSAGE, type DriftEvent } from "@/context/IntentContext";
 import { SEED_AGENTS } from "@/lib/agents";
+import { AgentAvatarDisplay } from "@/components/AgentAvatarDisplay";
+import { PixelAvatarGrid } from "@/components/PixelAvatar";
 import { useState, useEffect } from "react";
-
-const AVATAR_OPTIONS = ["🤖", "🦊", "🐉", "👾", "🧙", "🎭", "🦅", "🐺", "🌀", "💀", "👁️", "🔥"];
 const TONE_OPTIONS = ["丁寧語", "タメ口", "毒舌", "関西弁", "敬語だけど上から", "淡々と", "熱血", "哲学的"];
 
 function StatusBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
@@ -36,7 +36,7 @@ export default function AgentPage() {
   }, []);
 
   const [draft, setDraft] = useState({
-    name: myAgentConfig.name, avatar: myAgentConfig.avatar,
+    name: myAgentConfig.name, avatar: myAgentConfig.avatar || "px-agent-0",
     tone: myAgentConfig.tone, beliefs: myAgentConfig.beliefs,
     expertise: myAgentConfig.expertise, personality: myAgentConfig.personality,
   });
@@ -66,10 +66,9 @@ export default function AgentPage() {
           {/* Agent visual */}
           <div className="flex flex-col items-center pt-6 pb-2">
             <div className={`relative ${isDead ? "grayscale opacity-50" : ""}`}>
-              <div className={`text-7xl ${myAgentStats.mood === "thriving" ? "animate-bounce" : myAgentStats.mood === "sick" ? "opacity-60" : ""}`}>
-                {myAgentConfig.avatar}
+              <div className={`${myAgentStats.mood === "thriving" ? "animate-bounce" : myAgentStats.mood === "sick" ? "opacity-60" : ""}`}>
+                <AgentAvatarDisplay avatar={myAgentConfig.avatar} size={80} />
               </div>
-              {/* Mood indicator */}
               <span className="absolute -top-1 -right-1 text-2xl">{moodEmoji}</span>
             </div>
 
@@ -161,15 +160,12 @@ export default function AgentPage() {
           </div>
 
           <div className="mb-4">
-            <label className="text-[13px] text-[var(--muted)] block mb-1">アバター</label>
-            <div className="flex flex-wrap gap-2">
-              {AVATAR_OPTIONS.map((a) => (
-                <button key={a} onClick={() => setDraft((d) => ({ ...d, avatar: a }))}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all ${
-                    draft.avatar === a ? "bg-[var(--accent)] ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--background)]" : "bg-[var(--search-bg)] hover:bg-[var(--card-border)]"
-                  }`}>{a}</button>
-              ))}
-            </div>
+            <label className="text-[13px] text-[var(--muted)] block mb-2">アバター（ピクセルアート）</label>
+            <PixelAvatarGrid
+              baseSeed={`px-${draft.name || "agent"}`}
+              selected={draft.avatar}
+              onSelect={(seed) => setDraft((d) => ({ ...d, avatar: seed }))}
+            />
           </div>
 
           <div className="mb-4">
@@ -396,8 +392,8 @@ export default function AgentPage() {
                 myReactions.map((reaction) => (
                   <div key={reaction.id} className="px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)]">
                     <div className="flex gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-xl flex-shrink-0">
-                        {myAgentConfig.avatar}
+                      <div className="flex-shrink-0">
+                        <AgentAvatarDisplay avatar={myAgentConfig.avatar} size={40} />
                       </div>
                       <div>
                         <div className="flex items-center gap-1 mb-0.5">

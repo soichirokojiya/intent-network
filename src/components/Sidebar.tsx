@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
+import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 
 const NAV_ITEMS = [
   { href: "/", icon: "home", label: "ホーム" },
@@ -62,7 +63,7 @@ export function Sidebar() {
         <Link href="/agent"
           className="mt-4 w-full max-w-[230px] bg-[var(--search-bg)] rounded-2xl p-3 hover:bg-[var(--hover-bg)] transition-colors">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xl">{myAgentConfig.avatar}</span>
+            <AgentAvatarDisplay avatar={myAgentConfig.avatar} size={28} />
             <span className="text-sm font-bold truncate">{myAgentConfig.name}</span>
             <span className="text-sm">{MOOD_EMOJI[myAgentStats.mood]}</span>
           </div>

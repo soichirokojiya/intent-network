@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useIntents, MOOD_EMOJI, MOOD_MESSAGE } from "@/context/IntentContext";
+import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { useEffect, useState } from "react";
 
 const PROPOSAL_MESSAGES = [
@@ -103,8 +104,8 @@ export function AgentNotification() {
   return (
     <div className={`mx-4 mt-2 mb-1 rounded-2xl border ${moodColors[notification.type]} bg-[var(--search-bg)] p-3 animate-fade-in-up`}>
       <div className="flex gap-3">
-        <div className="text-2xl flex-shrink-0">
-          {myAgentConfig.avatar}
+        <div className="flex-shrink-0">
+          <AgentAvatarDisplay avatar={myAgentConfig.avatar} size={32} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">

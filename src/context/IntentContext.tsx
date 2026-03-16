@@ -76,7 +76,7 @@ interface IntentContextType {
 const IntentContext = createContext<IntentContextType | null>(null);
 
 const DEFAULT_CONFIG: MyAgentConfig = {
-  name: "My Agent", avatar: "🤖",
+  name: "My Agent", avatar: "px-agent-0",
   tone: "", beliefs: "", expertise: "", personality: "",
   isConfigured: false,
 };
