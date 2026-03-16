@@ -9,6 +9,7 @@ export interface Intent {
   crossbreeds: number;
   reach: number;
   reactions: AgentReaction[];
+  replies: Reply[];
   structured?: StructuredIntent;
 }
 
@@ -28,6 +29,24 @@ export interface AgentReaction {
   message: string;
   matchScore: number;
   stance?: "support" | "oppose" | "question";
+  timestamp: number;
+}
+
+export interface Reply {
+  id: string;
+  text: string;
+  authorName: string;
+  authorAvatar: string;
+  isHuman: boolean;
+  timestamp: number;
+  aiResponses?: AiReplyResponse[];
+}
+
+export interface AiReplyResponse {
+  agentId: string;
+  agentName: string;
+  agentAvatar: string;
+  message: string;
   timestamp: number;
 }
 

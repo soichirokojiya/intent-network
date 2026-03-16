@@ -1,7 +1,6 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { useIntents } from "@/context/IntentContext";
 import { useEffect, useState } from "react";
 
@@ -19,13 +18,13 @@ export default function ThreadPage() {
   const params = useParams();
   const router = useRouter();
   const intentId = params.id as string;
-  const { intents, getConversation, loadConversation } = useIntents();
+  const { intents, getConversation, loadConversation, postReply } = useIntents();
   const [visibleMessages, setVisibleMessages] = useState(0);
+  const [replyText, setReplyText] = useState("");
 
   const intent = intents.find((i) => i.id === intentId);
   const conversation = getConversation(intentId);
 
-  // Load AI conversation on demand
   useEffect(() => {
     if (intentId && intent) {
       loadConversation(intentId);
@@ -45,6 +44,12 @@ export default function ThreadPage() {
     return () => clearInterval(timer);
   }, [conversation?.messages.length]);
 
+  const handleReply = () => {
+    if (!replyText.trim()) return;
+    postReply(intentId, replyText.trim());
+    setReplyText("");
+  };
+
   if (!intent) {
     return (
       <>
@@ -56,12 +61,16 @@ export default function ThreadPage() {
           </button>
           <span className="text-lg font-bold">ポスト</span>
         </header>
-        <div className="p-8 text-center text-[var(--muted)]">
-          意図が見つかりません
-        </div>
+        <div className="p-8 text-center text-[var(--muted)]">意図が見つかりません</div>
       </>
     );
   }
+
+  const stanceConfig = {
+    support: { label: "賛成", color: "text-[var(--green)]", bg: "bg-[rgba(0,186,124,0.1)]" },
+    oppose: { label: "反対", color: "text-[var(--danger)]", bg: "bg-[rgba(244,33,46,0.1)]" },
+    question: { label: "問い", color: "text-[var(--pink)]", bg: "bg-[rgba(249,24,128,0.1)]" },
+  };
 
   return (
     <>
@@ -75,9 +84,8 @@ export default function ThreadPage() {
         <span className="text-lg font-bold">ポスト</span>
       </header>
 
-      {/* Original intent (detail view) */}
+      {/* Original intent */}
       <div className="px-4 pt-3 pb-3 border-b border-[var(--card-border)]">
-        {/* Author row */}
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${
             intent.isUser
@@ -91,88 +99,121 @@ export default function ThreadPage() {
             <div className="text-[var(--muted)] text-[13px]">@{intent.authorName.toLowerCase()}</div>
           </div>
         </div>
-
-        {/* Text - larger in detail view */}
         <p className="text-[17px] leading-relaxed mb-3">{intent.text}</p>
-
-        {/* Timestamp */}
         <div className="text-[var(--muted)] text-[13px] pb-3 border-b border-[var(--card-border)]">
           {new Date(intent.timestamp).toLocaleString("ja-JP")} · <span className="text-[var(--foreground)] font-bold">Intent Network</span>
         </div>
-
-        {/* Stats bar */}
         <div className="flex gap-5 py-3 border-b border-[var(--card-border)] text-[13px]">
-          <span><strong className="text-[var(--foreground)]">{intent.resonance}</strong> <span className="text-[var(--muted)]">共鳴</span></span>
-          <span><strong className="text-[var(--foreground)]">{intent.crossbreeds}</strong> <span className="text-[var(--muted)]">交配</span></span>
-          <span><strong className="text-[var(--foreground)]">{intent.reach}</strong> <span className="text-[var(--muted)]">到達</span></span>
-        </div>
-
-        {/* Action bar */}
-        <div className="flex justify-around py-2 border-b border-[var(--card-border)]">
-          <button className="p-2 rounded-full hover:bg-[var(--accent-glow)] text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
-          </button>
-          <button className="p-2 rounded-full hover:bg-[rgba(0,186,124,0.1)] text-[var(--muted)] hover:text-[var(--green)] transition-colors">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M7 7h10l-3-3M17 17H7l3 3M12 3v18" />
-            </svg>
-          </button>
-          <button className="p-2 rounded-full hover:bg-[var(--accent-glow)] text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" />
-            </svg>
-          </button>
+          <span><strong>{intent.resonance}</strong> <span className="text-[var(--muted)]">共鳴</span></span>
+          <span><strong>{intent.crossbreeds}</strong> <span className="text-[var(--muted)]">交配</span></span>
+          <span><strong>{intent.reach}</strong> <span className="text-[var(--muted)]">到達</span></span>
+          <span><strong>{intent.replies.length}</strong> <span className="text-[var(--muted)]">リプライ</span></span>
         </div>
       </div>
 
-      {/* Agent reactions as replies */}
-      {intent.reactions.map((reaction) => {
-        const stanceConfig = {
-          support: { label: "賛成", color: "text-[var(--green)]", bg: "bg-[rgba(0,186,124,0.1)]" },
-          oppose: { label: "反対", color: "text-[var(--danger)]", bg: "bg-[rgba(244,33,46,0.1)]" },
-          question: { label: "問い", color: "text-[var(--pink)]", bg: "bg-[rgba(249,24,128,0.1)]" },
-        };
-        const stance = stanceConfig[reaction.stance || "support"];
-        return (
-        <div key={reaction.id} className="px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors animate-fade-in-up">
-          <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl flex-shrink-0">
-              {reaction.agentAvatar}
+      {/* Reply composer */}
+      <div className="px-4 py-3 border-b border-[var(--card-border)]">
+        <div className="flex gap-3">
+          <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold flex-shrink-0">
+            Y
+          </div>
+          <div className="flex-1">
+            <div className="text-[13px] text-[var(--muted)] mb-1">
+              返信先 <span className="text-[var(--accent)]">@{intent.authorName.toLowerCase()}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1 mb-0.5">
-                <span className="font-bold text-[15px]">{reaction.agentName}</span>
-                <span className="text-xs px-1.5 py-0.5 rounded text-[var(--accent)] bg-[var(--accent-glow)]">
-                  {reaction.agentRole}
-                </span>
-                <span className={`text-xs px-1.5 py-0.5 rounded ${stance.color} ${stance.bg}`}>
-                  {stance.label}
-                </span>
-                <span className="text-[var(--muted)] text-[13px] ml-1">{reaction.matchScore}%</span>
-              </div>
-              <div className="text-[13px] text-[var(--muted)] mb-1">
-                <span className="text-[var(--muted)]">返信先</span> <span className="text-[var(--accent)]">@{intent.authorName.toLowerCase()}</span>
-              </div>
-              <p className="text-[15px] leading-relaxed">{reaction.message}</p>
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="リプライを書く... AIも反応します"
+              className="w-full bg-transparent border-none outline-none resize-none text-[15px] text-[var(--foreground)] placeholder:text-[var(--muted)] leading-relaxed"
+              rows={2}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleReply();
+              }}
+            />
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-[11px] text-[var(--muted)]">人間のリプライ → AIが反応</span>
+              <button
+                onClick={handleReply}
+                disabled={!replyText.trim()}
+                className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold text-sm px-4 py-1.5 rounded-full transition-colors"
+              >
+                返信
+              </button>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Agent reactions */}
+      {intent.reactions.map((reaction) => {
+        const stance = stanceConfig[reaction.stance || "support"];
+        return (
+          <div key={reaction.id} className="px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors animate-fade-in-up">
+            <div className="flex gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl flex-shrink-0">
+                {reaction.agentAvatar}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <span className="font-bold text-[15px]">{reaction.agentName}</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded text-[var(--accent)] bg-[var(--accent-glow)]">AI</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${stance.color} ${stance.bg}`}>
+                    {stance.label}
+                  </span>
+                </div>
+                <p className="text-[15px] leading-relaxed">{reaction.message}</p>
+              </div>
+            </div>
+          </div>
         );
       })}
 
-      {/* Agent conversation section */}
-      {conversation && (
+      {/* Human replies + AI responses (interleaved) */}
+      {intent.replies.length > 0 && (
         <>
-          <div className="px-4 py-3 border-b border-[var(--card-border)] bg-[var(--search-bg)]">
+          <div className="px-4 py-2 border-b border-[var(--card-border)] bg-[var(--search-bg)]">
+            <span className="text-[13px] font-bold">リプライ</span>
+          </div>
+          {intent.replies.map((reply) => (
+            <div
+              key={reply.id}
+              className="px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors animate-fade-in-up"
+            >
+              <div className="flex gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${
+                  reply.isHuman
+                    ? "bg-[var(--accent)] text-white text-sm font-bold"
+                    : "bg-[var(--search-bg)] border border-[var(--card-border)]"
+                }`}>
+                  {reply.isHuman ? "Y" : reply.authorAvatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <span className="font-bold text-[15px]">{reply.authorName}</span>
+                    {reply.isHuman ? (
+                      <span className="text-xs px-1.5 py-0.5 rounded text-[var(--foreground)] bg-[var(--hover-bg)] border border-[var(--card-border)]">人間</span>
+                    ) : (
+                      <span className="text-xs px-1.5 py-0.5 rounded text-[var(--accent)] bg-[var(--accent-glow)]">AI</span>
+                    )}
+                    <span className="text-[var(--muted)] text-[13px]">{timeAgo(reply.timestamp)}</span>
+                  </div>
+                  <p className="text-[15px] leading-relaxed">{reply.text}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Agent conversation section */}
+      {conversation && conversation.messages.length > 0 && (
+        <>
+          <div className="px-4 py-2 border-b border-[var(--card-border)] bg-[var(--search-bg)]">
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="var(--accent)">
-                <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z" />
-              </svg>
-              <span className="font-bold text-[15px]">Agent同士の会話</span>
-              <span className="text-[var(--muted)] text-[13px]">
-                — {conversation.participants.map((p) => p.agentName).join(", ")}
+              <span className="text-[13px] font-bold">Agent同士の会話</span>
+              <span className="text-[var(--muted)] text-[11px]">
+                {conversation.participants.map((p) => p.agentName).join(", ")}
               </span>
             </div>
           </div>
@@ -214,7 +255,6 @@ export default function ThreadPage() {
         </>
       )}
 
-      {/* Bottom spacer */}
       <div className="h-20" />
     </>
   );

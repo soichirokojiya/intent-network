@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { Intent, Conversation, AgentReaction } from "@/lib/types";
+import { Intent, Conversation, AgentReaction, Reply, AiReplyResponse } from "@/lib/types";
 import { generateReactions, generateConversation, SEED_INTENTS } from "@/lib/simulation";
 import { getRandomAgents } from "@/lib/agents";
 
@@ -17,6 +17,7 @@ interface IntentContextType {
     activityLog: string[];
   };
   postIntent: (text: string) => void;
+  postReply: (intentId: string, text: string) => void;
   getConversation: (intentId: string) => Conversation | undefined;
   loadConversation: (intentId: string) => void;
 }
@@ -35,7 +36,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     activityLog: [] as string[],
   });
 
-  // Initialize with seed intents (template-based for speed)
+  // Initialize with seed intents
   useEffect(() => {
     const seedIntents: Intent[] = SEED_INTENTS.map((seed, i) => {
       const reactions = generateReactions(seed.text);
@@ -51,11 +52,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         crossbreeds: Math.floor(Math.random() * 5),
         reach: Math.floor(Math.random() * 100) + 20,
         reactions,
+        replies: [],
       };
     });
     setIntents(seedIntents);
 
-    // Template-based conversations for seed intents
     const convMap = new Map<string, Conversation>();
     seedIntents.forEach((intent) => {
       const agents = getRandomAgents(3);
@@ -73,7 +74,6 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     setConversations(convMap);
   }, []);
 
-  // Post intent → call Claude API for reactions
   const postIntent = useCallback((text: string) => {
     const id = `intent-${Date.now()}`;
 
@@ -88,11 +88,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       crossbreeds: 0,
       reach: 0,
       reactions: [],
+      replies: [],
     };
 
     setIntents((prev) => [newIntent, ...prev]);
 
-    // Call Claude API for real reactions
     fetch("/api/react", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -101,7 +101,6 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       .then((res) => res.json())
       .then((data) => {
         if (data.reactions) {
-          // Add reactions one by one with delay for animation
           (data.reactions as AgentReaction[]).forEach((reaction: AgentReaction, i: number) => {
             setTimeout(() => {
               setIntents((prev) =>
@@ -128,7 +127,6 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             }, (i + 1) * 800);
           });
 
-          // Crossbreed after reactions
           setTimeout(() => {
             setIntents((prev) =>
               prev.map((intent) =>
@@ -147,7 +145,6 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       })
       .catch((err) => {
         console.error("API error, falling back to template:", err);
-        // Fallback to template-based reactions
         const reactions = generateReactions(text);
         reactions.forEach((reaction, i) => {
           setTimeout(() => {
@@ -168,22 +165,105 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
-  // Load AI conversation on demand (when thread is opened)
+  // Human reply → AI agents respond to the reply
+  const postReply = useCallback((intentId: string, text: string) => {
+    const replyId = `reply-${Date.now()}`;
+    const newReply: Reply = {
+      id: replyId,
+      text,
+      authorName: "You",
+      authorAvatar: "👤",
+      isHuman: true,
+      timestamp: Date.now(),
+      aiResponses: [],
+    };
+
+    // Add reply immediately
+    setIntents((prev) =>
+      prev.map((intent) =>
+        intent.id === intentId
+          ? {
+              ...intent,
+              replies: [...intent.replies, newReply],
+              resonance: intent.resonance + 1,
+            }
+          : intent
+      )
+    );
+
+    // Get the intent for context
+    const intent = intents.find((i) => i.id === intentId);
+    if (!intent) return;
+
+    const existingReplies = intent.replies.map((r) => ({
+      authorName: r.authorName,
+      text: r.text,
+    }));
+
+    // Call API for AI response to human reply
+    fetch("/api/reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        intentText: intent.text,
+        replyText: text,
+        existingReplies,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.responses) {
+          // Add AI responses with delay
+          (data.responses as AiReplyResponse[]).forEach((response: AiReplyResponse, i: number) => {
+            setTimeout(() => {
+              const aiReply: Reply = {
+                id: `reply-ai-${Date.now()}-${i}`,
+                text: response.message,
+                authorName: response.agentName,
+                authorAvatar: response.agentAvatar,
+                isHuman: false,
+                timestamp: Date.now(),
+              };
+              setIntents((prev) =>
+                prev.map((intent) =>
+                  intent.id === intentId
+                    ? {
+                        ...intent,
+                        replies: [...intent.replies, aiReply],
+                        resonance: intent.resonance + 1,
+                      }
+                    : intent
+                )
+              );
+              setMyAgent((prev) => ({
+                ...prev,
+                conversations: prev.conversations + 1,
+                activityLog: [
+                  `${response.agentName}があなたのリプライに反応`,
+                  ...prev.activityLog,
+                ].slice(0, 20),
+              }));
+            }, (i + 1) * 1200);
+          });
+        }
+      })
+      .catch((err) => {
+        console.error("Reply API error:", err);
+      });
+  }, [intents]);
+
   const loadConversation = useCallback(
     (intentId: string) => {
-      // Already loaded
       if (conversations.has(intentId)) return;
 
       const intent = intents.find((i) => i.id === intentId);
       if (!intent) return;
 
-      // Pick 3 agents from reactions, or random
       const agentIds =
         intent.reactions.length >= 3
           ? intent.reactions.slice(0, 3).map((r) => r.agentId)
           : getRandomAgents(3).map((a) => a.id);
 
-      // Set placeholder
       const placeholder: Conversation = {
         id: `conv-${intentId}`,
         intentId,
@@ -241,7 +321,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <IntentContext.Provider
-      value={{ intents, conversations, myAgent, postIntent, getConversation, loadConversation }}
+      value={{ intents, conversations, myAgent, postIntent, postReply, getConversation, loadConversation }}
     >
       {children}
     </IntentContext.Provider>
