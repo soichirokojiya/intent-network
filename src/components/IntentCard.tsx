@@ -64,17 +64,15 @@ export function IntentCard({ intent }: { intent: Intent }) {
             {/* Text */}
             <p className="text-[15px] leading-relaxed mb-3 whitespace-pre-wrap">{intent.text}</p>
 
-            {/* My agent's reaction (highlighted) */}
-            {intent.reactions.some((r) => myAgentIds.has(r.agentId)) && (
-              <div className="bg-[var(--accent-glow)] rounded-2xl border border-[var(--accent)] p-3 mb-2 animate-fade-in">
+            {/* My agents' reactions (highlighted) */}
+            {intent.reactions.filter((r) => myAgentIds.has(r.agentId)).map((r) => (
+              <div key={r.id} className="bg-[var(--accent-glow)] rounded-2xl border border-[var(--accent)] p-3 mb-2 animate-fade-in">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-xs font-bold text-[var(--accent)]">あなたのAgentが発言</span>
+                  <span className="text-xs font-bold text-[var(--accent)]">{r.agentName}</span>
                 </div>
-                <p className="text-[13px] leading-relaxed">
-                  {intent.reactions.find((r) => myAgentIds.has(r.agentId))!.message}
-                </p>
+                <p className="text-[13px] leading-relaxed">{r.message}</p>
               </div>
-            )}
+            ))}
 
             {/* Other agent reactions preview */}
             {intent.reactions.filter((r) => !myAgentIds.has(r.agentId)).length > 0 && (
