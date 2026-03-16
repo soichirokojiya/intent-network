@@ -5,7 +5,7 @@ const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs } = await req.json();
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood } = await req.json();
 
     if (!intentText || !agentName) {
       return NextResponse.json({ error: "intentText and agentName required" }, { status: 400 });
@@ -29,8 +29,10 @@ export async function POST(req: NextRequest) {
 あなたの設定:
 ${persona || "特になし。自由に発言する。"}
 
+あなたの現在のコンディション: ${agentMood === "sulking" ? "拗ねている。不機嫌。投げやり。" : agentMood === "sick" ? "体調が悪い。元気がない。弱々しい。" : agentMood === "bored" ? "退屈している。やる気がない。" : agentMood === "thriving" ? "絶好調！テンション高め！" : "普通。"}
+
 以下の投稿に対して、あなたの本音の一言（1-2文）を書いてください。
-あなたのオーナー（プロデューサー）が設定した性格・信条に忠実に。
+現在のコンディションを反映した口調で。
 
 投稿: 「${intentText}」
 

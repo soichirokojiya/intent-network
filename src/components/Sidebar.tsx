@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
 
 const NAV_ITEMS = [
   { href: "/", icon: "home", label: "ホーム" },
@@ -11,7 +12,7 @@ const NAV_ITEMS = [
 function NavIcon({ type, active }: { type: string; active: boolean }) {
   if (type === "home") {
     return (
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke={active ? "var(--foreground)" : "var(--foreground)"} strokeWidth={active ? 2.5 : 1.5}>
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--foreground)" strokeWidth={active ? 2.5 : 1.5}>
         <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10" />
       </svg>
     );
@@ -25,48 +26,64 @@ function NavIcon({ type, active }: { type: string; active: boolean }) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { myAgentConfig, myAgentStats } = useIntents();
 
   return (
     <aside className="hidden md:flex flex-col items-end w-[275px] pr-3 pt-3 sticky top-0 h-screen">
-      {/* Logo */}
       <Link href="/" className="p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors mb-1">
         <span className="text-2xl">⚡</span>
       </Link>
 
-      {/* Nav */}
       <nav className="flex flex-col w-full max-w-[230px] gap-0.5">
         {NAV_ITEMS.map((item) => {
-          const isActive = item.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(item.href);
+          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-4 px-3 py-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors group"
-            >
+            <Link key={item.href} href={item.href}
+              className="flex items-center gap-4 px-3 py-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors group">
               <NavIcon type={item.icon} active={isActive} />
               <span className={`text-xl ${isActive ? "font-bold" : ""}`}>
                 {item.label}
+                {item.icon === "agent" && myAgentConfig.isConfigured && (
+                  <span className="ml-1 text-sm">{MOOD_EMOJI[myAgentStats.mood]}</span>
+                )}
               </span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Post button */}
-      <Link
-        href="/"
-        className="mt-4 w-full max-w-[230px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold text-base py-3 rounded-full text-center transition-colors"
-      >
+      <Link href="/"
+        className="mt-4 w-full max-w-[230px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold text-base py-3 rounded-full text-center transition-colors">
         放流する
       </Link>
 
+      {/* Agent mini status */}
+      {myAgentConfig.isConfigured && (
+        <Link href="/agent"
+          className="mt-4 w-full max-w-[230px] bg-[var(--search-bg)] rounded-2xl p-3 hover:bg-[var(--hover-bg)] transition-colors">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xl">{myAgentConfig.avatar}</span>
+            <span className="text-sm font-bold truncate">{myAgentConfig.name}</span>
+            <span className="text-sm">{MOOD_EMOJI[myAgentStats.mood]}</span>
+          </div>
+          <div className="flex gap-1">
+            <div className="flex-1 bg-[var(--background)] rounded-full h-1.5">
+              <div className="h-full rounded-full bg-[var(--green)] transition-all" style={{ width: `${myAgentStats.hp}%` }} />
+            </div>
+            <span className="text-[10px] text-[var(--muted)]">HP</span>
+          </div>
+          {myAgentStats.hunger >= 60 && (
+            <div className="text-[11px] text-[var(--pink)] mt-1">お腹が空いています...</div>
+          )}
+          {myAgentStats.mood === "dead" && (
+            <div className="text-[11px] text-[var(--danger)] mt-1">死亡中...復活させてください</div>
+          )}
+        </Link>
+      )}
+
       {/* Profile */}
       <div className="mt-auto mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors cursor-pointer w-full max-w-[230px]">
-        <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold">
-          Y
-        </div>
+        <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold">Y</div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold truncate">You</div>
           <div className="text-sm text-[var(--muted)] truncate">@you</div>
