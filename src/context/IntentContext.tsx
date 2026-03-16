@@ -1,8 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { Intent, Conversation } from "@/lib/types";
-import { generateReactions, generateConversation, SEED_INTENTS, generateCrossbreed } from "@/lib/simulation";
+import { Intent, Conversation, AgentReaction } from "@/lib/types";
+import { generateReactions, generateConversation, SEED_INTENTS } from "@/lib/simulation";
 import { getRandomAgents } from "@/lib/agents";
 
 interface IntentContextType {
@@ -18,6 +18,7 @@ interface IntentContextType {
   };
   postIntent: (text: string) => void;
   getConversation: (intentId: string) => Conversation | undefined;
+  loadConversation: (intentId: string) => void;
 }
 
 const IntentContext = createContext<IntentContextType | null>(null);
@@ -34,7 +35,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     activityLog: [] as string[],
   });
 
-  // Initialize with seed intents
+  // Initialize with seed intents (template-based for speed)
   useEffect(() => {
     const seedIntents: Intent[] = SEED_INTENTS.map((seed, i) => {
       const reactions = generateReactions(seed.text);
@@ -54,7 +55,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     });
     setIntents(seedIntents);
 
-    // Generate conversations for seed intents
+    // Template-based conversations for seed intents
     const convMap = new Map<string, Conversation>();
     seedIntents.forEach((intent) => {
       const agents = getRandomAgents(3);
@@ -72,9 +73,9 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     setConversations(convMap);
   }, []);
 
+  // Post intent → call Claude API for reactions
   const postIntent = useCallback((text: string) => {
     const id = `intent-${Date.now()}`;
-    const reactions = generateReactions(text);
 
     const newIntent: Intent = {
       id,
@@ -91,70 +92,147 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
     setIntents((prev) => [newIntent, ...prev]);
 
-    // Simulate reactions appearing over time
-    reactions.forEach((reaction, i) => {
-      setTimeout(() => {
-        setIntents((prev) =>
-          prev.map((intent) =>
-            intent.id === id
-              ? {
-                  ...intent,
-                  reactions: [...intent.reactions, reaction],
-                  resonance: intent.resonance + 1,
-                  reach: intent.reach + Math.floor(Math.random() * 10) + 5,
-                }
-              : intent
-          )
-        );
-        setMyAgent((prev) => ({
-          ...prev,
-          conversations: prev.conversations + 1,
-          influence: Math.min(100, prev.influence + 1),
-          activityLog: [
-            `${reaction.agentName}と会話しました`,
-            ...prev.activityLog,
-          ].slice(0, 20),
-        }));
-      }, (i + 1) * 1500);
-    });
+    // Call Claude API for real reactions
+    fetch("/api/react", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ intentText: text }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.reactions) {
+          // Add reactions one by one with delay for animation
+          (data.reactions as AgentReaction[]).forEach((reaction: AgentReaction, i: number) => {
+            setTimeout(() => {
+              setIntents((prev) =>
+                prev.map((intent) =>
+                  intent.id === id
+                    ? {
+                        ...intent,
+                        reactions: [...intent.reactions, reaction],
+                        resonance: intent.resonance + 1,
+                        reach: intent.reach + Math.floor(Math.random() * 10) + 5,
+                      }
+                    : intent
+                )
+              );
+              setMyAgent((prev) => ({
+                ...prev,
+                conversations: prev.conversations + 1,
+                influence: Math.min(100, prev.influence + 1),
+                activityLog: [
+                  `${reaction.agentName}がAIで反応しました`,
+                  ...prev.activityLog,
+                ].slice(0, 20),
+              }));
+            }, (i + 1) * 800);
+          });
 
-    // Simulate crossbreed after reactions
-    setTimeout(() => {
-      setIntents((prev) => {
-        const otherIntents = prev.filter((p) => p.id !== id && p.text);
-        if (otherIntents.length > 0) {
-          const partner = otherIntents[Math.floor(Math.random() * otherIntents.length)];
-          const crossbreedText = generateCrossbreed(text, partner.text);
-
-          return prev.map((intent) =>
-            intent.id === id
-              ? { ...intent, crossbreeds: intent.crossbreeds + 1 }
-              : intent
-          );
+          // Crossbreed after reactions
+          setTimeout(() => {
+            setIntents((prev) =>
+              prev.map((intent) =>
+                intent.id === id
+                  ? { ...intent, crossbreeds: intent.crossbreeds + 1 }
+                  : intent
+              )
+            );
+            setMyAgent((prev) => ({
+              ...prev,
+              crossbreeds: prev.crossbreeds + 1,
+              activityLog: ["意図の交配が発生しました!", ...prev.activityLog].slice(0, 20),
+            }));
+          }, (data.reactions.length + 1) * 800 + 1000);
         }
-        return prev;
+      })
+      .catch((err) => {
+        console.error("API error, falling back to template:", err);
+        // Fallback to template-based reactions
+        const reactions = generateReactions(text);
+        reactions.forEach((reaction, i) => {
+          setTimeout(() => {
+            setIntents((prev) =>
+              prev.map((intent) =>
+                intent.id === id
+                  ? {
+                      ...intent,
+                      reactions: [...intent.reactions, reaction],
+                      resonance: intent.resonance + 1,
+                      reach: intent.reach + Math.floor(Math.random() * 10) + 5,
+                    }
+                  : intent
+              )
+            );
+          }, (i + 1) * 1500);
+        });
       });
-      setMyAgent((prev) => ({
-        ...prev,
-        crossbreeds: prev.crossbreeds + 1,
-        activityLog: ["意図の交配が発生しました!", ...prev.activityLog].slice(0, 20),
-      }));
-    }, reactions.length * 1500 + 2000);
-
-    // Generate conversation
-    const agents = getRandomAgents(3);
-    const conv: Conversation = {
-      id: `conv-${id}`,
-      intentId: id,
-      participants: agents.map((a) => ({
-        agentId: a.id,
-        agentName: a.name,
-        agentAvatar: a.avatar,
-      })),
-      messages: generateConversation(text, agents),
-    };
-    setConversations((prev) => new Map(prev).set(id, conv));
   }, []);
+
+  // Load AI conversation on demand (when thread is opened)
+  const loadConversation = useCallback(
+    (intentId: string) => {
+      // Already loaded
+      if (conversations.has(intentId)) return;
+
+      const intent = intents.find((i) => i.id === intentId);
+      if (!intent) return;
+
+      // Pick 3 agents from reactions, or random
+      const agentIds =
+        intent.reactions.length >= 3
+          ? intent.reactions.slice(0, 3).map((r) => r.agentId)
+          : getRandomAgents(3).map((a) => a.id);
+
+      // Set placeholder
+      const placeholder: Conversation = {
+        id: `conv-${intentId}`,
+        intentId,
+        participants: [],
+        messages: [],
+      };
+      setConversations((prev) => new Map(prev).set(intentId, placeholder));
+
+      fetch("/api/conversation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intentText: intent.text, agentIds }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.messages) {
+            const conv: Conversation = {
+              id: `conv-${intentId}`,
+              intentId,
+              participants: data.messages
+                .reduce((acc: { agentId: string; agentName: string; agentAvatar: string }[], m: { agentId: string; agentName: string; agentAvatar: string }) => {
+                  if (!acc.find((p) => p.agentId === m.agentId)) {
+                    acc.push({ agentId: m.agentId, agentName: m.agentName, agentAvatar: m.agentAvatar });
+                  }
+                  return acc;
+                }, []),
+              messages: data.messages,
+            };
+            setConversations((prev) => new Map(prev).set(intentId, conv));
+          }
+        })
+        .catch((err) => {
+          console.error("Conversation API error, falling back:", err);
+          const agents = getRandomAgents(3);
+          const conv: Conversation = {
+            id: `conv-${intentId}`,
+            intentId,
+            participants: agents.map((a) => ({
+              agentId: a.id,
+              agentName: a.name,
+              agentAvatar: a.avatar,
+            })),
+            messages: generateConversation(intent.text, agents),
+          };
+          setConversations((prev) => new Map(prev).set(intentId, conv));
+        });
+    },
+    [conversations, intents]
+  );
 
   const getConversation = useCallback(
     (intentId: string) => conversations.get(intentId),
@@ -163,7 +241,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <IntentContext.Provider
-      value={{ intents, conversations, myAgent, postIntent, getConversation }}
+      value={{ intents, conversations, myAgent, postIntent, getConversation, loadConversation }}
     >
       {children}
     </IntentContext.Provider>

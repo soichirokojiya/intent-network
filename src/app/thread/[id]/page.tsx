@@ -19,14 +19,22 @@ export default function ThreadPage() {
   const params = useParams();
   const router = useRouter();
   const intentId = params.id as string;
-  const { intents, getConversation } = useIntents();
+  const { intents, getConversation, loadConversation } = useIntents();
   const [visibleMessages, setVisibleMessages] = useState(0);
 
   const intent = intents.find((i) => i.id === intentId);
   const conversation = getConversation(intentId);
 
+  // Load AI conversation on demand
   useEffect(() => {
-    if (!conversation) return;
+    if (intentId && intent) {
+      loadConversation(intentId);
+    }
+  }, [intentId, intent, loadConversation]);
+
+  useEffect(() => {
+    if (!conversation || conversation.messages.length === 0) return;
+    setVisibleMessages(0);
     const total = conversation.messages.length;
     let current = 0;
     const timer = setInterval(() => {
@@ -35,7 +43,7 @@ export default function ThreadPage() {
       if (current >= total) clearInterval(timer);
     }, 800);
     return () => clearInterval(timer);
-  }, [conversation]);
+  }, [conversation?.messages.length]);
 
   if (!intent) {
     return (
