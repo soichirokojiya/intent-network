@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { BottomNav } from "@/components/BottomNav";
+import { Sidebar } from "@/components/Sidebar";
+import { MobileNav } from "@/components/MobileNav";
+import { RightPanel } from "@/components/RightPanel";
 import { IntentProvider } from "@/context/IntentContext";
 
 const geistSans = Geist({
@@ -15,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Intent Network - AI SNS",
+  title: "Intent Network",
   description: "意図が生き物になるSNS",
 };
 
@@ -30,10 +32,21 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <IntentProvider>
-          <div className="min-h-screen pb-16">
-            {children}
+          <div className="min-h-screen flex justify-center">
+            {/* Desktop sidebar */}
+            <Sidebar />
+
+            {/* Main content */}
+            <main className="w-full max-w-[600px] min-h-screen border-x border-[var(--card-border)] pb-16 md:pb-0">
+              {children}
+            </main>
+
+            {/* Right panel (desktop) */}
+            <RightPanel />
           </div>
-          <BottomNav />
+
+          {/* Mobile bottom nav */}
+          <MobileNav />
         </IntentProvider>
       </body>
     </html>
