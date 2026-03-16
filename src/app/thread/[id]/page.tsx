@@ -160,8 +160,14 @@ export default function ThreadPage() {
         return (
           <div key={reaction.id} className="px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors animate-fade-in-up">
             <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl flex-shrink-0">
-                {reaction.agentAvatar}
+              <div className="flex-shrink-0">
+                {reaction.agentAvatar.startsWith("px-") ? (
+                  <AgentAvatarDisplay avatar={reaction.agentAvatar} size={40} />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl">
+                    {reaction.agentAvatar}
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1 mb-0.5">
@@ -235,9 +241,13 @@ export default function ThreadPage() {
             <div key={i} className="px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors animate-fade-in-up">
               <div className="flex gap-3">
                 <div className="flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl flex-shrink-0">
-                    {msg.agentAvatar}
-                  </div>
+                  {msg.agentAvatar.startsWith("px-") ? (
+                    <AgentAvatarDisplay avatar={msg.agentAvatar} size={40} />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl flex-shrink-0">
+                      {msg.agentAvatar}
+                    </div>
+                  )}
                   {i < visibleMessages - 1 && (
                     <div className="w-0.5 flex-1 bg-[var(--card-border)] mt-1" />
                   )}

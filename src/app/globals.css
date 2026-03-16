@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #000000;
-  --foreground: #e7e9ea;
+  --background: #ffffff;
+  --foreground: #0f1419;
   --accent: #1d9bf0;
   --accent-hover: #1a8cd8;
-  --accent-glow: rgba(29, 155, 240, 0.2);
-  --card-bg: #000000;
-  --card-border: #2f3336;
-  --muted: #71767b;
-  --hover-bg: rgba(231, 233, 234, 0.03);
-  --search-bg: #202327;
+  --accent-glow: rgba(29, 155, 240, 0.1);
+  --card-bg: #ffffff;
+  --card-border: #eff3f4;
+  --muted: #536471;
+  --hover-bg: rgba(0, 0, 0, 0.03);
+  --search-bg: #f7f9f9;
   --danger: #f4212e;
   --green: #00ba7c;
   --pink: #f91880;
@@ -63,7 +63,6 @@ body {
 .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
 .animate-ripple { animation: ripple 1.5s ease-out infinite; }
 
-/* Line clamp */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

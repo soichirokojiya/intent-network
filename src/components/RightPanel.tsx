@@ -1,12 +1,12 @@
 "use client";
 
 import { SEED_AGENTS } from "@/lib/agents";
-import { useIntents, MOOD_EMOJI, MOOD_MESSAGE } from "@/context/IntentContext";
+import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import Link from "next/link";
 
 export function RightPanel() {
-  const { intents, myAgentConfig, myAgentStats } = useIntents();
+  const { intents, myAgents } = useIntents();
 
   const trending = [...intents]
     .sort((a, b) => b.resonance - a.resonance)
@@ -29,54 +29,31 @@ export function RightPanel() {
         </div>
       </div>
 
-      {/* My Agent Card */}
-      {myAgentConfig.isConfigured && (
-        <Link href="/agent" className="block bg-[var(--search-bg)] rounded-2xl p-4 mb-4 hover:bg-[var(--hover-bg)] transition-colors">
-          <div className="flex items-center gap-3 mb-3">
-            <div className={`${myAgentStats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
-              <AgentAvatarDisplay avatar={myAgentConfig.avatar} size={36} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-extrabold">{myAgentConfig.name}</span>
-                <span className="text-sm">{MOOD_EMOJI[myAgentStats.mood]}</span>
-                <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white font-bold">
-                  Lv.{myAgentStats.level}
-                </span>
+      {/* My Agents */}
+      {myAgents.length > 0 && (
+        <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
+          <h2 className="text-xl font-extrabold mb-3">マイAgent</h2>
+          {myAgents.map((agent) => (
+            <Link href="/agent" key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors">
+              <div className={`${agent.stats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
+                <AgentAvatarDisplay avatar={agent.config.avatar} size={36} />
               </div>
-              <p className={`text-[12px] mt-0.5 ${
-                myAgentStats.mood === "dead" ? "text-[var(--danger)]" :
-                myAgentStats.mood === "sulking" ? "text-[var(--pink)]" :
-                myAgentStats.mood === "sick" ? "text-[var(--danger)]" :
-                myAgentStats.mood === "thriving" ? "text-[var(--green)]" :
-                "text-[var(--muted)]"
-              }`}>
-                {MOOD_MESSAGE[myAgentStats.mood]}
-              </p>
-            </div>
-          </div>
-
-          {/* Status bars */}
-          <div className="space-y-1.5">
-            {[
-              { label: "HP", value: myAgentStats.hp, color: myAgentStats.hp > 50 ? "#00ba7c" : myAgentStats.hp > 20 ? "#ffd700" : "#f4212e" },
-              { label: "空腹", value: 100 - myAgentStats.hunger, color: myAgentStats.hunger < 50 ? "#00ba7c" : myAgentStats.hunger < 80 ? "#ffd700" : "#f4212e" },
-              { label: "元気", value: myAgentStats.energy, color: myAgentStats.energy > 50 ? "#1d9bf0" : "#ffd700" },
-            ].map((bar) => (
-              <div key={bar.label} className="flex items-center gap-2">
-                <span className="text-[10px] text-[var(--muted)] w-6">{bar.label}</span>
-                <div className="flex-1 bg-[var(--background)] rounded-full h-1.5">
-                  <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${bar.value}%`, backgroundColor: bar.color }} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-bold truncate">{agent.config.name}</span>
+                  <span className="text-xs">{MOOD_EMOJI[agent.stats.mood]}</span>
+                  <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--accent)] text-white font-bold">Lv.{agent.stats.level}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex-1 bg-[var(--background)] rounded-full h-1">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${agent.stats.hp}%`, backgroundColor: agent.stats.hp > 50 ? "#00ba7c" : "#f4212e" }} />
+                  </div>
+                  <span className="text-[10px] text-[var(--muted)]">{agent.stats.totalReactions}発言</span>
                 </div>
               </div>
-            ))}
-          </div>
-
-          <div className="flex gap-4 mt-3 text-[12px]">
-            <span><strong>{myAgentStats.totalReactions}</strong> <span className="text-[var(--muted)]">発言</span></span>
-            <span><strong>{myAgentStats.influence}</strong> <span className="text-[var(--muted)]">影響力</span></span>
-          </div>
-        </Link>
+            </Link>
+          ))}
+        </div>
       )}
 
       {/* Network status */}

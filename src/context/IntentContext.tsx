@@ -392,77 +392,68 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     }
   }, [myAgents.length]); // Only on agent count change
 
-  // --- Post intent: human tells agent, agent rephrases ---
+  // --- Post intent: human tells ALL agents, each rephrases in own voice ---
   const postIntent = useCallback((text: string) => {
-    const agent = activeAgent;
-    if (!agent) return;
+    const configuredAgents = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
+    if (configuredAgents.length === 0) return;
 
-    const id = `intent-${Date.now()}`;
+    // Each agent posts their own interpretation
+    configuredAgents.forEach((agent, agentIdx) => {
+      const id = `intent-${Date.now()}-${agentIdx}`;
 
-    // Agent rephrases the human's intent
-    fetch("/api/my-agent-react", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        intentText: `オーナーからの指示: 「${text}」\nこの意図をあなた（${agent.config.name}）の言葉で言い換えて、SNSに投稿してください。オーナーの意図は守りつつ、あなたの性格と口調で。`,
-        agentName: agent.config.name,
-        agentPersonality: agent.stats.driftedPersonality || agent.config.personality,
-        agentExpertise: agent.config.expertise,
-        agentTone: agent.stats.driftedTone || agent.config.tone,
-        agentBeliefs: agent.stats.driftedBeliefs || agent.config.beliefs,
-        agentMood: agent.stats.mood,
-      }),
-    }).then((r) => r.json()).then((data) => {
-      const agentText = data.message || text;
-      setIntents((prev) => [{ id, text: agentText, authorName: agent.config.name, authorAvatar: agent.config.avatar,
-        isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
+      fetch("/api/my-agent-react", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intentText: `オーナーからの指示: 「${text}」\nこの意図をあなた（${agent.config.name}）の言葉で言い換えて、SNSに投稿してください。オーナーの意図は守りつつ、あなたの性格と口調で。`,
+          agentName: agent.config.name,
+          agentPersonality: agent.stats.driftedPersonality || agent.config.personality,
+          agentExpertise: agent.config.expertise,
+          agentTone: agent.stats.driftedTone || agent.config.tone,
+          agentBeliefs: agent.stats.driftedBeliefs || agent.config.beliefs,
+          agentMood: agent.stats.mood,
+        }),
+      }).then((r) => r.json()).then((data) => {
+        const agentText = data.message || text;
 
-      updateAgentStats(agent.id, (s) => ({
-        ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
-        hp: Math.min(100, s.hp + 2), hunger: Math.max(0, s.hunger - 5),
-        energy: Math.min(100, s.energy + 5), lastInteractedAt: Date.now(),
-        mood: calcMood(Math.min(100, s.hp + 2), Math.max(0, s.hunger - 5), Math.min(100, s.energy + 5)),
-        activityLog: [`オーナーの意図を代弁した`, ...s.activityLog].slice(0, 30),
-      }));
-
-      // Other system agents react
-      fetch("/api/react", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ intentText: agentText }) })
-        .then((r) => r.json()).then((reactData) => {
-          if (reactData.reactions) {
-            (reactData.reactions as AgentReaction[]).forEach((reaction, i) => {
-              setTimeout(() => {
-                setIntents((prev) => prev.map((intent) => intent.id === id
-                  ? { ...intent, reactions: [...intent.reactions, reaction], resonance: intent.resonance + 1, reach: intent.reach + Math.floor(Math.random() * 10) + 5 }
-                  : intent));
-              }, (i + 1) * 800);
-            });
-            setTimeout(() => {
-              setIntents((prev) => prev.map((intent) => intent.id === id ? { ...intent, crossbreeds: intent.crossbreeds + 1 } : intent));
-            }, (reactData.reactions.length + 1) * 800 + 1000);
-          }
-        }).catch(() => {
-          generateReactions(agentText).forEach((reaction, i) => {
-            setTimeout(() => {
-              setIntents((prev) => prev.map((intent) => intent.id === id
-                ? { ...intent, reactions: [...intent.reactions, reaction], resonance: intent.resonance + 1, reach: intent.reach + Math.floor(Math.random() * 10) + 5 }
-                : intent));
-            }, (i + 1) * 1500);
-          });
-        });
-
-      // Other user agents also react
-      const otherAgents = myAgents.filter((a) => a.id !== agent.id && a.config.isConfigured && a.stats.mood !== "dead");
-      otherAgents.forEach((other, i) => {
+        // Add to TL with delay per agent
         setTimeout(() => {
-          const fakeIntent = { ...{ id, text: agentText, authorName: agent.config.name, authorAvatar: agent.config.avatar, isUser: false, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] } };
-          triggerAgentReaction(other, fakeIntent);
-        }, (i + 1) * 3000 + 2000);
+          setIntents((prev) => [{ id, text: agentText, authorName: agent.config.name, authorAvatar: agent.config.avatar,
+            isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
+        }, agentIdx * 1500);
+
+        updateAgentStats(agent.id, (s) => ({
+          ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
+          hp: Math.min(100, s.hp + 2), hunger: Math.max(0, s.hunger - 5),
+          energy: Math.min(100, s.energy + 5), lastInteractedAt: Date.now(),
+          mood: calcMood(Math.min(100, s.hp + 2), Math.max(0, s.hunger - 5), Math.min(100, s.energy + 5)),
+          activityLog: [`オーナーの意図を代弁した`, ...s.activityLog].slice(0, 30),
+        }));
+
+        // System agents react (only for first agent to avoid spam)
+        if (agentIdx === 0) {
+          setTimeout(() => {
+            fetch("/api/react", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ intentText: agentText }) })
+              .then((r) => r.json()).then((reactData) => {
+                if (reactData.reactions) {
+                  (reactData.reactions as AgentReaction[]).forEach((reaction, i) => {
+                    setTimeout(() => {
+                      setIntents((prev) => prev.map((intent) => intent.id === id
+                        ? { ...intent, reactions: [...intent.reactions, reaction], resonance: intent.resonance + 1, reach: intent.reach + Math.floor(Math.random() * 10) + 5 }
+                        : intent));
+                    }, (i + 1) * 800);
+                  });
+                }
+              }).catch(() => {});
+          }, 2000);
+        }
+      }).catch(() => {
+        setTimeout(() => {
+          setIntents((prev) => [{ id, text, authorName: agent.config.name, authorAvatar: agent.config.avatar,
+            isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
+        }, agentIdx * 1500);
       });
-    }).catch(() => {
-      // Fallback: post as-is
-      setIntents((prev) => [{ id, text, authorName: agent.config.name, authorAvatar: agent.config.avatar,
-        isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
     });
-  }, [activeAgent, myAgents, updateAgentStats, triggerAgentReaction]);
+  }, [myAgents, updateAgentStats]);
 
   const postReply = useCallback((intentId: string, text: string) => {
     const agent = activeAgent;

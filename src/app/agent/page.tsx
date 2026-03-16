@@ -216,7 +216,6 @@ export default function AgentPage() {
 
         <div className="px-6 pb-4 space-y-2">
           <StatusBar label="HP" value={agent.stats.hp} max={100} color={agent.stats.hp > 50 ? "#00ba7c" : "#f4212e"} />
-          <StatusBar label="満腹" value={100 - agent.stats.hunger} max={100} color={agent.stats.hunger < 50 ? "#00ba7c" : "#f4212e"} />
           <StatusBar label="元気" value={agent.stats.energy} max={100} color={agent.stats.energy > 50 ? "#1d9bf0" : "#ffd700"} />
         </div>
 
@@ -225,7 +224,6 @@ export default function AgentPage() {
             <button onClick={() => reviveAgent(agent.id)} className="flex-1 bg-[var(--danger)] text-white font-bold py-2.5 rounded-full text-sm">復活させる</button>
           ) : (
             <>
-              <button onClick={() => feedAgent(agent.id)} className="flex-1 bg-[var(--green)] text-white font-bold py-2.5 rounded-full text-sm">ごはん 🍙</button>
               {!isActive && (
                 <button onClick={() => setActiveAgentId(agent.id)} className="flex-1 bg-[var(--accent)] text-white font-bold py-2.5 rounded-full text-sm">アクティブにする</button>
               )}

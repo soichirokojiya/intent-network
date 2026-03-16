@@ -82,8 +82,8 @@ export function IntentCard({ intent }: { intent: Intent }) {
                 <div className="flex items-center gap-1.5 mb-2">
                   <div className="flex -space-x-1.5">
                     {intent.reactions.filter((r) => !myAgentIds.has(r.agentId)).slice(0, 3).map((r) => (
-                      <span key={r.id} className="w-5 h-5 rounded-full bg-[var(--card-border)] flex items-center justify-center text-[10px] border border-[var(--background)]">
-                        {r.agentAvatar}
+                      <span key={r.id} className="w-5 h-5 rounded-full bg-[var(--card-border)] flex items-center justify-center text-[10px] border border-[var(--background)] overflow-hidden">
+                        {r.agentAvatar.startsWith("px-") ? <AgentAvatarDisplay avatar={r.agentAvatar} size={20} /> : r.agentAvatar}
                       </span>
                     ))}
                   </div>
