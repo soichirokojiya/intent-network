@@ -437,7 +437,9 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   const postIntent = useCallback((text: string) => {
     const id = `intent-${Date.now()}`;
-    setIntents((prev) => [{ id, text, authorName: "You", authorAvatar: "👤", isUser: true,
+    const authorName = myAgentConfig.isConfigured ? myAgentConfig.name : "You";
+    const authorAvatar = myAgentConfig.isConfigured ? myAgentConfig.avatar : "👤";
+    setIntents((prev) => [{ id, text, authorName, authorAvatar, isUser: true,
       timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
     onInteraction(10, "意図を放流した");
     fetch("/api/react", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ intentText: text }) })
@@ -470,7 +472,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   const postReply = useCallback((intentId: string, text: string) => {
     setIntents((prev) => prev.map((intent) => intent.id === intentId
-      ? { ...intent, replies: [...intent.replies, { id: `reply-${Date.now()}`, text, authorName: "You", authorAvatar: "👤", isHuman: true, timestamp: Date.now(), aiResponses: [] }], resonance: intent.resonance + 1 }
+      ? { ...intent, replies: [...intent.replies, { id: `reply-${Date.now()}`, text, authorName: myAgentConfig.isConfigured ? myAgentConfig.name : "You", authorAvatar: myAgentConfig.isConfigured ? myAgentConfig.avatar : "👤", isHuman: true, timestamp: Date.now(), aiResponses: [] }], resonance: intent.resonance + 1 }
       : intent));
     onInteraction(5, "リプライした");
     const intent = intents.find((i) => i.id === intentId);

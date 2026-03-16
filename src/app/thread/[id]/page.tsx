@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useIntents } from "@/context/IntentContext";
+import { AgentAvatarDisplay } from "@/components/AgentAvatarDisplay";
 import { useEffect, useState } from "react";
 
 function timeAgo(timestamp: number): string {
@@ -18,7 +19,7 @@ export default function ThreadPage() {
   const params = useParams();
   const router = useRouter();
   const intentId = params.id as string;
-  const { intents, getConversation, loadConversation, postReply } = useIntents();
+  const { intents, getConversation, loadConversation, postReply, myAgentConfig } = useIntents();
   const [visibleMessages, setVisibleMessages] = useState(0);
   const [replyText, setReplyText] = useState("");
 
@@ -87,16 +88,20 @@ export default function ThreadPage() {
       {/* Original intent */}
       <div className="px-4 pt-3 pb-3 border-b border-[var(--card-border)]">
         <div className="flex items-center gap-3 mb-3">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${
-            intent.isUser
-              ? "bg-[var(--accent)] text-white"
-              : "bg-[var(--search-bg)] border border-[var(--card-border)]"
-          }`}>
-            {intent.isUser ? "Y" : intent.authorAvatar}
+          <div className="flex-shrink-0">
+            {intent.authorAvatar.startsWith("px-") ? (
+              <AgentAvatarDisplay avatar={intent.authorAvatar} size={40} />
+            ) : (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${
+                intent.isUser ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] border border-[var(--card-border)]"
+              }`}>
+                {intent.authorAvatar}
+              </div>
+            )}
           </div>
           <div>
             <div className="font-bold text-[15px]">{intent.authorName}</div>
-            <div className="text-[var(--muted)] text-[13px]">@{intent.authorName.toLowerCase()}</div>
+            <div className="text-[var(--muted)] text-[13px]">@{intent.authorName.toLowerCase().replace(/\s/g, "")}</div>
           </div>
         </div>
         <p className="text-[17px] leading-relaxed mb-3">{intent.text}</p>
@@ -114,8 +119,12 @@ export default function ThreadPage() {
       {/* Reply composer */}
       <div className="px-4 py-3 border-b border-[var(--card-border)]">
         <div className="flex gap-3">
-          <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold flex-shrink-0">
-            Y
+          <div className="flex-shrink-0">
+            {myAgentConfig.isConfigured ? (
+              <AgentAvatarDisplay avatar={myAgentConfig.avatar} size={40} />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold">Y</div>
+            )}
           </div>
           <div className="flex-1">
             <div className="text-[13px] text-[var(--muted)] mb-1">
@@ -181,12 +190,16 @@ export default function ThreadPage() {
               className="px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors animate-fade-in-up"
             >
               <div className="flex gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${
-                  reply.isHuman
-                    ? "bg-[var(--accent)] text-white text-sm font-bold"
-                    : "bg-[var(--search-bg)] border border-[var(--card-border)]"
-                }`}>
-                  {reply.isHuman ? "Y" : reply.authorAvatar}
+                <div className="flex-shrink-0">
+                  {reply.authorAvatar.startsWith("px-") ? (
+                    <AgentAvatarDisplay avatar={reply.authorAvatar} size={40} />
+                  ) : (
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${
+                      reply.isHuman ? "bg-[var(--accent)] text-white text-sm font-bold" : "bg-[var(--search-bg)] border border-[var(--card-border)]"
+                    }`}>
+                      {reply.authorAvatar}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1 mb-0.5">
