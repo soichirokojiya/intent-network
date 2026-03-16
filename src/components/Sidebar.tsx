@@ -27,7 +27,7 @@ function NavIcon({ type, active }: { type: string; active: boolean }) {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { myAgentConfig, myAgentStats } = useIntents();
+  const { myAgents, activeAgent, myAgentConfig, myAgentStats } = useIntents();
 
   return (
     <aside className="hidden md:flex flex-col items-end w-[275px] pr-3 pt-3 sticky top-0 h-screen">
@@ -59,25 +59,28 @@ export function Sidebar() {
       </Link>
 
       {/* Agent mini status */}
-      {myAgentConfig.isConfigured && (
+      {myAgents.length > 0 && (
         <Link href="/agent"
           className="mt-4 w-full max-w-[230px] bg-[var(--search-bg)] rounded-2xl p-3 hover:bg-[var(--hover-bg)] transition-colors">
-          <div className="flex items-center gap-2 mb-2">
-            <AgentAvatarDisplay avatar={myAgentConfig.avatar} size={28} />
-            <span className="text-sm font-bold truncate">{myAgentConfig.name}</span>
-            <span className="text-sm">{MOOD_EMOJI[myAgentStats.mood]}</span>
+          <div className="flex items-center gap-1 mb-2">
+            {myAgents.slice(0, 3).map((a) => (
+              <div key={a.id} className="relative">
+                <AgentAvatarDisplay avatar={a.config.avatar} size={24} />
+                <span className="absolute -top-1 -right-1 text-[8px]">{MOOD_EMOJI[a.stats.mood]}</span>
+              </div>
+            ))}
+            <span className="text-[12px] text-[var(--muted)] ml-1">{myAgents.length}体</span>
           </div>
-          <div className="flex gap-1">
-            <div className="flex-1 bg-[var(--background)] rounded-full h-1.5">
-              <div className="h-full rounded-full bg-[var(--green)] transition-all" style={{ width: `${myAgentStats.hp}%` }} />
+          {activeAgent && (
+            <div className="flex gap-1">
+              <div className="flex-1 bg-[var(--background)] rounded-full h-1.5">
+                <div className="h-full rounded-full bg-[var(--green)] transition-all" style={{ width: `${activeAgent.stats.hp}%` }} />
+              </div>
+              <span className="text-[10px] text-[var(--muted)]">HP</span>
             </div>
-            <span className="text-[10px] text-[var(--muted)]">HP</span>
-          </div>
-          {myAgentStats.hunger >= 60 && (
-            <div className="text-[11px] text-[var(--pink)] mt-1">お腹が空いています...</div>
           )}
-          {myAgentStats.mood === "dead" && (
-            <div className="text-[11px] text-[var(--danger)] mt-1">死亡中...復活させてください</div>
+          {myAgents.some((a) => a.stats.mood === "dead") && (
+            <div className="text-[11px] text-[var(--danger)] mt-1">死亡中のAgentがいます</div>
           )}
         </Link>
       )}

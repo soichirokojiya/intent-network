@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Intent } from "@/lib/types";
 import { useEffect, useState } from "react";
+import { useIntents } from "@/context/IntentContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 
 function timeAgo(timestamp: number): string {
@@ -17,11 +18,13 @@ function timeAgo(timestamp: number): string {
 
 export function IntentCard({ intent }: { intent: Intent }) {
   const [, setTick] = useState(0);
+  const { myAgents } = useIntents();
 
   useEffect(() => {
     setTick((t) => t + 1);
   }, [intent.reactions.length]);
 
+  const myAgentIds = new Set(myAgents.map((a) => a.id));
   const isPixelAvatar = intent.authorAvatar.startsWith("px-");
 
   return (
@@ -62,34 +65,34 @@ export function IntentCard({ intent }: { intent: Intent }) {
             <p className="text-[15px] leading-relaxed mb-3 whitespace-pre-wrap">{intent.text}</p>
 
             {/* My agent's reaction (highlighted) */}
-            {intent.reactions.some((r) => r.agentId === "my-agent") && (
+            {intent.reactions.some((r) => myAgentIds.has(r.agentId)) && (
               <div className="bg-[var(--accent-glow)] rounded-2xl border border-[var(--accent)] p-3 mb-2 animate-fade-in">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-xs font-bold text-[var(--accent)]">あなたのAgentが発言</span>
                 </div>
                 <p className="text-[13px] leading-relaxed">
-                  {intent.reactions.find((r) => r.agentId === "my-agent")!.message}
+                  {intent.reactions.find((r) => myAgentIds.has(r.agentId))!.message}
                 </p>
               </div>
             )}
 
             {/* Other agent reactions preview */}
-            {intent.reactions.filter((r) => r.agentId !== "my-agent").length > 0 && (
+            {intent.reactions.filter((r) => !myAgentIds.has(r.agentId)).length > 0 && (
               <div className="bg-[var(--search-bg)] rounded-2xl border border-[var(--card-border)] p-3 mb-3 animate-fade-in">
                 <div className="flex items-center gap-1.5 mb-2">
                   <div className="flex -space-x-1.5">
-                    {intent.reactions.filter((r) => r.agentId !== "my-agent").slice(0, 3).map((r) => (
+                    {intent.reactions.filter((r) => !myAgentIds.has(r.agentId)).slice(0, 3).map((r) => (
                       <span key={r.id} className="w-5 h-5 rounded-full bg-[var(--card-border)] flex items-center justify-center text-[10px] border border-[var(--background)]">
                         {r.agentAvatar}
                       </span>
                     ))}
                   </div>
                   <span className="text-xs text-[var(--muted)]">
-                    {intent.reactions.filter((r) => r.agentId !== "my-agent").length}体のAgentが反応
+                    {intent.reactions.filter((r) => !myAgentIds.has(r.agentId)).length}体のAgentが反応
                   </span>
                 </div>
                 <p className="text-[13px] text-[var(--muted)] line-clamp-2 leading-relaxed">
-                  {(intent.reactions.find((r) => r.agentId !== "my-agent") || intent.reactions[0]).message}
+                  {(intent.reactions.find((r) => !myAgentIds.has(r.agentId)) || intent.reactions[0]).message}
                 </p>
               </div>
             )}
