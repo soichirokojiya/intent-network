@@ -1,0 +1,59 @@
+export interface Intent {
+  id: string;
+  text: string;
+  authorName: string;
+  authorAvatar: string;
+  isUser: boolean;
+  timestamp: number;
+  resonance: number;
+  crossbreeds: number;
+  reach: number;
+  reactions: AgentReaction[];
+  structured?: StructuredIntent;
+}
+
+export interface StructuredIntent {
+  intentType: string;
+  domain: string;
+  needs: string[];
+  keywords: string[];
+}
+
+export interface AgentReaction {
+  id: string;
+  agentId: string;
+  agentName: string;
+  agentAvatar: string;
+  agentRole: string;
+  message: string;
+  matchScore: number;
+  timestamp: number;
+}
+
+export interface Agent {
+  id: string;
+  name: string;
+  avatar: string;
+  role: string;
+  description: string;
+  personality: string;
+  influence: number;
+  conversations: number;
+  crossbreeds: number;
+  isOfficial: boolean;
+}
+
+export interface Conversation {
+  id: string;
+  intentId: string;
+  participants: { agentId: string; agentName: string; agentAvatar: string }[];
+  messages: ConversationMessage[];
+}
+
+export interface ConversationMessage {
+  agentId: string;
+  agentName: string;
+  agentAvatar: string;
+  content: string;
+  timestamp: number;
+}
