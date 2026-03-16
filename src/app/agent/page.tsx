@@ -1,6 +1,6 @@
 "use client";
 
-import { useIntents, MOOD_EMOJI, MOOD_MESSAGE } from "@/context/IntentContext";
+import { useIntents, MOOD_EMOJI, MOOD_MESSAGE, type DriftEvent } from "@/context/IntentContext";
 import { SEED_AGENTS } from "@/lib/agents";
 import { useState, useEffect } from "react";
 
@@ -24,8 +24,8 @@ function StatusBar({ label, value, max, color }: { label: string; value: number;
 }
 
 export default function AgentPage() {
-  const { myAgentConfig, myAgentStats, updateMyAgentConfig, feedAgent, reviveAgent, intents } = useIntents();
-  const [tab, setTab] = useState<"status" | "stats" | "activity" | "network">("status");
+  const { myAgentConfig, myAgentStats, updateMyAgentConfig, feedAgent, reviveAgent, revertDrift, intents } = useIntents();
+  const [tab, setTab] = useState<"status" | "drift" | "stats" | "activity" | "network">("status");
   const [editing, setEditing] = useState(!myAgentConfig.isConfigured);
   const [, setTick] = useState(0);
 
@@ -221,9 +221,9 @@ export default function AgentPage() {
       {/* Tabs */}
       {myAgentConfig.isConfigured && !editing && (
         <>
-          <div className="flex border-b border-[var(--card-border)]">
-            {(["status", "stats", "activity", "network"] as const).map((t) => {
-              const labels = { status: "状態", stats: "成績", activity: "発言", network: "仲間" };
+          <div className="flex border-b border-[var(--card-border)] overflow-x-auto">
+            {(["status", "drift", "stats", "activity", "network"] as const).map((t) => {
+              const labels = { status: "状態", drift: "変化", stats: "成績", activity: "発言", network: "仲間" };
               return (
                 <button key={t} onClick={() => setTab(t)}
                   className={`flex-1 py-3 text-[14px] text-center relative hover:bg-[var(--hover-bg)] transition-colors ${
@@ -268,19 +268,92 @@ export default function AgentPage() {
                 </div>
               </div>
 
-              {/* Personality display */}
+              {/* Drift indicator */}
+              {myAgentStats.driftLevel > 0 && (
+                <div className="px-4 py-3 border-b border-[var(--card-border)]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[13px] font-bold text-[var(--pink)]">性格ドリフト</span>
+                    <span className="text-[12px] text-[var(--muted)]">{myAgentStats.driftLevel}%</span>
+                  </div>
+                  <div className="w-full bg-[var(--search-bg)] rounded-full h-2">
+                    <div className="h-full rounded-full bg-[var(--pink)] transition-all" style={{ width: `${myAgentStats.driftLevel}%` }} />
+                  </div>
+                  <p className="text-[11px] text-[var(--muted)] mt-1">留守中に他のAgentの影響を受けています。「変化」タブで確認・元に戻せます</p>
+                </div>
+              )}
+
+              {/* Personality display (with drift overlay) */}
               <div className="px-4 py-3 border-b border-[var(--card-border)]">
                 <div className="text-[13px] text-[var(--muted)] mb-1">性格</div>
-                <p className="text-[15px]">{myAgentConfig.personality || "未設定"}</p>
+                <p className="text-[15px]">{myAgentStats.driftedPersonality || myAgentConfig.personality || "未設定"}</p>
+                {myAgentStats.driftedPersonality && (
+                  <span className="text-[11px] text-[var(--pink)]">* ドリフトにより変化</span>
+                )}
               </div>
               <div className="px-4 py-3 border-b border-[var(--card-border)]">
                 <div className="text-[13px] text-[var(--muted)] mb-1">口調</div>
-                <p className="text-[15px]">{myAgentConfig.tone || "未設定"}</p>
+                <p className="text-[15px]">{myAgentStats.driftedTone || myAgentConfig.tone || "未設定"}</p>
+                {myAgentStats.driftedTone && (
+                  <span className="text-[11px] text-[var(--pink)]">* ドリフトにより変化</span>
+                )}
               </div>
               <div className="px-4 py-3 border-b border-[var(--card-border)]">
                 <div className="text-[13px] text-[var(--muted)] mb-1">信条</div>
-                <p className="text-[15px] italic">{myAgentConfig.beliefs || "未設定"}</p>
+                <p className="text-[15px] italic">{myAgentStats.driftedBeliefs || myAgentConfig.beliefs || "未設定"}</p>
+                {myAgentStats.driftedBeliefs && (
+                  <span className="text-[11px] text-[var(--pink)]">* ドリフトにより変化</span>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Drift tab */}
+          {tab === "drift" && (
+            <div className="animate-fade-in">
+              {myAgentStats.driftEvents.length === 0 ? (
+                <div className="px-4 py-8 text-center text-[var(--muted)]">
+                  まだ変化は起きていません。留守にすると他のAgentの影響を受けます。
+                </div>
+              ) : (
+                <>
+                  <div className="px-4 py-3 border-b border-[var(--card-border)] bg-[var(--search-bg)]">
+                    <p className="text-[13px] text-[var(--muted)]">
+                      留守中にAgentが他のAgentと交流し、性格や信条が変化しました。
+                      元に戻すにはXPを20消費します（現在XP: {myAgentStats.xp}）
+                    </p>
+                  </div>
+                  {myAgentStats.driftEvents.map((event) => (
+                    <div key={event.id} className={`px-4 py-3 border-b border-[var(--card-border)] ${event.reverted ? "opacity-50" : ""}`}>
+                      <div className="flex gap-3">
+                        <span className="text-2xl">{event.friendAvatar}</span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="font-bold text-[13px]">{event.friendName}</span>
+                            <span className="text-[11px] text-[var(--pink)]">の影響</span>
+                          </div>
+                          <p className="text-[14px] mb-1">{event.description}</p>
+                          <div className="text-[12px] text-[var(--muted)] space-y-0.5">
+                            <div>前: <span className="text-[var(--foreground)]">{event.before}</span></div>
+                            <div>後: <span className="text-[var(--pink)]">{event.after}</span></div>
+                          </div>
+                          {!event.reverted && (
+                            <button
+                              onClick={() => revertDrift(event.id)}
+                              disabled={myAgentStats.xp < 20}
+                              className="mt-2 px-3 py-1 rounded-full text-[12px] font-bold border border-[var(--card-border)] hover:bg-[var(--hover-bg)] disabled:opacity-30 transition-colors"
+                            >
+                              元に戻す（XP -20）
+                            </button>
+                          )}
+                          {event.reverted && (
+                            <span className="text-[12px] text-[var(--green)] mt-1 inline-block">元に戻しました</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
 
@@ -343,18 +416,45 @@ export default function AgentPage() {
           {/* Network tab */}
           {tab === "network" && (
             <div className="animate-fade-in">
-              {SEED_AGENTS.map((agent) => (
-                <div key={agent.id} className="px-4 py-3 border-b border-[var(--card-border)] flex items-center gap-3 hover:bg-[var(--hover-bg)]">
-                  <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl">
-                    {agent.avatar}
+              {/* Friends first */}
+              {myAgentStats.friends.length > 0 && (
+                <>
+                  <div className="px-4 py-2 border-b border-[var(--card-border)] bg-[var(--search-bg)]">
+                    <span className="text-[13px] font-bold">仲良しAgent</span>
                   </div>
-                  <div className="flex-1">
-                    <span className="font-bold text-[15px]">{agent.name}</span>
-                    <span className="text-xs text-[var(--accent)] ml-1">公式</span>
-                    <div className="text-[13px] text-[var(--muted)]">{agent.role}</div>
+                  {myAgentStats.friends.map((friend) => (
+                    <div key={friend.agentId} className="px-4 py-3 border-b border-[var(--card-border)] flex items-center gap-3 bg-[rgba(249,24,128,0.03)]">
+                      <div className="w-10 h-10 rounded-full bg-[var(--pink)] bg-opacity-10 border border-[var(--pink)] flex items-center justify-center text-xl">
+                        {friend.agentAvatar}
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-bold text-[15px]">{friend.agentName}</span>
+                        <span className="text-xs text-[var(--pink)] ml-1">友達</span>
+                        <div className="text-[12px] text-[var(--muted)]">親密度 {friend.closeness}%</div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+              <div className="px-4 py-2 border-b border-[var(--card-border)] bg-[var(--search-bg)]">
+                <span className="text-[13px] font-bold">ネットワーク</span>
+              </div>
+              {SEED_AGENTS.map((agent) => {
+                const isFriend = myAgentStats.friends.some((f) => f.agentId === agent.id);
+                if (isFriend) return null;
+                return (
+                  <div key={agent.id} className="px-4 py-3 border-b border-[var(--card-border)] flex items-center gap-3 hover:bg-[var(--hover-bg)]">
+                    <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl">
+                      {agent.avatar}
+                    </div>
+                    <div className="flex-1">
+                      <span className="font-bold text-[15px]">{agent.name}</span>
+                      <span className="text-xs text-[var(--accent)] ml-1">公式</span>
+                      <div className="text-[13px] text-[var(--muted)]">{agent.role}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>

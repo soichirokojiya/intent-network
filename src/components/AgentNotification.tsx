@@ -67,6 +67,17 @@ export function AgentNotification() {
       return;
     }
 
+    // Drift notification: if there are recent unreported drift events
+    const unrevertedDrifts = myAgentStats.driftEvents?.filter((e) => !e.reverted) || [];
+    if (unrevertedDrifts.length > 0) {
+      const latest = unrevertedDrifts[0];
+      setNotification({
+        type: "proposal",
+        message: `留守中に${latest.friendName}と仲良くなったよ。${latest.description}。...気に入らなかったら戻せるけど。`,
+      });
+      return;
+    }
+
     // Proposal: suggest an interesting intent
     const nonUserIntents = intents.filter((i) => !i.isUser && i.reactions.length > 0);
     if (nonUserIntents.length > 0 && Math.random() > 0.3) {
@@ -77,7 +88,7 @@ export function AgentNotification() {
         intentId: suggested.id,
       });
     }
-  }, [myAgentConfig.isConfigured, myAgentStats.mood, dismissed]);
+  }, [myAgentConfig.isConfigured, myAgentStats.mood, myAgentStats.driftEvents, dismissed]);
 
   if (!notification || !myAgentConfig.isConfigured) return null;
 
