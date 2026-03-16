@@ -63,6 +63,16 @@ export interface Agent {
   isOfficial: boolean;
 }
 
+export interface AgentResponse {
+  agentId: string;
+  agentName: string;
+  agentAvatar: string;
+  toOwner: string;
+  toTimeline: string;
+  timestamp: number;
+  posted: boolean;
+}
+
 export interface Conversation {
   id: string;
   intentId: string;
