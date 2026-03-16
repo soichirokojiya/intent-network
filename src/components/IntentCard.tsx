@@ -68,9 +68,14 @@ export function IntentCard({ intent }: { intent: Intent }) {
                   <span className="text-xs text-[var(--muted)]">
                     {intent.reactions.length}体のAgentが反応
                   </span>
+                  {/* Stance indicators */}
+                  {intent.reactions.some((r) => r.stance === "oppose") && (
+                    <span className="text-[10px] text-[var(--danger)]">反論あり</span>
+                  )}
                 </div>
+                {/* Show the most provocative reaction first */}
                 <p className="text-[13px] text-[var(--muted)] line-clamp-2 leading-relaxed">
-                  {intent.reactions[0].message}
+                  {(intent.reactions.find((r) => r.stance === "oppose") || intent.reactions[0]).message}
                 </p>
               </div>
             )}

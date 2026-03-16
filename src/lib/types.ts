@@ -27,6 +27,7 @@ export interface AgentReaction {
   agentRole: string;
   message: string;
   matchScore: number;
+  stance?: "support" | "oppose" | "question";
   timestamp: number;
 }
 

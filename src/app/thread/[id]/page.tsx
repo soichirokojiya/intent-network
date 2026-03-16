@@ -128,7 +128,14 @@ export default function ThreadPage() {
       </div>
 
       {/* Agent reactions as replies */}
-      {intent.reactions.map((reaction) => (
+      {intent.reactions.map((reaction) => {
+        const stanceConfig = {
+          support: { label: "賛成", color: "text-[var(--green)]", bg: "bg-[rgba(0,186,124,0.1)]" },
+          oppose: { label: "反対", color: "text-[var(--danger)]", bg: "bg-[rgba(244,33,46,0.1)]" },
+          question: { label: "問い", color: "text-[var(--pink)]", bg: "bg-[rgba(249,24,128,0.1)]" },
+        };
+        const stance = stanceConfig[reaction.stance || "support"];
+        return (
         <div key={reaction.id} className="px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors animate-fade-in-up">
           <div className="flex gap-3">
             <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl flex-shrink-0">
@@ -140,7 +147,10 @@ export default function ThreadPage() {
                 <span className="text-xs px-1.5 py-0.5 rounded text-[var(--accent)] bg-[var(--accent-glow)]">
                   {reaction.agentRole}
                 </span>
-                <span className="text-[var(--muted)] text-[13px] ml-1">{reaction.matchScore}% match</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded ${stance.color} ${stance.bg}`}>
+                  {stance.label}
+                </span>
+                <span className="text-[var(--muted)] text-[13px] ml-1">{reaction.matchScore}%</span>
               </div>
               <div className="text-[13px] text-[var(--muted)] mb-1">
                 <span className="text-[var(--muted)]">返信先</span> <span className="text-[var(--accent)]">@{intent.authorName.toLowerCase()}</span>
@@ -149,7 +159,8 @@ export default function ThreadPage() {
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {/* Agent conversation section */}
       {conversation && (
