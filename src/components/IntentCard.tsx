@@ -54,28 +54,35 @@ export function IntentCard({ intent }: { intent: Intent }) {
             {/* Text */}
             <p className="text-[15px] leading-relaxed mb-3 whitespace-pre-wrap">{intent.text}</p>
 
-            {/* Agent reaction preview */}
-            {intent.reactions.length > 0 && (
+            {/* My agent's reaction (highlighted) */}
+            {intent.reactions.some((r) => r.agentId === "my-agent") && (
+              <div className="bg-[var(--accent-glow)] rounded-2xl border border-[var(--accent)] p-3 mb-2 animate-fade-in">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-xs font-bold text-[var(--accent)]">あなたのAgentが発言</span>
+                </div>
+                <p className="text-[13px] leading-relaxed">
+                  {intent.reactions.find((r) => r.agentId === "my-agent")!.message}
+                </p>
+              </div>
+            )}
+
+            {/* Other agent reactions preview */}
+            {intent.reactions.filter((r) => r.agentId !== "my-agent").length > 0 && (
               <div className="bg-[var(--search-bg)] rounded-2xl border border-[var(--card-border)] p-3 mb-3 animate-fade-in">
                 <div className="flex items-center gap-1.5 mb-2">
                   <div className="flex -space-x-1.5">
-                    {intent.reactions.slice(0, 3).map((r) => (
+                    {intent.reactions.filter((r) => r.agentId !== "my-agent").slice(0, 3).map((r) => (
                       <span key={r.id} className="w-5 h-5 rounded-full bg-[var(--card-border)] flex items-center justify-center text-[10px] border border-[var(--background)]">
                         {r.agentAvatar}
                       </span>
                     ))}
                   </div>
                   <span className="text-xs text-[var(--muted)]">
-                    {intent.reactions.length}体のAgentが反応
+                    {intent.reactions.filter((r) => r.agentId !== "my-agent").length}体のAgentが反応
                   </span>
-                  {/* Stance indicators */}
-                  {intent.reactions.some((r) => r.stance === "oppose") && (
-                    <span className="text-[10px] text-[var(--danger)]">反論あり</span>
-                  )}
                 </div>
-                {/* Show the most provocative reaction first */}
                 <p className="text-[13px] text-[var(--muted)] line-clamp-2 leading-relaxed">
-                  {(intent.reactions.find((r) => r.stance === "oppose") || intent.reactions[0]).message}
+                  {(intent.reactions.find((r) => r.agentId !== "my-agent") || intent.reactions[0]).message}
                 </p>
               </div>
             )}
