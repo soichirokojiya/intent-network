@@ -10,6 +10,7 @@ export default function BillingPage() {
   const [totalCharged, setTotalCharged] = useState<number | null>(null);
   const [totalInputTokens, setTotalInputTokens] = useState<number>(0);
   const [totalOutputTokens, setTotalOutputTokens] = useState<number>(0);
+  const [monthly, setMonthly] = useState<{ month: string; cost: number; inputTokens: number; outputTokens: number; count: number }[]>([]);
 
   useEffect(() => {
     const deviceId = localStorage.getItem("musu_device_id");
@@ -20,6 +21,7 @@ export default function BillingPage() {
         setTotalCharged(d.totalCharged);
         setTotalInputTokens(d.totalInputTokens || 0);
         setTotalOutputTokens(d.totalOutputTokens || 0);
+        setMonthly(d.monthly || []);
       });
     }
   }, []);
@@ -64,6 +66,25 @@ export default function BillingPage() {
             <span className="text-[14px] font-bold">{(totalInputTokens + totalOutputTokens).toLocaleString()} tok</span>
           </div>
         </div>
+
+        {/* Monthly breakdown */}
+        {monthly.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-[15px] font-bold">月別明細</h2>
+            {monthly.map((m) => (
+              <div key={m.month} className="p-3 bg-[var(--search-bg)] rounded-xl">
+                <div className="flex justify-between mb-2">
+                  <span className="text-[14px] font-bold">{m.month}</span>
+                  <span className="text-[14px] font-bold">¥{m.cost.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-[12px] text-[var(--muted)]">
+                  <span>{m.count}回のリクエスト</span>
+                  <span>{(m.inputTokens + m.outputTokens).toLocaleString()} tok</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Charge button */}
         <button

@@ -33,12 +33,34 @@ export async function GET(req: NextRequest) {
   const totalInputTokens = usageData?.reduce((sum, r) => sum + (r.input_tokens || 0), 0) || 0;
   const totalOutputTokens = usageData?.reduce((sum, r) => sum + (r.output_tokens || 0), 0) || 0;
 
+  // Monthly breakdown
+  const { data: monthlyData } = await supabase
+    .from("usage_log")
+    .select("cost_yen, input_tokens, output_tokens, created_at")
+    .eq("device_id", deviceId)
+    .order("created_at", { ascending: false });
+
+  const monthlyMap: Record<string, { cost: number; input: number; output: number; count: number }> = {};
+  (monthlyData || []).forEach((row) => {
+    const month = new Date(row.created_at).toISOString().slice(0, 7); // "2026-03"
+    if (!monthlyMap[month]) monthlyMap[month] = { cost: 0, input: 0, output: 0, count: 0 };
+    monthlyMap[month].cost += Number(row.cost_yen);
+    monthlyMap[month].input += row.input_tokens || 0;
+    monthlyMap[month].output += row.output_tokens || 0;
+    monthlyMap[month].count += 1;
+  });
+
+  const monthly = Object.entries(monthlyMap).map(([month, d]) => ({
+    month, cost: Math.round(d.cost * 100) / 100, inputTokens: d.input, outputTokens: d.output, count: d.count,
+  }));
+
   return NextResponse.json({
     balance: Number(data.balance_yen),
     totalUsed: Number(data.total_used_yen),
     totalCharged: Number(data.total_charged_yen),
     totalInputTokens,
     totalOutputTokens,
+    monthly,
   });
 }
 

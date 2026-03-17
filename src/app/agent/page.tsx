@@ -74,10 +74,15 @@ export default function AgentPage() {
       <>
         <header className="sticky top-0 z-40 bg-[var(--background)] bg-opacity-80 backdrop-blur-md border-b border-[var(--card-border)] px-4 py-3 flex items-center justify-between">
           <span className="text-lg font-bold">{t("agent.title")} ({myAgents.length}/{maxAgents})</span>
-          {myAgents.length < maxAgents && (
+          {myAgents.length < maxAgents ? (
             <button onClick={() => { setDraft(getDefaultDraft()); setCreating(true); }}
               className="px-4 py-1.5 bg-[var(--accent)] text-white font-bold text-sm rounded-full hover:bg-[var(--accent-hover)] transition-colors">
               {t("agent.new")}
+            </button>
+          ) : (
+            <button onClick={() => alert("4体目以降は有料プランで利用できます。（近日公開）")}
+              className="px-4 py-1.5 bg-[var(--search-bg)] border border-[var(--card-border)] text-[var(--muted)] font-bold text-sm rounded-full hover:bg-[var(--hover-bg)] transition-colors">
+              + 追加（有料）
             </button>
           )}
         </header>
