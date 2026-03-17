@@ -1,19 +1,20 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { usePathname } from "next/navigation";
 import { AuthScreen } from "./AuthScreen";
+import { useState, useEffect } from "react";
 
 const PUBLIC_PATHS = ["/terms", "/privacy"];
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const pathname = usePathname();
+  const [isPublic, setIsPublic] = useState(false);
 
-  // Allow public pages without auth
-  if (PUBLIC_PATHS.includes(pathname)) {
-    return <>{children}</>;
-  }
+  useEffect(() => {
+    setIsPublic(PUBLIC_PATHS.some((p) => window.location.pathname.startsWith(p)));
+  }, []);
+
+  if (isPublic) return <>{children}</>;
 
   if (loading) {
     return (
