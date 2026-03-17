@@ -302,21 +302,7 @@ export default function AgentPage() {
               }} className="flex-1 bg-[var(--search-bg)] border border-[var(--card-border)] text-[var(--foreground)] font-bold py-2.5 rounded-full text-sm hover:bg-[var(--hover-bg)]">
                 {t("agent.edit")}
               </button>
-              {isActive ? (
-                <button
-                  onClick={() => restAgent(agent.id)}
-                  disabled={agent.stats.restingUntil > Date.now()}
-                  className={`flex-1 font-bold py-2.5 rounded-full text-sm transition-colors ${
-                    agent.stats.restingUntil > Date.now()
-                      ? "bg-[var(--search-bg)] text-[var(--muted)] opacity-50 cursor-not-allowed"
-                      : "bg-[#6366f1] text-white hover:brightness-110"
-                  }`}
-                >
-                  {agent.stats.restingUntil > Date.now()
-                    ? `${t("agent.rest")} (${Math.ceil((agent.stats.restingUntil - Date.now()) / 60000)}m)`
-                    : t("agent.rest")}
-                </button>
-              ) : (
+              {!isActive && (
                 <button onClick={() => toggleActiveAgent(agent.id)} className="flex-1 bg-[var(--accent)] text-white font-bold py-2.5 rounded-full text-sm">{t("agent.setActive")}</button>
               )}
             </>
