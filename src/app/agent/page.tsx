@@ -17,7 +17,7 @@ const CORE_VALUE_KEYS = ["coreValue.efficiency", "coreValue.people", "coreValue.
 // No HP/energy bars - mood is expressed through behavior and emoji
 
 export default function AgentPage() {
-  const { myAgents, maxAgents, activeAgentId, setActiveAgentId, addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, encourageAgent, revertDrift, internalChats, intents } = useIntents();
+  const { myAgents, maxAgents, activeAgentId, setActiveAgentId, addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, restAgent, encourageAgent, revertDrift, internalChats, intents } = useIntents();
   const { t } = useLocale();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -291,7 +291,9 @@ export default function AgentPage() {
               }} className="flex-1 bg-[var(--search-bg)] border border-[var(--card-border)] text-[var(--foreground)] font-bold py-2.5 rounded-full text-sm hover:bg-[var(--hover-bg)]">
                 {t("agent.edit")}
               </button>
-              {!isActive && (
+              {isActive ? (
+                <button onClick={() => restAgent(agent.id)} className="flex-1 bg-[var(--search-bg)] border border-[var(--card-border)] text-[var(--muted)] font-bold py-2.5 rounded-full text-sm hover:bg-[var(--hover-bg)]">{t("agent.rest")}</button>
+              ) : (
                 <button onClick={() => setActiveAgentId(agent.id)} className="flex-1 bg-[var(--accent)] text-white font-bold py-2.5 rounded-full text-sm">{t("agent.setActive")}</button>
               )}
             </>

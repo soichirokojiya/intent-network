@@ -156,6 +156,7 @@ interface IntentContextType {
   updateAgentConfig: (agentId: string, config: Partial<MyAgentConfig>) => void;
   feedAgent: (agentId: string) => void;
   reviveAgent: (agentId: string) => void;
+  restAgent: (agentId: string) => void;
   encourageAgent: (agentId: string) => void;
   revertDrift: (driftId: string) => void;
   internalChats: InternalChat[];
@@ -280,6 +281,20 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const feedAgent = useCallback((_agentId: string) => {}, []);
+
+  // Rest agent: deactivate and boost recovery
+  const restAgent = useCallback((agentId: string) => {
+    setActiveAgentIdState((prev) => prev === agentId ? null : prev);
+    updateAgentStats(agentId, (s) => {
+      // Resting clears recent posts (no burnout) and refreshes interaction
+      const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), []);
+      return {
+        ...s, lastInteractedAt: Date.now(), mood,
+        recentPostTimestamps: [], // Clear burnout
+        activityLog: ["Resting...", ...s.activityLog].slice(0, 30),
+      };
+    });
+  }, [updateAgentStats]);
 
   // Encourage agent: a kind word improves mood by refreshing interaction timestamp
   const encourageAgent = useCallback((agentId: string) => {
@@ -571,7 +586,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     <IntentContext.Provider value={{
       intents, conversations,
       myAgents, maxAgents: getMaxAgents(myAgents), activeAgentId, activeAgent, setActiveAgentId,
-      addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, encourageAgent, revertDrift,
+      addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, restAgent, encourageAgent, revertDrift,
       internalChats, sendChatMessage,
       myAgentConfig, myAgentStats,
       agentResponses, clearAgentResponses,

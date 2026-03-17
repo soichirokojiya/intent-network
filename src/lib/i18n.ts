@@ -229,6 +229,9 @@ const translations: Record<string, Record<Locale, string>> = {
   "agent.edit": {
     en: "Edit", ja: "編集", zh: "编辑", es: "Editar", ko: "편집",
   },
+  "agent.rest": {
+    en: "Rest", ja: "休ませる", zh: "休息", es: "Descansar", ko: "쉬게 하기",
+  },
 
   // Mood messages
   "mood.thriving": {
