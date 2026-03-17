@@ -563,8 +563,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             fetch("/api/twitter/tweet", {
               method: "POST", headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ text: toTimeline }),
-            }).then((r) => r.json()).then((tweetData) => {
-              if (tweetData.success) {
+            }).then((r) => {
+              if (!r.ok) throw new Error("Tweet API error");
+              return r.json();
+            }).then((tweetData) => {
+              if (tweetData.success && tweetData.tweetId) {
                 setAgentResponses((prev) => prev.map((r) =>
                   r.agentId === agent.id ? { ...r, tweeted: true, tweetId: tweetData.tweetId } : r
                 ));
