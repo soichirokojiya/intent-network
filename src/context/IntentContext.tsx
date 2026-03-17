@@ -351,52 +351,22 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => {});
   }, [updateAgentStats]);
 
-  // --- Init ---
+  // --- Init (empty TL) ---
   useEffect(() => {
     if (initDone.current) return;
     initDone.current = true;
-    const seedIntents: Intent[] = SEED_INTENTS.map((seed, i) => ({
-      id: `intent-seed-${i}`, text: seed.text,
-      authorName: seed.authorName, authorAvatar: seed.authorAvatar,
-      isUser: false, timestamp: Date.now() - (SEED_INTENTS.length - i) * 3600000,
-      resonance: Math.floor(Math.random() * 50) + 10, crossbreeds: Math.floor(Math.random() * 5),
-      reach: Math.floor(Math.random() * 100) + 20,
-      reactions: generateReactions(seed.text), replies: [],
-    }));
-    setIntents(seedIntents);
-    const convMap = new Map<string, Conversation>();
-    seedIntents.forEach((intent) => {
-      const agents = getRandomAgents(3);
-      convMap.set(intent.id, { id: `conv-${intent.id}`, intentId: intent.id,
-        participants: agents.map((a) => ({ agentId: a.id, agentName: a.name, agentAvatar: a.avatar })),
-        messages: generateConversation(intent.text, agents) });
-    });
-    setConversations(convMap);
   }, []);
 
-  // Auto-react: all user agents react to seed intents
+  // Internal chat between user's agents
   useEffect(() => {
-    if (myAgents.filter((a) => a.config.isConfigured).length === 0) return;
     const configuredAgents = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
-    const nonUserIntents = intents.filter((i) => !i.isUser);
-
-    configuredAgents.forEach((agent, ai) => {
-      const unreacted = nonUserIntents.filter((i) => !i.reactions.some((r) => r.agentId === agent.id));
-      const toReact = unreacted.sort(() => Math.random() - 0.5).slice(0, 2);
-      toReact.forEach((intent, ii) => {
-        setTimeout(() => triggerAgentReaction(agent, intent), (ai * 3 + ii + 1) * 2000);
-      });
-    });
-
-    // Internal chat if 2+ agents
-    if (configuredAgents.length >= 2 && Math.random() > 0.5) {
-      const [a, b] = configuredAgents.sort(() => Math.random() - 0.5).slice(0, 2);
-      const randomIntent = nonUserIntents[Math.floor(Math.random() * nonUserIntents.length)];
-      if (randomIntent) {
-        setTimeout(() => triggerInternalChat(a, b, randomIntent.text), configuredAgents.length * 3000 + 3000);
-      }
-    }
-  }, [myAgents.length]); // Only on agent count change
+    if (configuredAgents.length < 2) return;
+    if (Math.random() > 0.5) return;
+    const [a, b] = configuredAgents.sort(() => Math.random() - 0.5).slice(0, 2);
+    const topics = intents.filter((i) => i.isUser);
+    const topic = topics.length > 0 ? topics[0].text : "最近のこと";
+    setTimeout(() => triggerInternalChat(a, b, topic), 5000);
+  }, [myAgents.length]);
 
   const clearAgentResponses = useCallback(() => setAgentResponses([]), []);
 
