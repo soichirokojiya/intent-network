@@ -261,7 +261,7 @@ export default function AgentPage() {
           </p>
           <div className="flex items-center gap-3 mt-2">
             <span className="text-[13px] px-2.5 py-0.5 rounded-full bg-[var(--accent)] text-white font-bold">Lv.{agent.stats.level}</span>
-            {isActive && <span className="text-[12px] text-[var(--green)] font-bold">Active</span>}
+            {isActive && <span className="text-[12px] text-[var(--green)] font-bold">{t("agent.active")}</span>}
           </div>
         </div>
 
@@ -289,7 +289,7 @@ export default function AgentPage() {
                 setSelectedAgentId(null);
                 setCreating(true);
               }} className="flex-1 bg-[var(--search-bg)] border border-[var(--card-border)] text-[var(--foreground)] font-bold py-2.5 rounded-full text-sm hover:bg-[var(--hover-bg)]">
-                Edit
+                {t("agent.edit")}
               </button>
               {!isActive && (
                 <button onClick={() => setActiveAgentId(agent.id)} className="flex-1 bg-[var(--accent)] text-white font-bold py-2.5 rounded-full text-sm">{t("agent.setActive")}</button>
@@ -313,8 +313,8 @@ export default function AgentPage() {
         </div>
 
         <div className="flex gap-5 px-4 pb-3 text-[14px]">
-          <span><strong>{agent.stats.totalReactions}</strong> <span className="text-[var(--muted)]">posts</span></span>
-          <span><strong>{agent.stats.influence}</strong> <span className="text-[var(--muted)]">influence</span></span>
+          <span><strong>{agent.stats.totalReactions}</strong> <span className="text-[var(--muted)]">{t("agent.posts")}</span></span>
+          <span><strong>{agent.stats.influence}</strong> <span className="text-[var(--muted)]">{t("agent.influence")}</span></span>
           <span><strong>{agent.stats.xp}</strong> <span className="text-[var(--muted)]">XP</span></span>
         </div>
       </div>
@@ -322,10 +322,10 @@ export default function AgentPage() {
       {/* Activity log */}
       <div>
         <div className="px-4 py-2 bg-[var(--search-bg)] border-b border-[var(--card-border)]">
-          <span className="text-[13px] font-bold">Activity Log</span>
+          <span className="text-[13px] font-bold">{t("agent.activityLog")}</span>
         </div>
         {agent.stats.activityLog.length === 0 ? (
-          <div className="px-4 py-6 text-center text-[var(--muted)] text-[13px]">No activity yet</div>
+          <div className="px-4 py-6 text-center text-[var(--muted)] text-[13px]">{t("agent.noActivity")}</div>
         ) : (
           agent.stats.activityLog.slice(0, 10).map((log, i) => (
             <div key={i} className="px-4 py-2 border-b border-[var(--card-border)] flex items-center gap-2 text-[13px] text-[var(--muted)]">

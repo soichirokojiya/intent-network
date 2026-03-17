@@ -226,6 +226,9 @@ const translations: Record<string, Record<Locale, string>> = {
   "label.official": {
     en: "Official", ja: "公式", zh: "官方", es: "Oficial", ko: "공식",
   },
+  "agent.edit": {
+    en: "Edit", ja: "編集", zh: "编辑", es: "Editar", ko: "편집",
+  },
 
   // Mood messages
   "mood.thriving": {

@@ -67,10 +67,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <Link href="/"
-        className="mt-4 w-full max-w-[230px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold text-base py-3 rounded-full text-center transition-colors">
-        {t("nav.send")}
-      </Link>
+      {/* Send button removed */}
 
       {/* Agent mini status */}
       {myAgents.length > 0 && (
