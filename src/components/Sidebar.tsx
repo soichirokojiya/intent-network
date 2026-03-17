@@ -32,7 +32,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col items-end w-[275px] pr-3 pt-3 sticky top-0 h-screen">
       <Link href="/" className="p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors mb-1">
-        <span className="text-2xl">⚡</span>
+        <span className="text-xl font-extrabold tracking-tight">musu</span>
       </Link>
 
       <nav className="flex flex-col w-full max-w-[230px] gap-0.5">
