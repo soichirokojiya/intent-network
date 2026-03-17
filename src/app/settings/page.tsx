@@ -7,11 +7,11 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, displayName: savedName, updateDisplayName } = useAuth();
   const { t } = useLocale();
   const router = useRouter();
 
-  const [displayName, setDisplayName] = useState(user?.email?.split("@")[0] || "");
+  const [displayName, setDisplayName] = useState(savedName || user?.email?.split("@")[0] || "");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,9 +24,9 @@ export default function SettingsPage() {
 
   const handleUpdateName = async () => {
     setLoading(true);
-    const { error } = await supabase.from("profiles").update({ display_name: displayName, updated_at: new Date().toISOString() }).eq("id", user?.id);
-    if (error) showErr(error.message);
-    else showMsg("OK");
+    const { error } = await updateDisplayName(displayName);
+    if (error) showErr(error);
+    else showMsg("保存しました");
     setLoading(false);
   };
 
