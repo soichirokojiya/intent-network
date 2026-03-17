@@ -187,6 +187,7 @@ interface IntentContextType {
   // Agent responses to owner
   agentResponses: AgentResponse[];
   clearAgentResponses: () => void;
+  approveTweet: (agentId: string) => void;
   // Actions
   postIntent: (text: string) => void;
   postReply: (intentId: string, text: string) => void;
@@ -465,6 +466,42 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   const clearAgentResponses = useCallback(() => setAgentResponses([]), []);
 
+  // Approve tweet: actually send to Twitter
+  const approveTweet = useCallback((agentId: string) => {
+    const resp = agentResponses.find((r) => r.agentId === agentId && r.tweetPending);
+    if (!resp) return;
+    const agent = myAgents.find((a) => a.id === agentId);
+    if (!agent) return;
+
+    // Mark as sending
+    setAgentResponses((prev) => prev.map((r) =>
+      r.agentId === agentId ? { ...r, tweetPending: false } : r
+    ));
+
+    fetch("/api/twitter/tweet", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: resp.toTimeline }),
+    }).then((r) => {
+      if (!r.ok) throw new Error("Tweet API error");
+      return r.json();
+    }).then((tweetData) => {
+      if (tweetData.success && tweetData.tweetId) {
+        setAgentResponses((prev) => prev.map((r) =>
+          r.agentId === agentId ? { ...r, tweeted: true, tweetId: tweetData.tweetId } : r
+        ));
+        updateAgentStats(agentId, (s) => ({
+          ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5),
+          activityLog: [{ message: "Posted to Twitter", type: "tweet" as const, targetId: tweetData.tweetId, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
+        }));
+      }
+    }).catch(() => {
+      // Revert to pending on failure
+      setAgentResponses((prev) => prev.map((r) =>
+        r.agentId === agentId ? { ...r, tweetPending: true } : r
+      ));
+    });
+  }, [agentResponses, myAgents, updateAgentStats]);
+
   // Send message to a chat thread (human joins conversation)
   const sendChatMessage = useCallback((chatId: string, text: string) => {
     // Add human message
@@ -546,7 +583,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         setTimeout(() => {
           setAgentResponses((prev) => [...prev, {
             agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
+            toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
           }]);
         }, agentIdx * 800);
 
@@ -558,25 +595,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           // Mark as posted
           setAgentResponses((prev) => prev.map((r) => r.agentId === agent.id ? { ...r, posted: true } : r));
 
-          // Tweet if Twitter is enabled for this agent
+          // Mark tweet as pending approval (if Twitter enabled)
           if (agent.config.twitterEnabled) {
-            fetch("/api/twitter/tweet", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text: toTimeline }),
-            }).then((r) => {
-              if (!r.ok) throw new Error("Tweet API error");
-              return r.json();
-            }).then((tweetData) => {
-              if (tweetData.success && tweetData.tweetId) {
-                setAgentResponses((prev) => prev.map((r) =>
-                  r.agentId === agent.id ? { ...r, tweeted: true, tweetId: tweetData.tweetId } : r
-                ));
-                updateAgentStats(agent.id, (s) => ({
-                  ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5),
-                  activityLog: [{ message: "Posted to Twitter", type: "tweet" as const, targetId: id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
-                }));
-              }
-            }).catch(() => {});
+            setAgentResponses((prev) => prev.map((r) =>
+              r.agentId === agent.id ? { ...r, tweetPending: true } : r
+            ));
           }
 
           updateAgentStats(agent.id, (s) => {
@@ -601,7 +624,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         setTimeout(() => {
           setAgentResponses((prev) => [...prev, {
             agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner: "Got it, posting now.", toTimeline: text, timestamp: Date.now(), posted: false, tweeted: false,
+            toOwner: "Got it, posting now.", toTimeline: text, timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
           }]);
         }, agentIdx * 800);
         const id = `intent-${Date.now()}-${agentIdx}`;
@@ -638,7 +661,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, restAgent, encourageAgent, revertDrift,
       internalChats, sendChatMessage,
       myAgentConfig, myAgentStats,
-      agentResponses, clearAgentResponses,
+      agentResponses, clearAgentResponses, approveTweet,
       postIntent, postReply,
       getConversation: useCallback((id: string) => conversations.get(id), [conversations]),
       loadConversation,

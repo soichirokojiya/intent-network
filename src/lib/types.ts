@@ -72,6 +72,7 @@ export interface AgentResponse {
   timestamp: number;
   posted: boolean;
   tweeted: boolean;
+  tweetPending: boolean;
   tweetId?: string;
 }
 
