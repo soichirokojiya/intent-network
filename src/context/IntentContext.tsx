@@ -37,6 +37,13 @@ export interface DriftEvent {
   reverted: boolean;
 }
 
+export interface ActivityLogEntry {
+  message: string;
+  type: "reaction" | "tweet" | "spoke" | "chat" | "rest" | "encourage" | "revert" | "other";
+  targetId?: string; // intentId, chatId, etc.
+  timestamp: number;
+}
+
 export interface MyAgentStats {
   mood: AgentMood;
   lastInteractedAt: number;
@@ -44,7 +51,7 @@ export interface MyAgentStats {
   level: number; xp: number; influence: number;
   totalReactions: number; resonanceReceived: number;
   crossbreeds: number; followers: number;
-  activityLog: string[]; bestQuote: string; todayActions: number;
+  activityLog: (string | ActivityLogEntry)[]; bestQuote: string; todayActions: number;
   // Biorhythm
   biorhythmSeed: number;
   recentPostTimestamps: number[];
@@ -300,7 +307,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       ...s,
       restingUntil: Date.now() + 3600000, // 1 hour rest
       recentPostTimestamps: [],
-      activityLog: ["Resting for 1 hour...", ...s.activityLog].slice(0, 30),
+      activityLog: [{ message: "Resting for 1 hour...", type: "rest" as const, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
     }));
   }, [updateAgentStats]);
 
@@ -315,7 +322,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         mood,
         xp: s.xp + 2,
         level: calcLevel(s.xp + 2),
-        activityLog: ["Got encouragement from owner", ...s.activityLog].slice(0, 30),
+        activityLog: [{ message: "Got encouragement from owner", type: "encourage" as const, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
       };
     });
   }, [updateAgentStats]);
@@ -329,7 +336,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       if (!event || event.reverted || s.xp < 20) return s;
       const updated = { ...s, xp: s.xp - 20, level: calcLevel(s.xp - 20), driftLevel: Math.max(0, s.driftLevel - 20),
         driftEvents: s.driftEvents.map((e) => e.id === driftId ? { ...e, reverted: true } : e),
-        activityLog: [`Reverted: ${event.description}`, ...s.activityLog].slice(0, 30) };
+        activityLog: [{ message: `Reverted: ${event.description}`, type: "revert" as const, timestamp: Date.now() }, ...s.activityLog].slice(0, 30) };
       if (event.type === "tone_shift") updated.driftedTone = "";
       if (event.type === "belief_shift") updated.driftedBeliefs = "";
       if (event.type === "personality_shift") updated.driftedPersonality = "";
@@ -374,7 +381,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           influence: Math.min(100, s.influence + 2), xp: s.xp + 5, level: calcLevel(s.xp + 5),
           lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
           bestQuote: data.message.length > (s.bestQuote?.length || 0) ? data.message : s.bestQuote,
-          activityLog: [`Reacted to "${intent.text.slice(0, 15)}..."`, ...s.activityLog].slice(0, 30),
+          activityLog: [{ message: `Reacted to "${intent.text.slice(0, 15)}..."`, type: "reaction" as const, targetId: intent.id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
         };
       });
     }).catch(() => {});
@@ -402,7 +409,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       [agentA.id, agentB.id].forEach((id) => {
         updateAgentStats(id, (s) => ({
           ...s, xp: s.xp + 3, level: calcLevel(s.xp + 3),
-          activityLog: [`Chatted with fellow Agent`, ...s.activityLog].slice(0, 30),
+          activityLog: [{ message: "Chatted with fellow Agent", type: "chat" as const, targetId: chat.id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
         }));
       });
     }).catch(() => {});
@@ -532,7 +539,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
                 ));
                 updateAgentStats(agent.id, (s) => ({
                   ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5),
-                  activityLog: [`Posted to Twitter`, ...s.activityLog].slice(0, 30),
+                  activityLog: [{ message: "Posted to Twitter", type: "tweet" as const, targetId: id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
                 }));
               }
             }).catch(() => {});
@@ -543,7 +550,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts, s.restingUntil);
             return { ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
               lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
-              activityLog: [`Spoke for owner`, ...s.activityLog].slice(0, 30),
+              activityLog: [{ message: "Spoke for owner", type: "spoke" as const, targetId: id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
             };
           });
 

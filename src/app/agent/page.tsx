@@ -1,12 +1,13 @@
 "use client";
 
-import { useIntents, MOOD_EMOJI, MOOD_MESSAGE, type MyAgent } from "@/context/IntentContext";
+import { useIntents, MOOD_EMOJI, MOOD_MESSAGE, type MyAgent, type ActivityLogEntry } from "@/context/IntentContext";
 import { SEED_AGENTS } from "@/lib/agents";
 import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "@/components/AgentAvatarDisplay";
 import { PixelAvatarGrid } from "@/components/PixelAvatar";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const TONE_KEYS = ["tone.polite", "tone.casual", "tone.sarcastic", "tone.kansai", "tone.deadpan", "tone.passionate", "tone.philosophical"];
@@ -19,6 +20,7 @@ const CORE_VALUE_KEYS = ["coreValue.efficiency", "coreValue.people", "coreValue.
 export default function AgentPage() {
   const { myAgents, maxAgents, activeAgentId, setActiveAgentId, addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, restAgent, encourageAgent, revertDrift, internalChats, intents } = useIntents();
   const { t } = useLocale();
+  const router = useRouter();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
@@ -329,12 +331,36 @@ export default function AgentPage() {
         {agent.stats.activityLog.length === 0 ? (
           <div className="px-4 py-6 text-center text-[var(--muted)] text-[13px]">{t("agent.noActivity")}</div>
         ) : (
-          agent.stats.activityLog.slice(0, 10).map((log, i) => (
-            <div key={i} className="px-4 py-2 border-b border-[var(--card-border)] flex items-center gap-2 text-[13px] text-[var(--muted)]">
-              <div className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full flex-shrink-0" />
-              {log}
-            </div>
-          ))
+          agent.stats.activityLog.slice(0, 10).map((log, i) => {
+            const entry: ActivityLogEntry | null = typeof log === "object" && log !== null ? log as ActivityLogEntry : null;
+            const message = entry ? entry.message : (log as string);
+            const hasLink = entry?.targetId && (entry.type === "reaction" || entry.type === "spoke" || entry.type === "tweet" || entry.type === "chat");
+            const href = entry?.targetId
+              ? entry.type === "chat" ? `/chat/${entry.targetId}` : `/thread/${entry.targetId}`
+              : undefined;
+
+            const LOG_ICON: Record<string, string> = {
+              reaction: "💬", tweet: "𝕏", spoke: "📢", chat: "🤝", rest: "😴", encourage: "👋", revert: "↩️",
+            };
+            const icon = entry ? (LOG_ICON[entry.type] || "•") : "•";
+
+            return hasLink && href ? (
+              <button
+                key={i}
+                onClick={() => router.push(href)}
+                className="w-full px-4 py-2.5 border-b border-[var(--card-border)] flex items-center gap-2 text-[13px] text-[var(--foreground)] hover:bg-[var(--hover-bg)] transition-colors text-left"
+              >
+                <span className="flex-shrink-0 text-[12px]">{icon}</span>
+                <span className="flex-1 truncate">{message}</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--muted)" strokeWidth="2" className="flex-shrink-0"><path d="M9 18l6-6-6-6" /></svg>
+              </button>
+            ) : (
+              <div key={i} className="px-4 py-2.5 border-b border-[var(--card-border)] flex items-center gap-2 text-[13px] text-[var(--muted)]">
+                <span className="flex-shrink-0 text-[12px]">{icon}</span>
+                {message}
+              </div>
+            );
+          })
         )}
       </div>
 
