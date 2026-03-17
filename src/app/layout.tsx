@@ -6,6 +6,8 @@ import { MobileNav } from "@/components/MobileNav";
 import { RightPanel } from "@/components/RightPanel";
 import { IntentProvider } from "@/context/IntentContext";
 import { LocaleProvider } from "@/context/LocaleContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { AuthGate } from "@/components/AuthGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,25 +37,22 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <AuthProvider>
         <LocaleProvider>
+        <AuthGate>
         <IntentProvider>
           <div className="min-h-screen flex justify-center">
-            {/* Desktop sidebar */}
             <Sidebar />
-
-            {/* Main content */}
             <main className="w-full max-w-[600px] min-h-screen border-x border-[var(--card-border)] pb-16 md:pb-0">
               {children}
             </main>
-
-            {/* Right panel (desktop) */}
             <RightPanel />
           </div>
-
-          {/* Mobile bottom nav */}
           <MobileNav />
         </IntentProvider>
+        </AuthGate>
         </LocaleProvider>
+        </AuthProvider>
       </body>
     </html>
   );

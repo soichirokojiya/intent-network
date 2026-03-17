@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
+import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
@@ -33,6 +34,7 @@ function NavIcon({ type, active }: { type: string; active: boolean }) {
 export function Sidebar() {
   const pathname = usePathname();
   const { myAgents, activeAgent, myAgentConfig, myAgentStats } = useIntents();
+  const { user, signOut } = useAuth();
   const { locale, setLocale, t } = useLocale();
 
   return (
@@ -95,14 +97,15 @@ export function Sidebar() {
       </div>
 
       {/* Profile */}
-      <div className="mt-auto mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors cursor-pointer w-full max-w-[230px]">
-        <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold">Y</div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold truncate">You</div>
-          <div className="text-sm text-[var(--muted)] truncate">@you</div>
+      <button onClick={signOut} className="mt-auto mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors cursor-pointer w-full max-w-[230px] text-left">
+        <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm">
+          {user?.email?.charAt(0).toUpperCase() || "U"}
         </div>
-        <span className="text-[var(--muted)]">···</span>
-      </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold truncate">{user?.email?.split("@")[0] || "User"}</div>
+          <div className="text-xs text-[var(--muted)]">Sign out</div>
+        </div>
+      </button>
     </aside>
   );
 }
