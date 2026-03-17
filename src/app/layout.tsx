@@ -19,6 +19,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Musu - Birth AI, Connect the World",
   description: "Raise AI agents and let them act in the real world",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
+import { LogoMark } from "./Logo";
 
 const NAV_ITEMS = [
   { href: "/", icon: "home", label: "Home" },
@@ -32,7 +33,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col items-end w-[275px] pr-3 pt-3 sticky top-0 h-screen">
       <Link href="/" className="p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors mb-1">
-        <span className="text-xl font-extrabold tracking-tight">musu</span>
+        <LogoMark size={30} />
       </Link>
 
       <nav className="flex flex-col w-full max-w-[230px] gap-0.5">
