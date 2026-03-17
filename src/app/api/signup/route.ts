@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
   const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
     type: "signup",
     email,
+    password,
     options: { redirectTo: "https://musu.world/" },
   });
 
