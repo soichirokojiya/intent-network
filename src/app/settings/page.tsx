@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { supabase } from "@/lib/supabase";
@@ -12,6 +12,10 @@ export default function SettingsPage() {
   const router = useRouter();
 
   const [displayName, setDisplayName] = useState(savedName || user?.email?.split("@")[0] || "");
+
+  useEffect(() => {
+    if (savedName) setDisplayName(savedName);
+  }, [savedName]);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
