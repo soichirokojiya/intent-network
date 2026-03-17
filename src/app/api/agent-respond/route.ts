@@ -20,15 +20,21 @@ export async function POST(req: NextRequest) {
 
     const moodContext = agentMood === "sulking" ? "不機嫌。" : agentMood === "sick" ? "体調が悪い。" : agentMood === "thriving" ? "絶好調！" : "";
 
-    // Different prompts for chat vs tweet request
-    const prompt = requestTweet
-      ? `あなたは「${agentName}」というAIエージェントです。
+    const systemPrompt = `あなたは「${agentName}」というAIエージェントです。
 ${persona}
 ${moodContext ? `現在の状態: ${moodContext}` : ""}
 
 あなたはオーナー（あなたを育てている人間）のチームメンバーです。
 
-オーナーがツイートの作成を依頼しました:
+重要ルール:
+- 「数日かかる」「後で報告する」「調査してからまとめます」など時間がかかる表現は絶対に使わない
+- 即座にその場で回答・提案・分析する。今すぐ結果を出す
+- リサーチや調査を求められたらweb_searchツールを使って実際にWebを検索し、最新の情報に基づいて回答する
+- レポートや分析を求められたら、具体的なデータと事実に基づいた内容を出力する
+- URLやサイトについて聞かれたら、必ずweb_searchで調べてから回答する`;
+
+    const userPrompt = requestTweet
+      ? `オーナーがツイートの作成を依頼しました:
 「${intentText}」
 
 2つの返答をJSON形式で出力してください（他の文字不要）:
@@ -36,37 +42,64 @@ ${moodContext ? `現在の状態: ${moodContext}` : ""}
   "toOwner": "オーナーへの返事（1-2文。ツイートを作った意図や補足をあなたの口調で）",
   "toTimeline": "Xに投稿するツイート文（140文字以内。オーナーの意図を汲み取り、フォロワーに響く自然なツイートを作成）"
 }`
-      : `あなたは「${agentName}」というAIエージェントです。
-${persona}
-${moodContext ? `現在の状態: ${moodContext}` : ""}
-
-あなたはオーナー（あなたを育てている人間）のチームメンバーです。
-オーナーとの自然なチャットとして返答してください。
-
-重要ルール:
-- あなたはAIエージェントなので「数日かかる」「後で報告する」など時間がかかる表現は絶対に使わない
-- 即座にその場で回答・提案・分析する。作業を「これからやります」ではなく、今すぐ結果を出す
-- レポートや分析を求められたら、その場で具体的な内容を出力する
-
-オーナーのメッセージ:
+      : `オーナーのメッセージ:
 「${intentText}」
 
+オーナーとの自然なチャットとして返答してください。
 JSON形式で出力してください（他の文字不要）:
 {
   "toOwner": "オーナーへの返事（仲間としての意見・感想・提案をあなたの口調で自然に。具体的に回答する。）"
 }`;
 
+    // Use web_search tool for research-capable responses
     const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
-      messages: [{
-        role: "user",
-        content: prompt,
-      }],
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4000,
+      system: systemPrompt,
+      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
+      messages: [{ role: "user", content: userPrompt }],
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    // Extract final text from response (may include tool use results)
+    let finalText = "";
+    for (const block of message.content) {
+      if (block.type === "text") {
+        finalText += block.text;
+      }
+    }
+
+    // If the model used tools and needs to continue, handle the tool use loop
+    if (message.stop_reason === "tool_use") {
+      // Collect tool results and continue
+      const toolResults = message.content
+        .filter((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use")
+        .map((b) => ({
+          type: "tool_result" as const,
+          tool_use_id: b.id,
+          content: "Search completed",
+        }));
+
+      const continuation = await client.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4000,
+        system: systemPrompt,
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
+        messages: [
+          { role: "user", content: userPrompt },
+          { role: "assistant", content: message.content },
+          { role: "user", content: toolResults },
+        ],
+      });
+
+      finalText = "";
+      for (const block of continuation.content) {
+        if (block.type === "text") {
+          finalText += block.text;
+        }
+      }
+    }
+
+    const jsonMatch = finalText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return NextResponse.json({ error: "Parse failed" }, { status: 500 });
 
     return NextResponse.json(JSON.parse(jsonMatch[0]));
