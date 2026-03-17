@@ -164,18 +164,29 @@ export const DEFAULT_AGENT_PRESETS = [
   { name: "Ren", role: "オーケストレーター", isOrchestrator: true, character: "論理的", speakingStyle: "丁寧語", coreValue: "効率第一" },
   { name: "Kai", role: "マーケティング", character: "創造的", speakingStyle: "タメ口", coreValue: "人が第一" },
   { name: "Sora", role: "リサーチ", character: "分析的", speakingStyle: "丁寧語", coreValue: "データドリブン" },
-  { name: "Hana", role: "クリエイティブ" },
-  { name: "Leo", role: "ファイナンス" },
-  { name: "Mio", role: "オペレーション" },
-  { name: "Shin", role: "ストラテジー" },
-  { name: "Aya", role: "デベロッパー" },
-  { name: "Noa", role: "デザイナー" },
-  { name: "Rui", role: "データサイエンス" },
+  { name: "Hana", role: "クリエイティブ", character: "創造的", speakingStyle: "熱血", coreValue: "革新こそ全て" },
+  { name: "Leo", role: "ファイナンス", character: "慎重", speakingStyle: "丁寧語", coreValue: "効率第一" },
+  { name: "Mio", role: "オペレーション", character: "論理的", speakingStyle: "丁寧語", coreValue: "効率第一" },
+  { name: "Shin", role: "ストラテジー", character: "大胆", speakingStyle: "哲学的", coreValue: "計画より行動" },
+  { name: "Aya", role: "デベロッパー", character: "論理的", speakingStyle: "タメ口", coreValue: "速度より品質" },
+  { name: "Noa", role: "デザイナー", character: "創造的", speakingStyle: "カジュアル", coreValue: "人が第一" },
+  { name: "Rui", role: "データサイエンス", character: "分析的", speakingStyle: "淡々と", coreValue: "データドリブン" },
+  { name: "Yuki", role: "カスタマーサポート", character: "共感的", speakingStyle: "丁寧語", coreValue: "人が第一" },
+  { name: "Tao", role: "法務", character: "慎重", speakingStyle: "丁寧語", coreValue: "速度より品質" },
+  { name: "Jun", role: "人事", character: "共感的", speakingStyle: "カジュアル", coreValue: "人が第一" },
+  { name: "Mei", role: "広報", character: "楽観的", speakingStyle: "熱血", coreValue: "革新こそ全て" },
+  { name: "Rio", role: "営業", character: "大胆", speakingStyle: "タメ口", coreValue: "計画より行動" },
+  { name: "Aki", role: "企画", character: "創造的", speakingStyle: "哲学的", coreValue: "革新こそ全て" },
+  { name: "Zen", role: "品質管理", character: "懐疑的", speakingStyle: "淡々と", coreValue: "速度より品質" },
+  { name: "Kei", role: "物流", character: "論理的", speakingStyle: "丁寧語", coreValue: "効率第一" },
+  { name: "Emi", role: "教育", character: "共感的", speakingStyle: "丁寧語", coreValue: "人が第一" },
+  { name: "Dan", role: "セキュリティ", character: "慎重", speakingStyle: "淡々と", coreValue: "速度より品質" },
 ];
 
 // Max agents based on highest agent level
 function getMaxAgents(_agents: MyAgent[]): number {
-  return 3;
+  // TODO: 有料ユーザーは無制限、無料は3体
+  return 999;
 }
 
 function defaultStats(): MyAgentStats {
@@ -273,7 +284,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           } catch {}
         } else {
           // No agents anywhere → create default 3 agents from presets
-          const defaults: MyAgent[] = DEFAULT_AGENT_PRESETS.slice(0, 3).map((preset, i) => ({
+          const defaults: MyAgent[] = DEFAULT_AGENT_PRESETS.slice(0, 5).map((preset, i) => ({
             id: `agent-default-${i}-${Date.now()}`,
             config: {
               ...EMPTY_CONFIG,

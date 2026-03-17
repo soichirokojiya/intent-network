@@ -38,11 +38,13 @@ export default function AgentPage() {
   useEffect(() => { const ti = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(ti); }, []);
 
   const getDefaultDraft = () => {
-    const preset = DEFAULT_AGENT_PRESETS[myAgents.length] || null;
+    const idx = myAgents.length;
+    const preset = DEFAULT_AGENT_PRESETS[idx] || null;
+    const fallbackName = preset ? preset.name : `Agent-${idx + 1}`;
     return {
-      name: preset?.name || "", avatar: "px-new-0", tone: "", beliefs: "",
-      expertise: preset?.role || "", personality: "", role: preset?.role || "",
-      character: "", speakingStyle: "", coreValue: "",
+      name: fallbackName, avatar: "px-new-0", tone: preset?.speakingStyle || "", beliefs: preset?.coreValue || "",
+      expertise: preset?.role || "カスタム", personality: preset?.character || "", role: preset?.role || "カスタム",
+      character: preset?.character || "", speakingStyle: preset?.speakingStyle || "", coreValue: preset?.coreValue || "",
       twitterEnabled: false, twitterUsername: "",
       isOrchestrator: preset?.isOrchestrator || false,
     };
