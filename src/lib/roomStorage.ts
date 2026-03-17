@@ -24,7 +24,11 @@ export async function loadRooms(): Promise<Room[]> {
     .eq("device_id", deviceId)
     .order("created_at", { ascending: true });
 
-  if (error || !data) return [];
+  if (error || !data || data.length === 0) {
+    // Create default room on first load
+    const defaultRoom = await createRoom("General");
+    return [defaultRoom];
+  }
   return data.map((row) => ({
     id: row.id,
     name: row.name,
@@ -41,6 +45,10 @@ export async function createRoom(name: string): Promise<Room> {
     name,
   });
   return { id, name, createdAt: Date.now() };
+}
+
+export async function renameRoom(roomId: string, name: string): Promise<void> {
+  await supabase.from("project_rooms").update({ name }).eq("id", roomId);
 }
 
 export async function deleteRoom(roomId: string): Promise<void> {

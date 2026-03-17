@@ -35,7 +35,7 @@ const translations: Record<string, Record<Locale, string>> = {
 
   // Navigation
   "nav.home": {
-    en: "Chat", ja: "チャット", zh: "聊天", es: "Chat", ko: "채팅",
+    en: "Projects", ja: "プロジェクト", zh: "项目", es: "Proyectos", ko: "프로젝트",
   },
   "nav.myAgents": {
     en: "Agents", ja: "エージェント", zh: "Agent", es: "Agentes", ko: "에이전트",

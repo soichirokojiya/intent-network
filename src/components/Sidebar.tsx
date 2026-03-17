@@ -8,7 +8,8 @@ import { useLocale } from "@/context/LocaleContext";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { useState, useEffect } from "react";
-import { loadRooms, createRoom, type Room } from "@/lib/roomStorage";
+import { loadRooms, createRoom, deleteRoom, renameRoom, type Room } from "@/lib/roomStorage";
+import { useRouter } from "next/navigation";
 
 function NavIcon({ type, active }: { type: string; active: boolean }) {
   if (type === "home") {
@@ -46,9 +47,26 @@ export function Sidebar() {
   const { myAgents, activeAgent, myAgentConfig, myAgentStats } = useIntents();
   const { user, signOut } = useAuth();
   const { locale, setLocale, t } = useLocale();
+  const router = useRouter();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showNewRoom, setShowNewRoom] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [editRoomName, setEditRoomName] = useState("");
+
+  const handleDeleteRoom = async (roomId: string, roomName: string) => {
+    if (!confirm(`「${roomName}」を削除しますか？チャット履歴も全て削除されます。`)) return;
+    await deleteRoom(roomId);
+    setRooms((prev) => prev.filter((r) => r.id !== roomId));
+    if (currentRoomId === roomId) router.push("/");
+  };
+
+  const handleRenameRoom = async (roomId: string) => {
+    if (!editRoomName.trim()) return;
+    await renameRoom(roomId, editRoomName.trim());
+    setRooms((prev) => prev.map((r) => r.id === roomId ? { ...r, name: editRoomName.trim() } : r));
+    setEditingRoomId(null);
+  };
 
   useEffect(() => {
     loadRooms().then(setRooms);
@@ -67,25 +85,58 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col items-end w-[275px] pr-3 pt-8 sticky top-0 h-screen">
       <nav className="flex flex-col w-full max-w-[230px] gap-0.5 mt-4">
-        <Link href="/"
-          className={`flex items-center gap-4 px-3 py-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>
-          <NavIcon type="home" active={pathname === "/" && !currentRoomId} />
-          <span className={`text-xl ${pathname === "/" && !currentRoomId ? "font-bold" : ""}`}>
-            {t("nav.home")}
-          </span>
-        </Link>
+        {/* Project label */}
+        <div className="px-3 pt-4 pb-1 flex items-center gap-2">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--muted)" strokeWidth="1.5">
+            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+          </svg>
+          <span className="text-[13px] text-[var(--muted)] font-bold">プロジェクト</span>
+        </div>
 
         {/* Project Rooms */}
         {rooms.map((room) => {
           const isActive = pathname === "/" && currentRoomId === room.id;
+          if (editingRoomId === room.id) {
+            return (
+              <div key={room.id} className="px-3 py-1.5">
+                <input
+                  value={editRoomName}
+                  onChange={(e) => setEditRoomName(e.target.value)}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleRenameRoom(room.id);
+                    if (e.key === "Escape") setEditingRoomId(null);
+                  }}
+                  onBlur={() => handleRenameRoom(room.id)}
+                  className="w-full bg-[var(--search-bg)] border border-[var(--accent)] rounded-lg px-3 py-2 text-[13px] outline-none"
+                />
+              </div>
+            );
+          }
           return (
-            <Link key={room.id} href={`/?room=${room.id}`}
-              className="flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors">
-              <NavIcon type="room" active={isActive} />
-              <span className={`text-[15px] truncate ${isActive ? "font-bold" : ""}`}>
-                {room.name}
-              </span>
-            </Link>
+            <div key={room.id} className="flex items-center group">
+              <Link href={`/?room=${room.id}`}
+                className="flex-1 flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors">
+                <NavIcon type="room" active={isActive} />
+                <span className={`text-[15px] truncate ${isActive ? "font-bold" : ""}`}>
+                  {room.name}
+                </span>
+              </Link>
+              <button
+                onClick={() => { setEditingRoomId(room.id); setEditRoomName(room.name); }}
+                className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted)] hover:text-[var(--foreground)] transition-all"
+                title="編集"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+              </button>
+              <button
+                onClick={() => handleDeleteRoom(room.id, room.name)}
+                className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted)] hover:text-[var(--danger)] transition-all"
+                title="削除"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
           );
         })}
 
