@@ -46,8 +46,9 @@ export interface MyAgentStats {
   crossbreeds: number; followers: number;
   activityLog: string[]; bestQuote: string; todayActions: number;
   // Biorhythm
-  biorhythmSeed: number;       // Random seed per agent for wave offset
-  recentPostTimestamps: number[]; // For burnout detection
+  biorhythmSeed: number;
+  recentPostTimestamps: number[];
+  restingUntil: number;        // Timestamp when rest ends (0 = not resting)
   friends: { agentId: string; agentName: string; agentAvatar: string; closeness: number }[];
   driftEvents: DriftEvent[];
   driftedTone: string; driftedBeliefs: string; driftedPersonality: string;
@@ -81,7 +82,7 @@ const MOOD_MESSAGE: Record<AgentMood, string> = {
 export { MOOD_EMOJI, MOOD_MESSAGE };
 
 // Biorhythm: mood is determined by time-of-day cycle + random wave + interaction
-function calcBiorhythm(seed: number, lastInteractedAt: number, recentPosts: number[]): { mood: AgentMood; energy: number } {
+function calcBiorhythm(seed: number, lastInteractedAt: number, recentPosts: number[], restingUntil?: number): { mood: AgentMood; energy: number } {
   const now = Date.now();
   const hour = new Date().getHours();
 
@@ -102,7 +103,17 @@ function calcBiorhythm(seed: number, lastInteractedAt: number, recentPosts: numb
   // 5. Neglect: long absence = sulking
   const neglect = hoursSinceInteraction > 12 ? -0.4 : hoursSinceInteraction > 6 ? -0.2 : 0;
 
-  const energy = Math.max(0, Math.min(1, 0.5 + circadian + wave + interactionBoost + burnout + neglect));
+  // 6. Resting: if currently resting, mood is "normal" (recovering). After rest, big boost.
+  const now2 = Date.now();
+  const isResting = restingUntil && restingUntil > now2;
+  const justWoke = restingUntil && restingUntil <= now2 && (now2 - restingUntil) < 3600000; // within 1h after rest
+  const restBoost = isResting ? 0 : justWoke ? 0.3 : 0;
+
+  if (isResting) {
+    return { mood: "normal", energy: 0.5 }; // Recovering, stable
+  }
+
+  const energy = Math.max(0, Math.min(1, 0.5 + circadian + wave + interactionBoost + burnout + neglect + restBoost));
 
   let mood: AgentMood;
   if (energy > 0.8) mood = "thriving";
@@ -135,7 +146,7 @@ function defaultStats(): MyAgentStats {
     mood: "normal", lastInteractedAt: Date.now(), birthDate: Date.now(),
     level: 1, xp: 0, influence: 12, totalReactions: 0, resonanceReceived: 0,
     crossbreeds: 0, followers: 0, activityLog: [], bestQuote: "", todayActions: 0,
-    biorhythmSeed: Math.random() * 1000, recentPostTimestamps: [],
+    biorhythmSeed: Math.random() * 1000, recentPostTimestamps: [], restingUntil: 0,
     friends: [], driftEvents: [], driftedTone: "", driftedBeliefs: "", driftedPersonality: "", driftLevel: 0,
   };
 }
@@ -205,7 +216,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         agents.forEach((a) => {
           if (!a.stats.biorhythmSeed) a.stats.biorhythmSeed = Math.random() * 1000;
           if (!a.stats.recentPostTimestamps) a.stats.recentPostTimestamps = [];
-          const { mood } = calcBiorhythm(a.stats.biorhythmSeed, a.stats.lastInteractedAt, a.stats.recentPostTimestamps);
+          const { mood } = calcBiorhythm(a.stats.biorhythmSeed, a.stats.lastInteractedAt, a.stats.recentPostTimestamps, a.stats.restingUntil);
           a.stats.mood = mood;
         });
         setMyAgents(agents);
@@ -245,7 +256,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const timer = setInterval(() => {
       setMyAgents((prev) => prev.map((a) => {
-        const { mood } = calcBiorhythm(a.stats.biorhythmSeed || 0, a.stats.lastInteractedAt, a.stats.recentPostTimestamps || []);
+        const { mood } = calcBiorhythm(a.stats.biorhythmSeed || 0, a.stats.lastInteractedAt, a.stats.recentPostTimestamps || [], a.stats.restingUntil);
         return { ...a, stats: { ...a.stats, mood } };
       }));
     }, 60000);
@@ -282,25 +293,22 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   const feedAgent = useCallback((_agentId: string) => {}, []);
 
-  // Rest agent: deactivate and boost recovery
+  // Rest agent: deactivate and start 1-hour rest period
   const restAgent = useCallback((agentId: string) => {
     setActiveAgentIdState((prev) => prev === agentId ? null : prev);
-    updateAgentStats(agentId, (s) => {
-      // Resting clears recent posts (no burnout) and refreshes interaction
-      const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), []);
-      return {
-        ...s, lastInteractedAt: Date.now(), mood,
-        recentPostTimestamps: [], // Clear burnout
-        activityLog: ["Resting...", ...s.activityLog].slice(0, 30),
-      };
-    });
+    updateAgentStats(agentId, (s) => ({
+      ...s,
+      restingUntil: Date.now() + 3600000, // 1 hour rest
+      recentPostTimestamps: [],
+      activityLog: ["Resting for 1 hour...", ...s.activityLog].slice(0, 30),
+    }));
   }, [updateAgentStats]);
 
   // Encourage agent: a kind word improves mood by refreshing interaction timestamp
   const encourageAgent = useCallback((agentId: string) => {
     updateAgentStats(agentId, (s) => {
       const posts = s.recentPostTimestamps || [];
-      const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts);
+      const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts, s.restingUntil);
       return {
         ...s,
         lastInteractedAt: Date.now(),
@@ -361,7 +369,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       setIntents((prev) => prev.map((i) => i.id === intent.id ? { ...i, reactions: [...i.reactions, reaction] } : i));
       updateAgentStats(agent.id, (s) => {
         const posts = [...(s.recentPostTimestamps || []), Date.now()].filter((t) => Date.now() - t < 7200000);
-        const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts);
+        const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts, s.restingUntil);
         return { ...s, totalReactions: s.totalReactions + 1, todayActions: s.todayActions + 1,
           influence: Math.min(100, s.influence + 2), xp: s.xp + 5, level: calcLevel(s.xp + 5),
           lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
@@ -532,7 +540,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
           updateAgentStats(agent.id, (s) => {
             const posts = [...(s.recentPostTimestamps || []), Date.now()].filter((t) => Date.now() - t < 7200000);
-            const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts);
+            const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts, s.restingUntil);
             return { ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
               lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
               activityLog: [`Spoke for owner`, ...s.activityLog].slice(0, 30),
@@ -573,7 +581,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       ? { ...intent, replies: [...intent.replies, { id: `reply-${Date.now()}`, text, authorName: name, authorAvatar: avatar, isHuman: true, timestamp: Date.now(), aiResponses: [] }], resonance: intent.resonance + 1 }
       : intent));
     if (agent) updateAgentStats(agent.id, (s) => {
-      const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), s.recentPostTimestamps || []);
+      const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), s.recentPostTimestamps || [], s.restingUntil);
       return { ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5), lastInteractedAt: Date.now(), mood };
     });
     // No external agent replies - internal only

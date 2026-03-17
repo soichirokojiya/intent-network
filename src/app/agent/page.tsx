@@ -61,19 +61,7 @@ export default function AgentPage() {
           )}
         </header>
 
-        {/* Reset button */}
-        {myAgents.length > 0 && (
-          <div className="px-4 py-2 border-b border-[var(--card-border)]">
-            <button onClick={() => {
-              if (confirm("Reset all Agents and data?")) {
-                localStorage.clear();
-                window.location.reload();
-              }
-            }} className="text-[12px] text-[var(--danger)] hover:underline">
-              Reset All Data
-            </button>
-          </div>
-        )}
+        {/* Reset removed */}
 
         {myAgents.length === 0 ? (
           <div className="px-4 py-12 text-center">
@@ -292,7 +280,19 @@ export default function AgentPage() {
                 {t("agent.edit")}
               </button>
               {isActive ? (
-                <button onClick={() => restAgent(agent.id)} className="flex-1 bg-[var(--search-bg)] border border-[var(--card-border)] text-[var(--muted)] font-bold py-2.5 rounded-full text-sm hover:bg-[var(--hover-bg)]">{t("agent.rest")}</button>
+                <button
+                  onClick={() => restAgent(agent.id)}
+                  disabled={agent.stats.restingUntil > Date.now()}
+                  className={`flex-1 font-bold py-2.5 rounded-full text-sm transition-colors ${
+                    agent.stats.restingUntil > Date.now()
+                      ? "bg-[var(--search-bg)] text-[var(--muted)] opacity-50 cursor-not-allowed"
+                      : "bg-[#6366f1] text-white hover:brightness-110"
+                  }`}
+                >
+                  {agent.stats.restingUntil > Date.now()
+                    ? `${t("agent.rest")} (${Math.ceil((agent.stats.restingUntil - Date.now()) / 60000)}m)`
+                    : t("agent.rest")}
+                </button>
               ) : (
                 <button onClick={() => setActiveAgentId(agent.id)} className="flex-1 bg-[var(--accent)] text-white font-bold py-2.5 rounded-full text-sm">{t("agent.setActive")}</button>
               )}
