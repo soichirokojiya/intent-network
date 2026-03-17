@@ -366,7 +366,35 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       </div>
 
       {/* Input area (fixed bottom) */}
-      <div className="border-t border-[var(--card-border)] bg-[var(--background)] px-4 py-3">
+      <div className="border-t border-[var(--card-border)] bg-[var(--background)] px-4 py-3 relative">
+        {/* Mention suggestions */}
+        {(() => {
+          const mentionMatch = text.match(/@(\S*)$/);
+          if (!mentionMatch) return null;
+          const query = mentionMatch[1].toLowerCase();
+          const suggestions = configured.filter((a) =>
+            a.config.name.toLowerCase().startsWith(query)
+          );
+          if (suggestions.length === 0) return null;
+          return (
+            <div className="absolute bottom-full left-4 mb-1 bg-[var(--background)] border border-[var(--card-border)] rounded-xl shadow-lg overflow-hidden z-50">
+              {suggestions.map((agent) => (
+                <button
+                  key={agent.id}
+                  onClick={() => {
+                    const newText = text.replace(/@\S*$/, `@${agent.config.name} `);
+                    setText(newText);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-[var(--hover-bg)] transition-colors w-full text-left"
+                >
+                  <AgentAvatarDisplay avatar={agent.config.avatar} size={24} />
+                  <span className="text-[14px] font-bold">{agent.config.name}</span>
+                  <span className="text-[12px] text-[var(--muted)]">{agent.config.role || agent.config.expertise}</span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
         <div className="flex items-end gap-2">
           <textarea
             value={text}
