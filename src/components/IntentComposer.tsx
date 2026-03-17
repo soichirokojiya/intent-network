@@ -104,6 +104,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   useEffect(() => {
     setChatHistory([]);
     processedResponseIds.current.clear();
+    clearAgentResponses();
     loadChatHistory(roomId).then((msgs) => {
       if (msgs.length > 0) {
         setChatHistory(msgs as ChatMessage[]);

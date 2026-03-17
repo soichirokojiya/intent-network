@@ -12,20 +12,19 @@ export async function GET(req: NextRequest) {
 
   const { data } = await supabase
     .from("user_credits")
-    .select("balance_yen")
+    .select("balance_yen, total_used_yen")
     .eq("device_id", deviceId)
     .single();
 
   if (!data) {
-    // Create initial ¥1,000 credit
     await supabase.from("user_credits").insert({
       device_id: deviceId,
       balance_yen: 1000,
     });
-    return NextResponse.json({ balance: 1000 });
+    return NextResponse.json({ balance: 1000, totalUsed: 0 });
   }
 
-  return NextResponse.json({ balance: Number(data.balance_yen) });
+  return NextResponse.json({ balance: Number(data.balance_yen), totalUsed: Number(data.total_used_yen) });
 }
 
 export async function POST(req: NextRequest) {
