@@ -99,8 +99,16 @@ export function Sidebar() {
         </select>
       </div>
 
+      {/* Footer links */}
+      <div className="mt-auto mb-2 w-full max-w-[230px] text-[10px] text-[var(--muted)] flex flex-wrap gap-x-3 gap-y-0.5 px-3">
+        <span>musu.world</span>
+        <span>About</span>
+        <span>Terms</span>
+        <span>Privacy</span>
+      </div>
+
       {/* Profile → Settings */}
-      <Link href="/settings" className="mt-auto mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors w-full max-w-[230px]">
+      <Link href="/settings" className="mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors w-full max-w-[230px]">
         <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm">
           {user?.email?.charAt(0).toUpperCase() || "U"}
         </div>

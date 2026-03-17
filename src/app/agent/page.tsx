@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 const TONE_KEYS = ["tone.polite", "tone.casual", "tone.sarcastic", "tone.kansai", "tone.deadpan", "tone.passionate", "tone.philosophical"];
-const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.operations", "role.strategy", "role.developer", "role.designer"];
+const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.operations", "role.strategy", "role.developer", "role.designer", "role.dataScientist", "role.orchestrator"];
 const CHARACTER_KEYS = ["character.logical", "character.creative", "character.cautious", "character.bold", "character.empathetic", "character.analytical", "character.optimistic", "character.skeptical"];
 const CORE_VALUE_KEYS = ["coreValue.efficiency", "coreValue.people", "coreValue.innovation", "coreValue.dataDriven", "coreValue.action", "coreValue.quality"];
 
@@ -37,7 +37,7 @@ export default function AgentPage() {
 
   useEffect(() => { const ti = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(ti); }, []);
 
-  const emptyDraft = { name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", twitterEnabled: false, twitterUsername: "" };
+  const emptyDraft = { name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", twitterEnabled: false, twitterUsername: "", isOrchestrator: false };
   const [draft, setDraft] = useState(emptyDraft);
 
   const selectedAgent = myAgents.find((a) => a.id === selectedAgentId);
@@ -149,7 +149,7 @@ export default function AgentPage() {
               {ROLE_KEYS.map((key) => {
                 const label = t(key);
                 return (
-                  <button key={key} onClick={() => setDraft((d) => ({ ...d, role: label, expertise: label }))}
+                  <button key={key} onClick={() => setDraft((d) => ({ ...d, role: label, expertise: label, isOrchestrator: key === "role.orchestrator" }))}
                     className={`px-3 py-1.5 rounded-full text-[13px] ${draft.role === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
                 );
               })}
@@ -283,6 +283,7 @@ export default function AgentPage() {
                   role: agent.config.role || "", character: agent.config.character || "",
                   speakingStyle: agent.config.speakingStyle || "", coreValue: agent.config.coreValue || "",
                   twitterEnabled: agent.config.twitterEnabled || false, twitterUsername: agent.config.twitterUsername || "",
+                  isOrchestrator: agent.config.isOrchestrator || false,
                 });
                 setEditingAgentId(agent.id);
                 setSelectedAgentId(null);

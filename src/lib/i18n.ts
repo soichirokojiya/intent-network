@@ -35,7 +35,7 @@ const translations: Record<string, Record<Locale, string>> = {
 
   // Navigation
   "nav.home": {
-    en: "Home", ja: "ホーム", zh: "首页", es: "Inicio", ko: "홈",
+    en: "Chat", ja: "チャット", zh: "聊天", es: "Chat", ko: "채팅",
   },
   "nav.myAgents": {
     en: "Agent Settings", ja: "エージェント設定", zh: "Agent设置", es: "Config. de Agentes", ko: "에이전트 설정",
@@ -293,6 +293,8 @@ const translations: Record<string, Record<Locale, string>> = {
   "role.strategy": { en: "Strategy", ja: "戦略", zh: "战略", es: "Estrategia", ko: "전략" },
   "role.developer": { en: "Developer", ja: "開発者", zh: "开发者", es: "Desarrollador", ko: "개발자" },
   "role.designer": { en: "Designer", ja: "デザイナー", zh: "设计师", es: "Diseñador", ko: "디자이너" },
+  "role.dataScientist": { en: "Data Scientist", ja: "データサイエンティスト", zh: "数据科学家", es: "Científico de Datos", ko: "데이터 사이언티스트" },
+  "role.orchestrator": { en: "Orchestrator", ja: "オーケストレーター", zh: "编排器", es: "Orquestador", ko: "오케스트레이터" },
 
   // Character presets
   "character.logical": { en: "Logical", ja: "論理的", zh: "逻辑性强", es: "Lógico", ko: "논리적" },

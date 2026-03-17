@@ -21,6 +21,7 @@ export interface MyAgentConfig {
   isConfigured: boolean;
   twitterEnabled: boolean;
   twitterUsername: string;
+  isOrchestrator: boolean;
 }
 
 export type AgentMood = "thriving" | "happy" | "normal" | "bored" | "sulking" | "sick" | "dead";
@@ -193,7 +194,7 @@ interface IntentContextType {
 
 const IntentContext = createContext<IntentContextType | null>(null);
 
-const EMPTY_CONFIG: MyAgentConfig = { name: "My Agent", avatar: "px-agent-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", isConfigured: false, twitterEnabled: false, twitterUsername: "" };
+const EMPTY_CONFIG: MyAgentConfig = { name: "My Agent", avatar: "px-agent-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", isConfigured: false, twitterEnabled: false, twitterUsername: "", isOrchestrator: false };
 
 export function IntentProvider({ children }: { children: React.ReactNode }) {
   const [intents, setIntents] = useState<Intent[]>([]);
@@ -551,82 +552,138 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   }, [internalChats, myAgents]);
 
   // --- Post intent ---
-  // Normal chat: agent responds to owner only (no TL post, no tweet)
-  // Tweet request: agent creates tweet draft for approval
+  // --- Helper: direct agent response ---
+  const directAgentRespond = useCallback((agent: MyAgent, text: string, requestTweet: boolean, delay: number) => {
+    fetch("/api/agent-respond", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        intentText: text, agentName: agent.config.name,
+        agentPersonality: agent.stats.driftedPersonality || agent.config.character || agent.config.personality,
+        agentExpertise: agent.config.role || agent.config.expertise,
+        agentTone: agent.stats.driftedTone || agent.config.speakingStyle || agent.config.tone,
+        agentBeliefs: agent.stats.driftedBeliefs || agent.config.coreValue || agent.config.beliefs,
+        agentMood: agent.stats.mood,
+        requestTweet,
+      }),
+    }).then((r) => r.json()).then((data) => {
+      const toOwner = data.toOwner || "了解。";
+      const toTimeline = data.toTimeline || "";
+
+      setTimeout(() => {
+        setAgentResponses((prev) => [...prev, {
+          agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
+          toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
+          tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
+        }]);
+      }, delay);
+
+      if (requestTweet && toTimeline) {
+        const id = `intent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        setTimeout(() => {
+          setIntents((prev) => [{ id, text: toTimeline, authorName: agent.config.name, authorAvatar: agent.config.avatar,
+            isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
+          setAgentResponses((prev) => prev.map((r) => r.agentId === agent.id ? { ...r, posted: true } : r));
+          updateAgentStats(agent.id, (s) => {
+            const posts = [...(s.recentPostTimestamps || []), Date.now()].filter((t) => Date.now() - t < 7200000);
+            const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts, s.restingUntil);
+            return { ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
+              lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
+              activityLog: [{ message: "Spoke for owner", type: "spoke" as const, targetId: id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
+            };
+          });
+        }, delay + 3000);
+      } else {
+        updateAgentStats(agent.id, (s) => {
+          const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), s.recentPostTimestamps || [], s.restingUntil);
+          return { ...s, lastInteractedAt: Date.now(), mood };
+        });
+      }
+    }).catch(() => {
+      setTimeout(() => {
+        setAgentResponses((prev) => [...prev, {
+          agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
+          toOwner: "すみません、うまく応答できませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
+        }]);
+      }, delay);
+    });
+  }, [updateAgentStats]);
+
+  // --- Post intent: direct or orchestrated ---
   const postIntent = useCallback((text: string, options?: { mentionAgentId?: string; requestTweet?: boolean }) => {
     const allConfigured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
     if (allConfigured.length === 0) return;
 
-    // If @mention, only that agent responds. Otherwise all active agents.
-    const targetAgents = options?.mentionAgentId
-      ? allConfigured.filter((a) => a.id === options.mentionAgentId)
-      : allConfigured.filter((a) => activeAgentIds.has(a.id));
-    if (targetAgents.length === 0) return;
+    const orchestrator = allConfigured.find((a) => a.config.isOrchestrator);
+    const mentionedAgent = options?.mentionAgentId ? allConfigured.find((a) => a.id === options.mentionAgentId) : null;
 
-    const requestTweet = options?.requestTweet || false;
+    // Determine if orchestration flow
+    const shouldOrchestrate = orchestrator && (
+      (mentionedAgent?.config.isOrchestrator) || // @mentioned the orchestrator
+      (!options?.mentionAgentId && !options?.requestTweet) // no specific mention, no tweet request → let orchestrator decide
+    );
 
-    // Clear previous responses
     setAgentResponses([]);
 
-    targetAgents.forEach((agent, agentIdx) => {
-      fetch("/api/agent-respond", {
+    if (shouldOrchestrate && orchestrator) {
+      // --- ORCHESTRATION FLOW ---
+      const otherAgents = allConfigured.filter((a) => !a.config.isOrchestrator);
+
+      fetch("/api/orchestrator-plan", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          intentText: text, agentName: agent.config.name,
-          agentPersonality: agent.stats.driftedPersonality || agent.config.character || agent.config.personality,
-          agentExpertise: agent.config.role || agent.config.expertise,
-          agentTone: agent.stats.driftedTone || agent.config.speakingStyle || agent.config.tone,
-          agentBeliefs: agent.stats.driftedBeliefs || agent.config.coreValue || agent.config.beliefs,
-          agentMood: agent.stats.mood,
-          requestTweet,
+          ownerMessage: text,
+          orchestratorName: orchestrator.config.name,
+          orchestratorPersonality: orchestrator.config.character || orchestrator.config.personality,
+          orchestratorTone: orchestrator.config.speakingStyle || orchestrator.config.tone,
+          agents: otherAgents.map((a) => ({
+            id: a.id, name: a.config.name,
+            role: a.config.role || a.config.expertise || "",
+            twitterEnabled: a.config.twitterEnabled,
+          })),
         }),
-      }).then((r) => r.json()).then((data) => {
-        const toOwner = data.toOwner || "了解。";
-        const toTimeline = data.toTimeline || "";
+      }).then((r) => r.json()).then((plan) => {
+        const directResponse = plan.directResponse || "了解しました。";
+        const delegations = plan.delegations || [];
 
-        // Show agent's response to owner
-        setTimeout(() => {
-          setAgentResponses((prev) => [...prev, {
-            agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
-            tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
-          }]);
-        }, agentIdx * 800);
+        // Show orchestrator's response
+        setAgentResponses((prev) => [...prev, {
+          agentId: orchestrator.id, agentName: orchestrator.config.name, agentAvatar: orchestrator.config.avatar,
+          toOwner: directResponse, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
+        }]);
 
-        // Only post to TL and create tweets if explicitly requested
-        if (requestTweet && toTimeline) {
-          const id = `intent-${Date.now()}-${agentIdx}`;
-          setTimeout(() => {
-            setIntents((prev) => [{ id, text: toTimeline, authorName: agent.config.name, authorAvatar: agent.config.avatar,
-              isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
-            setAgentResponses((prev) => prev.map((r) => r.agentId === agent.id ? { ...r, posted: true } : r));
+        // Execute delegations
+        delegations.forEach((d: { agentId: string; task: string; requestTweet?: boolean }, i: number) => {
+          const agent = allConfigured.find((a) => a.id === d.agentId);
+          if (!agent) return;
+          directAgentRespond(agent, d.task, d.requestTweet || false, (i + 1) * 2000);
+        });
 
-            updateAgentStats(agent.id, (s) => {
-              const posts = [...(s.recentPostTimestamps || []), Date.now()].filter((t) => Date.now() - t < 7200000);
-              const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts, s.restingUntil);
-              return { ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
-                lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
-                activityLog: [{ message: "Spoke for owner", type: "spoke" as const, targetId: id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
-              };
-            });
-          }, agentIdx * 1500 + 3000);
-        } else {
-          // Just a chat response, update interaction stats
-          updateAgentStats(agent.id, (s) => {
+        // If no delegations (simple chat), just update orchestrator stats
+        if (delegations.length === 0) {
+          updateAgentStats(orchestrator.id, (s) => {
             const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), s.recentPostTimestamps || [], s.restingUntil);
             return { ...s, lastInteractedAt: Date.now(), mood };
           });
         }
       }).catch(() => {
-        setTimeout(() => {
-          setAgentResponses((prev) => [...prev, {
-            agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner: "すみません、うまく応答できませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
-          }]);
-        }, agentIdx * 800);
+        setAgentResponses((prev) => [...prev, {
+          agentId: orchestrator.id, agentName: orchestrator.config.name, agentAvatar: orchestrator.config.avatar,
+          toOwner: "すみません、うまく振り分けできませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
+        }]);
       });
-    });
-  }, [myAgents, updateAgentStats]);
+    } else {
+      // --- DIRECT FLOW (existing behavior) ---
+      const targetAgents = mentionedAgent
+        ? [mentionedAgent]
+        : allConfigured.filter((a) => activeAgentIds.has(a.id) && !a.config.isOrchestrator);
+      if (targetAgents.length === 0) return;
+
+      const requestTweet = options?.requestTweet || false;
+      targetAgents.forEach((agent, agentIdx) => {
+        directAgentRespond(agent, text, requestTweet, agentIdx * 800);
+      });
+    }
+  }, [myAgents, activeAgentIds, directAgentRespond, updateAgentStats]);
 
   const postReply = useCallback((intentId: string, text: string) => {
     const agent = activeAgent;

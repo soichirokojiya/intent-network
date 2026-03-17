@@ -45,13 +45,6 @@ export function RightPanel() {
       )}
 
       {/* Stats removed */}
-
-      <div className="text-xs text-[var(--muted)] py-4 flex flex-wrap gap-x-3 gap-y-1">
-        <span>musu.world</span>
-        <span>About</span>
-        <span>Terms</span>
-        <span>Privacy</span>
-      </div>
     </aside>
   );
 }
