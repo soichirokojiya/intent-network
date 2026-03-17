@@ -121,6 +121,15 @@ function calcLevel(xp: number): number {
   return level;
 }
 
+// Max agents based on highest agent level
+function getMaxAgents(agents: MyAgent[]): number {
+  const maxLevel = agents.reduce((max, a) => Math.max(max, a.stats.level), 0);
+  if (maxLevel >= 30) return 5;
+  if (maxLevel >= 20) return 4;
+  if (maxLevel >= 10) return 3;
+  return 2;
+}
+
 function defaultStats(): MyAgentStats {
   return {
     mood: "normal", lastInteractedAt: Date.now(), birthDate: Date.now(),
@@ -138,6 +147,7 @@ interface IntentContextType {
   conversations: Map<string, Conversation>;
   // Multi-agent
   myAgents: MyAgent[];
+  maxAgents: number;
   activeAgentId: string | null;
   activeAgent: MyAgent | null;
   setActiveAgentId: (id: string) => void;
@@ -560,7 +570,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   return (
     <IntentContext.Provider value={{
       intents, conversations,
-      myAgents, activeAgentId, activeAgent, setActiveAgentId,
+      myAgents, maxAgents: getMaxAgents(myAgents), activeAgentId, activeAgent, setActiveAgentId,
       addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, encourageAgent, revertDrift,
       internalChats, sendChatMessage,
       myAgentConfig, myAgentStats,

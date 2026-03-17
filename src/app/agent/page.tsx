@@ -16,7 +16,7 @@ const CORE_VALUE_KEYS = ["coreValue.efficiency", "coreValue.people", "coreValue.
 // No HP/energy bars - mood is expressed through behavior and emoji
 
 export default function AgentPage() {
-  const { myAgents, activeAgentId, setActiveAgentId, addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, encourageAgent, revertDrift, internalChats, intents } = useIntents();
+  const { myAgents, maxAgents, activeAgentId, setActiveAgentId, addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, encourageAgent, revertDrift, internalChats, intents } = useIntents();
   const { t } = useLocale();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -51,8 +51,8 @@ export default function AgentPage() {
     return (
       <>
         <header className="sticky top-0 z-40 bg-[var(--background)] bg-opacity-80 backdrop-blur-md border-b border-[var(--card-border)] px-4 py-3 flex items-center justify-between">
-          <span className="text-lg font-bold">{t("agent.title")} ({myAgents.length}/5)</span>
-          {myAgents.length < 5 && (
+          <span className="text-lg font-bold">{t("agent.title")} ({myAgents.length}/{maxAgents})</span>
+          {myAgents.length < maxAgents && (
             <button onClick={() => setCreating(true)}
               className="px-4 py-1.5 bg-[var(--accent)] text-white font-bold text-sm rounded-full hover:bg-[var(--accent-hover)] transition-colors">
               {t("agent.new")}
