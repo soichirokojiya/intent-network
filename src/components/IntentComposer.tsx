@@ -315,7 +315,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
 
           // Agent message (left side)
           return (
-            <div key={msg.id} className="flex gap-2 animate-fade-in">
+            <div key={msg.id} className="flex gap-2 animate-fade-in group">
               <div className="flex-shrink-0 mt-1">
                 <AgentAvatarDisplay avatar={msg.agentAvatar || ""} size={32} />
               </div>
@@ -328,6 +328,26 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                 }`}>
                   <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                 </div>
+                {msg.text.length > 100 && (
+                  <button
+                    onClick={() => {
+                      const content = `# ${msg.agentName} レポート\n${new Date(msg.timestamp).toLocaleString("ja-JP")}\n\n${msg.text}`;
+                      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${msg.agentName}_${new Date(msg.timestamp).toISOString().slice(0, 10)}.md`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 mt-1 ml-1 text-[11px] text-[var(--muted)] hover:text-[var(--accent)] transition-all flex items-center gap-1"
+                  >
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                    </svg>
+                    ダウンロード
+                  </button>
+                )}
               </div>
             </div>
           );
