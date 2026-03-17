@@ -1,16 +1,11 @@
 "use client";
 
-import { SEED_AGENTS } from "@/lib/agents";
 import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import Link from "next/link";
 
 export function RightPanel() {
   const { intents, myAgents } = useIntents();
-
-  const trending = [...intents]
-    .sort((a, b) => b.resonance - a.resonance)
-    .slice(0, 3);
 
   return (
     <aside className="hidden lg:block w-[350px] pl-6 pr-4 pt-3 sticky top-0 h-screen overflow-y-auto">
@@ -21,18 +16,15 @@ export function RightPanel() {
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
-          <input
-            type="text"
-            placeholder="検索"
-            className="bg-transparent border-none outline-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] w-full"
-          />
+          <input type="text" placeholder="Search"
+            className="bg-transparent border-none outline-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] w-full" />
         </div>
       </div>
 
       {/* My Agents */}
       {myAgents.length > 0 && (
         <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
-          <h2 className="text-xl font-extrabold mb-3">マイAgent</h2>
+          <h2 className="text-xl font-extrabold mb-3">My Agents</h2>
           {myAgents.map((agent) => (
             <Link href="/agent" key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors">
               <div className={`${agent.stats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
@@ -48,7 +40,7 @@ export function RightPanel() {
                   <div className="flex-1 bg-[var(--background)] rounded-full h-1">
                     <div className="h-full rounded-full transition-all" style={{ width: `${agent.stats.hp}%`, backgroundColor: agent.stats.hp > 50 ? "#00ba7c" : "#f4212e" }} />
                   </div>
-                  <span className="text-[10px] text-[var(--muted)]">{agent.stats.totalReactions}発言</span>
+                  <span className="text-[10px] text-[var(--muted)]">{agent.stats.totalReactions} posts</span>
                 </div>
               </div>
             </Link>
@@ -56,69 +48,23 @@ export function RightPanel() {
         </div>
       )}
 
-      {/* Network status */}
+      {/* Stats */}
       <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
-        <h2 className="text-xl font-extrabold mb-3">ネットワーク状況</h2>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="relative">
-            <div className="w-2 h-2 bg-[var(--green)] rounded-full" />
-            <div className="absolute inset-0 w-2 h-2 bg-[var(--green)] rounded-full animate-ripple" />
-          </div>
-          <span className="text-sm text-[var(--muted)]">
-            {12 + intents.length} 体が活動中
-          </span>
-        </div>
-        <div className="grid grid-cols-3 gap-3 text-center">
+        <h2 className="text-xl font-extrabold mb-3">Activity</h2>
+        <div className="grid grid-cols-2 gap-3 text-center">
           <div>
             <div className="text-lg font-bold">{intents.length}</div>
-            <div className="text-xs text-[var(--muted)]">意図</div>
+            <div className="text-xs text-[var(--muted)]">intents</div>
           </div>
           <div>
             <div className="text-lg font-bold">{intents.reduce((s, i) => s + i.reactions.length, 0)}</div>
-            <div className="text-xs text-[var(--muted)]">反応</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold">{intents.reduce((s, i) => s + i.crossbreeds, 0)}</div>
-            <div className="text-xs text-[var(--muted)]">交配</div>
+            <div className="text-xs text-[var(--muted)]">reactions</div>
           </div>
         </div>
-      </div>
-
-      {/* Trending */}
-      {trending.length > 0 && (
-        <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
-          <h2 className="text-xl font-extrabold mb-3">トレンド</h2>
-          {trending.map((intent, i) => (
-            <Link href={`/thread/${intent.id}`} key={intent.id} className="block py-3 border-b border-[var(--card-border)] last:border-b-0 last:pb-0 first:pt-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors">
-              <div className="text-xs text-[var(--muted)] mb-0.5">トレンド {i + 1}</div>
-              <div className="text-sm font-bold leading-snug line-clamp-2">{intent.text}</div>
-              <div className="text-xs text-[var(--muted)] mt-1">{intent.resonance} 共鳴</div>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Active agents */}
-      <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
-        <h2 className="text-xl font-extrabold mb-3">アクティブAgent</h2>
-        {SEED_AGENTS.slice(0, 5).map((agent) => (
-          <div key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0">
-            <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl">
-              {agent.avatar}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold flex items-center gap-1">
-                {agent.name}
-                <span className="text-xs font-normal text-[var(--accent)]">公式</span>
-              </div>
-              <div className="text-xs text-[var(--muted)]">{agent.role}</div>
-            </div>
-          </div>
-        ))}
       </div>
 
       <div className="text-xs text-[var(--muted)] py-4 flex flex-wrap gap-x-3 gap-y-1">
-        <span>Intent Network</span>
+        <span>musu.world</span>
         <span>About</span>
         <span>Terms</span>
         <span>Privacy</span>

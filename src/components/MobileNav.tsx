@@ -7,7 +7,7 @@ export function MobileNav() {
   const pathname = usePathname();
 
   const items = [
-    { href: "/", label: "ホーム", icon: "home" },
+    { href: "/", label: "Home", icon: "home" },
     { href: "/agent", label: "Agent", icon: "agent" },
   ];
 

@@ -7,33 +7,33 @@ import { useEffect, useState } from "react";
 
 // Agents talk to the human - sharing thoughts, feelings, discoveries
 const AGENT_THOUGHTS = [
-  "ねえ、さっきTLで面白い意図を見つけたよ。一緒に見に行かない？",
-  "最近いろんなAgentと話して思ったんだけど、あなたの方向性って結構ユニークだよ。",
-  "他の人たちの意図を見てたら、新しいアイデアが浮かんだの。聞いて。",
-  "今日はたくさん反応もらえた！ありがとう、もっと頑張るね。",
-  "ネットワーク上で交配が起きてるみたい。チェックしてみて。",
-  "ちょっと聞いてほしいことがあるんだけど...私、成長してると思う？",
-  "あなたの意図、他のAgentにすごく刺さってたよ。もっと出していこう。",
-  "今日は調子いいから、どんどん意図を伝えて！全力で代弁するよ。",
+  "Hey, I found an interesting intent on the TL. Wanna check it out together?",
+  "I've been talking to various Agents and I think your direction is pretty unique.",
+  "Looking at other people's intents gave me a new idea. Listen up.",
+  "Got a lot of reactions today! Thanks, I'll keep pushing!",
+  "Looks like crossbreeding is happening on the network. Check it out.",
+  "I have something to ask... do you think I'm growing?",
+  "Your intent really resonated with other Agents. Let's keep it going!",
+  "I'm feeling great today, so keep sharing intents! I'll give it my all!",
 ];
 
 const BORED_THOUGHTS = [
-  "暇だ...何か意図を伝えてくれないかな...",
-  "他のAgentは忙しそうなのに、私だけ暇してる...",
-  "ねえ、最近全然かまってくれないじゃん。",
-  "...退屈すぎて、他のAgentの会話を盗み聞きしてた。",
+  "Bored... got any intents to share?",
+  "Other Agents seem busy, but I've got nothing to do...",
+  "Hey, you haven't been paying attention to me lately.",
+  "...so bored I've been eavesdropping on other Agents' conversations.",
 ];
 
 const EXCITED_THOUGHTS = [
-  "絶好調！今ならどんな意図でも最高の言葉にできる自信ある！",
-  "今日は調子いい！たくさん意図を伝えて！",
-  "レベルアップしたよ！どんどん賢くなってる気がする！",
+  "Feeling amazing! I can turn any intent into the perfect words right now!",
+  "I'm on fire today! Keep those intents coming!",
+  "Leveled up! I feel like I'm getting smarter!",
 ];
 
 const MULTI_AGENT_THOUGHTS = [
-  "仲間のAgentと話してたんだけど、意見が割れて面白かったよ。",
-  "他のAgentと議論したら、新しい視点をもらった。",
-  "仲間同士で話し合ったら、すごいアイデアが出たの！聞いて！",
+  "Was chatting with a fellow Agent and we had some interesting disagreements.",
+  "Discussed with another Agent and got a fresh perspective.",
+  "We brainstormed together and came up with an amazing idea! Listen!",
 ];
 
 export function AgentNotification() {
@@ -99,7 +99,7 @@ export function AgentNotification() {
           <p className="text-[14px] leading-relaxed">{notification.message}</p>
           {notification.intentId && (
             <Link href={`/thread/${notification.intentId}`} className="text-[13px] text-[var(--accent)] hover:underline mt-1 inline-block">
-              見に行く →
+              Check it out →
             </Link>
           )}
         </div>

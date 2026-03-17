@@ -6,8 +6,8 @@ import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 
 const NAV_ITEMS = [
-  { href: "/", icon: "home", label: "ホーム" },
-  { href: "/agent", icon: "agent", label: "マイAgent" },
+  { href: "/", icon: "home", label: "Home" },
+  { href: "/agent", icon: "agent", label: "My Agents" },
 ];
 
 function NavIcon({ type, active }: { type: string; active: boolean }) {
@@ -55,7 +55,7 @@ export function Sidebar() {
 
       <Link href="/"
         className="mt-4 w-full max-w-[230px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold text-base py-3 rounded-full text-center transition-colors">
-        意図を託す
+        Send
       </Link>
 
       {/* Agent mini status */}
@@ -69,7 +69,7 @@ export function Sidebar() {
                 <span className="absolute -top-1 -right-1 text-[8px]">{MOOD_EMOJI[a.stats.mood]}</span>
               </div>
             ))}
-            <span className="text-[12px] text-[var(--muted)] ml-1">{myAgents.length}体</span>
+            <span className="text-[12px] text-[var(--muted)] ml-1">{myAgents.length}</span>
           </div>
           {activeAgent && (
             <div className="flex gap-1">
@@ -80,7 +80,7 @@ export function Sidebar() {
             </div>
           )}
           {myAgents.some((a) => a.stats.mood === "dead") && (
-            <div className="text-[11px] text-[var(--danger)] mt-1">死亡中のAgentがいます</div>
+            <div className="text-[11px] text-[var(--danger)] mt-1">An Agent has died</div>
           )}
         </Link>
       )}

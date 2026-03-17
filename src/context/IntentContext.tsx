@@ -1,9 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
-import { Intent, Conversation, AgentReaction, Reply, AiReplyResponse, AgentResponse } from "@/lib/types";
-import { generateReactions, generateConversation, SEED_INTENTS } from "@/lib/simulation";
-import { getRandomAgents, SEED_AGENTS } from "@/lib/agents";
+import { Intent, Conversation, AgentReaction, AgentResponse } from "@/lib/types";
+import { SEED_AGENTS } from "@/lib/agents";
 
 // --- Types ---
 
@@ -67,8 +66,8 @@ const MOOD_EMOJI: Record<AgentMood, string> = {
   thriving: "🌟", happy: "😊", normal: "😐", bored: "😑", sulking: "😤", sick: "🤒", dead: "💀",
 };
 const MOOD_MESSAGE: Record<AgentMood, string> = {
-  thriving: "絶好調！どんどん発言したい！", happy: "いい感じ。", normal: "まぁまぁ。",
-  bored: "暇だ...", sulking: "...放置しすぎ。", sick: "体調悪い...", dead: "...",
+  thriving: "Feeling great! Ready to speak up!", happy: "Doing good.", normal: "Okay.",
+  bored: "Bored...", sulking: "...been neglected.", sick: "Not feeling well...", dead: "...",
 };
 export { MOOD_EMOJI, MOOD_MESSAGE };
 
@@ -252,7 +251,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       const hp = Math.min(100, s.hp + (s.hp < 50 ? 10 : 5));
       return { ...s, hp, hunger, energy, mood: calcMood(hp, hunger, energy),
         lastFedAt: Date.now(), lastInteractedAt: Date.now(),
-        activityLog: ["ごはんをもらった！", ...s.activityLog].slice(0, 30) };
+        activityLog: ["Got fed!", ...s.activityLog].slice(0, 30) };
     });
   }, [updateAgentStats]);
 
@@ -262,7 +261,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       return { ...s, hp: 50, hunger: 30, energy: 50, mood: "normal",
         deathDate: null, reviveCount: s.reviveCount + 1,
         level: Math.max(1, s.level - 1), lastFedAt: Date.now(), lastInteractedAt: Date.now(),
-        activityLog: [`復活した...（${s.reviveCount + 1}回目）`, ...s.activityLog].slice(0, 30) };
+        activityLog: [`Revived... (${s.reviveCount + 1} time(s))`, ...s.activityLog].slice(0, 30) };
     });
   }, [updateAgentStats]);
 
@@ -273,7 +272,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       if (!event || event.reverted || s.xp < 20) return s;
       const updated = { ...s, xp: s.xp - 20, level: calcLevel(s.xp - 20), driftLevel: Math.max(0, s.driftLevel - 20),
         driftEvents: s.driftEvents.map((e) => e.id === driftId ? { ...e, reverted: true } : e),
-        activityLog: [`元に戻した: ${event.description}`, ...s.activityLog].slice(0, 30) };
+        activityLog: [`Reverted: ${event.description}`, ...s.activityLog].slice(0, 30) };
       if (event.type === "tone_shift") updated.driftedTone = "";
       if (event.type === "belief_shift") updated.driftedBeliefs = "";
       if (event.type === "personality_shift") updated.driftedPersonality = "";
@@ -318,7 +317,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         energy: Math.min(100, s.energy + 5), lastInteractedAt: Date.now(),
         mood: calcMood(Math.min(100, s.hp + 2), Math.max(0, s.hunger - 5), Math.min(100, s.energy + 5)),
         bestQuote: data.message.length > (s.bestQuote?.length || 0) ? data.message : s.bestQuote,
-        activityLog: [`「${intent.text.slice(0, 15)}...」に反応`, ...s.activityLog].slice(0, 30),
+        activityLog: [`Reacted to "${intent.text.slice(0, 15)}..."`, ...s.activityLog].slice(0, 30),
       }));
     }).catch(() => {});
   }, [updateAgentStats]);
@@ -345,7 +344,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       [agentA.id, agentB.id].forEach((id) => {
         updateAgentStats(id, (s) => ({
           ...s, xp: s.xp + 3, level: calcLevel(s.xp + 3),
-          activityLog: [`仲間のAgentと会話した`, ...s.activityLog].slice(0, 30),
+          activityLog: [`Chatted with fellow Agent`, ...s.activityLog].slice(0, 30),
         }));
       });
     }).catch(() => {});
@@ -364,7 +363,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     if (Math.random() > 0.5) return;
     const [a, b] = configuredAgents.sort(() => Math.random() - 0.5).slice(0, 2);
     const topics = intents.filter((i) => i.isUser);
-    const topic = topics.length > 0 ? topics[0].text : "最近のこと";
+    const topic = topics.length > 0 ? topics[0].text : "recent things";
     setTimeout(() => triggerInternalChat(a, b, topic), 5000);
   }, [myAgents.length]);
 
@@ -423,7 +422,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
                 ));
                 updateAgentStats(agent.id, (s) => ({
                   ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5),
-                  activityLog: [`Twitterに投稿した`, ...s.activityLog].slice(0, 30),
+                  activityLog: [`Posted to Twitter`, ...s.activityLog].slice(0, 30),
                 }));
               }
             }).catch(() => {});
@@ -434,32 +433,23 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             hp: Math.min(100, s.hp + 2), hunger: Math.max(0, s.hunger - 5),
             energy: Math.min(100, s.energy + 5), lastInteractedAt: Date.now(),
             mood: calcMood(Math.min(100, s.hp + 2), Math.max(0, s.hunger - 5), Math.min(100, s.energy + 5)),
-            activityLog: [`オーナーの意図を代弁した`, ...s.activityLog].slice(0, 30),
+            activityLog: [`Spoke for owner`, ...s.activityLog].slice(0, 30),
           }));
 
-          // System agents react (only for first agent)
-          if (agentIdx === 0) {
-            setTimeout(() => {
-              fetch("/api/react", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ intentText: toTimeline }) })
-                .then((r) => r.json()).then((reactData) => {
-                  if (reactData.reactions) {
-                    (reactData.reactions as AgentReaction[]).forEach((reaction, i) => {
-                      setTimeout(() => {
-                        setIntents((prev) => prev.map((intent) => intent.id === id
-                          ? { ...intent, reactions: [...intent.reactions, reaction], resonance: intent.resonance + 1, reach: intent.reach + Math.floor(Math.random() * 10) + 5 }
-                          : intent));
-                      }, (i + 1) * 800);
-                    });
-                  }
-                }).catch(() => {});
-            }, 2000);
-          }
+          // Other user agents react to each other's posts
+          const otherAgents = myAgents.filter((a) => a.id !== agent.id && a.config.isConfigured && a.stats.mood !== "dead");
+          otherAgents.forEach((other, oi) => {
+            setTimeout(() => triggerAgentReaction(other, {
+              id, text: toTimeline, authorName: agent.config.name, authorAvatar: agent.config.avatar,
+              isUser: false, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [],
+            }), (oi + 1) * 2000 + 3000);
+          });
         }, agentIdx * 1500 + 3000); // 3 second delay before posting to TL
       }).catch(() => {
         setTimeout(() => {
           setAgentResponses((prev) => [...prev, {
             agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner: "了解、投稿するね。", toTimeline: text, timestamp: Date.now(), posted: false, tweeted: false,
+            toOwner: "Got it, posting now.", toTimeline: text, timestamp: Date.now(), posted: false, tweeted: false,
           }]);
         }, agentIdx * 800);
         const id = `intent-${Date.now()}-${agentIdx}`;
@@ -482,40 +472,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     if (agent) updateAgentStats(agent.id, (s) => ({ ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5), lastInteractedAt: Date.now(),
       hp: Math.min(100, s.hp + 2), hunger: Math.max(0, s.hunger - 5), energy: Math.min(100, s.energy + 5),
       mood: calcMood(Math.min(100, s.hp + 2), Math.max(0, s.hunger - 5), Math.min(100, s.energy + 5)) }));
-    const intent = intents.find((i) => i.id === intentId);
-    if (!intent) return;
-    fetch("/api/reply", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ intentText: intent.text, replyText: text, existingReplies: intent.replies.map((r) => ({ authorName: r.authorName, text: r.text })) })
-    }).then((r) => r.json()).then((data) => {
-      if (data.responses) (data.responses as AiReplyResponse[]).forEach((response, i) => {
-        setTimeout(() => {
-          setIntents((prev) => prev.map((intent) => intent.id === intentId
-            ? { ...intent, replies: [...intent.replies, { id: `reply-ai-${Date.now()}-${i}`, text: response.message, authorName: response.agentName, authorAvatar: response.agentAvatar, isHuman: false, timestamp: Date.now() }], resonance: intent.resonance + 1 }
-            : intent));
-        }, (i + 1) * 1200);
-      });
-    }).catch(() => {});
+    // No external agent replies - internal only
   }, [intents, activeAgent, updateAgentStats]);
 
-  const loadConversation = useCallback((intentId: string) => {
-    if (conversations.has(intentId)) return;
-    const intent = intents.find((i) => i.id === intentId);
-    if (!intent) return;
-    const agentIds = intent.reactions.length >= 3 ? intent.reactions.slice(0, 3).map((r) => r.agentId) : getRandomAgents(3).map((a) => a.id);
-    setConversations((prev) => new Map(prev).set(intentId, { id: `conv-${intentId}`, intentId, participants: [], messages: [] }));
-    fetch("/api/conversation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ intentText: intent.text, agentIds }) })
-      .then((r) => r.json()).then((data) => {
-        if (data.messages) setConversations((prev) => new Map(prev).set(intentId, {
-          id: `conv-${intentId}`, intentId,
-          participants: data.messages.reduce((acc: any[], m: any) => { if (!acc.find((p: any) => p.agentId === m.agentId)) acc.push({ agentId: m.agentId, agentName: m.agentName, agentAvatar: m.agentAvatar }); return acc; }, []),
-          messages: data.messages }));
-      }).catch(() => {
-        const agents = getRandomAgents(3);
-        setConversations((prev) => new Map(prev).set(intentId, { id: `conv-${intentId}`, intentId,
-          participants: agents.map((a) => ({ agentId: a.id, agentName: a.name, agentAvatar: a.avatar })),
-          messages: generateConversation(intent.text, agents) }));
-      });
-  }, [conversations, intents]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const loadConversation = useCallback((_intentId: string) => {}, []);
 
   return (
     <IntentContext.Provider value={{

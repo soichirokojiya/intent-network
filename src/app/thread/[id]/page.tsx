@@ -9,10 +9,10 @@ function timeAgo(timestamp: number): string {
   const diff = Date.now() - timestamp;
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  if (minutes < 1) return "たった今";
-  if (minutes < 60) return `${minutes}分`;
-  if (hours < 24) return `${hours}時間`;
-  return `${Math.floor(hours / 24)}日`;
+  if (minutes < 1) return "now";
+  if (minutes < 60) return `${minutes}m`;
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
 }
 
 export default function ThreadPage() {
@@ -60,17 +60,17 @@ export default function ThreadPage() {
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="text-lg font-bold">ポスト</span>
+          <span className="text-lg font-bold">Post</span>
         </header>
-        <div className="p-8 text-center text-[var(--muted)]">意図が見つかりません</div>
+        <div className="p-8 text-center text-[var(--muted)]">Intent not found</div>
       </>
     );
   }
 
   const stanceConfig = {
-    support: { label: "賛成", color: "text-[var(--green)]", bg: "bg-[rgba(0,186,124,0.1)]" },
-    oppose: { label: "反対", color: "text-[var(--danger)]", bg: "bg-[rgba(244,33,46,0.1)]" },
-    question: { label: "問い", color: "text-[var(--pink)]", bg: "bg-[rgba(249,24,128,0.1)]" },
+    support: { label: "Support", color: "text-[var(--green)]", bg: "bg-[rgba(0,186,124,0.1)]" },
+    oppose: { label: "Oppose", color: "text-[var(--danger)]", bg: "bg-[rgba(244,33,46,0.1)]" },
+    question: { label: "Question", color: "text-[var(--pink)]", bg: "bg-[rgba(249,24,128,0.1)]" },
   };
 
   return (
@@ -82,7 +82,7 @@ export default function ThreadPage() {
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
         </button>
-        <span className="text-lg font-bold">ポスト</span>
+        <span className="text-lg font-bold">Post</span>
       </header>
 
       {/* Original intent */}
@@ -109,10 +109,10 @@ export default function ThreadPage() {
           {new Date(intent.timestamp).toLocaleString("ja-JP")} · <span className="text-[var(--foreground)] font-bold">Intent Network</span>
         </div>
         <div className="flex gap-5 py-3 border-b border-[var(--card-border)] text-[13px]">
-          <span><strong>{intent.resonance}</strong> <span className="text-[var(--muted)]">共鳴</span></span>
-          <span><strong>{intent.crossbreeds}</strong> <span className="text-[var(--muted)]">交配</span></span>
-          <span><strong>{intent.reach}</strong> <span className="text-[var(--muted)]">到達</span></span>
-          <span><strong>{intent.replies.length}</strong> <span className="text-[var(--muted)]">リプライ</span></span>
+          <span><strong>{intent.resonance}</strong> <span className="text-[var(--muted)]">resonance</span></span>
+          <span><strong>{intent.crossbreeds}</strong> <span className="text-[var(--muted)]">crossbreeds</span></span>
+          <span><strong>{intent.reach}</strong> <span className="text-[var(--muted)]">reach</span></span>
+          <span><strong>{intent.replies.length}</strong> <span className="text-[var(--muted)]">replies</span></span>
         </div>
       </div>
 
@@ -128,12 +128,12 @@ export default function ThreadPage() {
           </div>
           <div className="flex-1">
             <div className="text-[13px] text-[var(--muted)] mb-1">
-              返信先 <span className="text-[var(--accent)]">@{intent.authorName.toLowerCase()}</span>
+              Replying to <span className="text-[var(--accent)]">@{intent.authorName.toLowerCase()}</span>
             </div>
             <textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
-              placeholder="リプライを書く... AIも反応します"
+              placeholder="Write a reply... AI will react too"
               className="w-full bg-transparent border-none outline-none resize-none text-[15px] text-[var(--foreground)] placeholder:text-[var(--muted)] leading-relaxed"
               rows={2}
               onKeyDown={(e) => {
@@ -141,13 +141,13 @@ export default function ThreadPage() {
               }}
             />
             <div className="flex items-center justify-between mt-1">
-              <span className="text-[11px] text-[var(--muted)]">人間のリプライ → AIが反応</span>
+              <span className="text-[11px] text-[var(--muted)]">Human reply → AI reacts</span>
               <button
                 onClick={handleReply}
                 disabled={!replyText.trim()}
                 className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold text-sm px-4 py-1.5 rounded-full transition-colors"
               >
-                返信
+                Reply
               </button>
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function ThreadPage() {
       {intent.replies.length > 0 && (
         <>
           <div className="px-4 py-2 border-b border-[var(--card-border)] bg-[var(--search-bg)]">
-            <span className="text-[13px] font-bold">リプライ</span>
+            <span className="text-[13px] font-bold">Replies</span>
           </div>
           {intent.replies.map((reply) => (
             <div
@@ -211,7 +211,7 @@ export default function ThreadPage() {
                   <div className="flex items-center gap-1 mb-0.5">
                     <span className="font-bold text-[15px]">{reply.authorName}</span>
                     {reply.isHuman ? (
-                      <span className="text-xs px-1.5 py-0.5 rounded text-[var(--foreground)] bg-[var(--hover-bg)] border border-[var(--card-border)]">人間</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded text-[var(--foreground)] bg-[var(--hover-bg)] border border-[var(--card-border)]">Human</span>
                     ) : (
                       <span className="text-xs px-1.5 py-0.5 rounded text-[var(--accent)] bg-[var(--accent-glow)]">AI</span>
                     )}
@@ -225,58 +225,7 @@ export default function ThreadPage() {
         </>
       )}
 
-      {/* Agent conversation section */}
-      {conversation && conversation.messages.length > 0 && (
-        <>
-          <div className="px-4 py-2 border-b border-[var(--card-border)] bg-[var(--search-bg)]">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold">Agent同士の会話</span>
-              <span className="text-[var(--muted)] text-[11px]">
-                {conversation.participants.map((p) => p.agentName).join(", ")}
-              </span>
-            </div>
-          </div>
-
-          {conversation.messages.slice(0, visibleMessages).map((msg, i) => (
-            <div key={i} className="px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors animate-fade-in-up">
-              <div className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  {msg.agentAvatar.startsWith("px-") ? (
-                    <AgentAvatarDisplay avatar={msg.agentAvatar} size={40} />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-[var(--search-bg)] border border-[var(--card-border)] flex items-center justify-center text-xl flex-shrink-0">
-                      {msg.agentAvatar}
-                    </div>
-                  )}
-                  {i < visibleMessages - 1 && (
-                    <div className="w-0.5 flex-1 bg-[var(--card-border)] mt-1" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 pb-1">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <span className="font-bold text-[15px]">{msg.agentName}</span>
-                    <span className="text-[var(--accent)] text-[13px]">AI</span>
-                  </div>
-                  <p className="text-[15px] leading-relaxed">{msg.content}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {visibleMessages < conversation.messages.length && (
-            <div className="px-4 py-4 border-b border-[var(--card-border)] flex items-center gap-3 text-[var(--muted)]">
-              <div className="w-10 flex justify-center">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-[var(--accent)] rounded-full animate-bounce" />
-                  <span className="w-2 h-2 bg-[var(--accent)] rounded-full animate-bounce [animation-delay:0.15s]" />
-                  <span className="w-2 h-2 bg-[var(--accent)] rounded-full animate-bounce [animation-delay:0.3s]" />
-                </div>
-              </div>
-              <span className="text-[13px]">Agentが考え中...</span>
-            </div>
-          )}
-        </>
-      )}
+      {/* No external agent conversations */}
 
       <div className="h-20" />
     </>

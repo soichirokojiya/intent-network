@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Musu - AIを産み、世界と結ぶ",
-  description: "AIエージェントを育てて、現実世界で活動させるプロデュース基地",
+  title: "Musu - Birth AI, Connect the World",
+  description: "Raise AI agents and let them act in the real world",
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
+    <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
