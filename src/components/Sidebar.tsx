@@ -47,8 +47,8 @@ export function Sidebar() {
   const { locale, setLocale, t } = useLocale();
 
   return (
-    <aside className="hidden md:flex flex-col items-end w-[275px] pr-3 pt-3 sticky top-0 h-screen">
-      <nav className="flex flex-col w-full max-w-[230px] gap-0.5">
+    <aside className="hidden md:flex flex-col items-end w-[275px] pr-3 pt-8 sticky top-0 h-screen">
+      <nav className="flex flex-col w-full max-w-[230px] gap-0.5 mt-4">
         {getNavItems(t).map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (

@@ -347,9 +347,15 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateAgentConfig = useCallback((agentId: string, update: Partial<MyAgentConfig>) => {
-    setMyAgents((prev) => prev.map((a) =>
-      a.id === agentId ? { ...a, config: { ...a.config, ...update } } : a
-    ));
+    setMyAgents((prev) => {
+      const updated = prev.map((a) =>
+        a.id === agentId ? { ...a, config: { ...a.config, ...update } } : a
+      );
+      // Immediately save to Supabase
+      const agent = updated.find((a) => a.id === agentId);
+      if (agent) saveAgent(agent, true);
+      return updated;
+    });
   }, []);
 
   const updateAgentStats = useCallback((agentId: string, fn: (s: MyAgentStats) => MyAgentStats) => {
