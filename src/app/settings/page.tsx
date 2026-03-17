@@ -50,10 +50,29 @@ export default function SettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm("Delete your account?")) return;
-    if (!confirm("This cannot be undone. Are you sure?")) return;
-    await signOut();
-    router.push("/");
+    if (!confirm("本当に解約しますか？すべてのデータが削除されます。")) return;
+    if (!confirm("この操作は取り消せません。本当によろしいですか？")) return;
+    setLoading(true);
+    try {
+      const deviceId = localStorage.getItem("musu_device_id") || "";
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id, deviceId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showErr(data.error || "解約に失敗しました");
+        setLoading(false);
+        return;
+      }
+      localStorage.removeItem("musu_device_id");
+      await signOut();
+      window.location.href = "/?signup=1";
+    } catch {
+      showErr("解約に失敗しました");
+      setLoading(false);
+    }
   };
 
   return (
@@ -137,13 +156,24 @@ export default function SettingsPage() {
 
         <hr className="border-[var(--card-border)]" />
 
-        {/* Sign out + Delete */}
-        <div className="space-y-4 pt-2">
+        {/* Sign out */}
+        <div className="pt-2">
           <button onClick={signOut} className="w-full py-2.5 border border-[var(--card-border)] rounded-xl text-sm font-bold hover:bg-[var(--hover-bg)]">
             {t("settings.signOut")}
           </button>
-          <button onClick={handleDeleteAccount} className="text-[12px] text-[var(--muted)] hover:text-[var(--danger)] transition-colors">
-            {t("settings.deleteAccount")}
+        </div>
+
+        <hr className="border-[var(--card-border)]" />
+
+        {/* 解約 */}
+        <div className="pt-2">
+          <h2 className="text-[15px] font-bold mb-2 text-[var(--danger)]">解約</h2>
+          <p className="text-[13px] text-[var(--muted)] mb-4">
+            アカウントとすべてのエージェント・チャット履歴が完全に削除されます。この操作は取り消せません。同じメールアドレスで再登録は可能です。
+          </p>
+          <button onClick={handleDeleteAccount} disabled={loading}
+            className="w-full py-2.5 border border-[var(--danger)] text-[var(--danger)] rounded-xl text-sm font-bold hover:bg-[rgba(244,33,46,0.1)] disabled:opacity-50 transition-colors">
+            アカウントを削除する
           </button>
         </div>
       </div>

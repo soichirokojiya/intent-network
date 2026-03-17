@@ -264,11 +264,6 @@ export function IntentComposer() {
     <div className="flex flex-col h-[calc(100vh-57px)]">
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {chatHistory.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-[var(--muted)] text-[14px]">{t("home.placeholder")}</p>
-          </div>
-        )}
 
         {chatHistory.map((msg) => {
           // Read receipt

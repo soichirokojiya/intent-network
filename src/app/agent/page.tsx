@@ -1,6 +1,6 @@
 "use client";
 
-import { useIntents, MOOD_EMOJI, MOOD_MESSAGE, type MyAgent, type ActivityLogEntry } from "@/context/IntentContext";
+import { useIntents, MOOD_EMOJI, MOOD_MESSAGE, DEFAULT_AGENT_PRESETS, type MyAgent, type ActivityLogEntry } from "@/context/IntentContext";
 import { SEED_AGENTS } from "@/lib/agents";
 import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "@/components/AgentAvatarDisplay";
@@ -37,7 +37,17 @@ export default function AgentPage() {
 
   useEffect(() => { const ti = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(ti); }, []);
 
-  const emptyDraft = { name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", twitterEnabled: false, twitterUsername: "", isOrchestrator: false };
+  const getDefaultDraft = () => {
+    const preset = DEFAULT_AGENT_PRESETS[myAgents.length] || null;
+    return {
+      name: preset?.name || "", avatar: "px-new-0", tone: "", beliefs: "",
+      expertise: preset?.role || "", personality: "", role: preset?.role || "",
+      character: "", speakingStyle: "", coreValue: "",
+      twitterEnabled: false, twitterUsername: "",
+      isOrchestrator: preset?.isOrchestrator || false,
+    };
+  };
+  const emptyDraft = getDefaultDraft();
   const [draft, setDraft] = useState(emptyDraft);
 
   const selectedAgent = myAgents.find((a) => a.id === selectedAgentId);
@@ -65,7 +75,7 @@ export default function AgentPage() {
         <header className="sticky top-0 z-40 bg-[var(--background)] bg-opacity-80 backdrop-blur-md border-b border-[var(--card-border)] px-4 py-3 flex items-center justify-between">
           <span className="text-lg font-bold">{t("agent.title")} ({myAgents.length}/{maxAgents})</span>
           {myAgents.length < maxAgents && (
-            <button onClick={() => setCreating(true)}
+            <button onClick={() => { setDraft(getDefaultDraft()); setCreating(true); }}
               className="px-4 py-1.5 bg-[var(--accent)] text-white font-bold text-sm rounded-full hover:bg-[var(--accent-hover)] transition-colors">
               {t("agent.new")}
             </button>
@@ -79,14 +89,14 @@ export default function AgentPage() {
             <div className="mb-4"><AgentAvatarDisplay avatar="px-empty-0" size={64} /></div>
             <h2 className="text-xl font-bold mb-2">{t("agent.empty")}</h2>
             <p className="text-[var(--muted)] text-[15px] mb-6">{t("agent.emptyDesc")}</p>
-            <button onClick={() => setCreating(true)}
+            <button onClick={() => { setDraft(getDefaultDraft()); setCreating(true); }}
               className="px-6 py-3 bg-[var(--accent)] text-white font-bold rounded-full hover:bg-[var(--accent-hover)] transition-colors">
               {t("agent.createFirst")}
             </button>
           </div>
         ) : (
           <div>
-            {myAgents.map((agent) => {
+            {[...myAgents].sort((a, b) => (b.config.isOrchestrator ? 1 : 0) - (a.config.isOrchestrator ? 1 : 0)).map((agent) => {
               const isActive = activeAgentIds.has(agent.id);
               const isDead = agent.stats.mood === "dead";
               return (
@@ -102,6 +112,7 @@ export default function AgentPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-[15px]">{agent.config.name}</span>
+                      {(agent.config.role || agent.config.expertise) && <span className="text-[13px] text-[var(--muted)]">{agent.config.role || agent.config.expertise}</span>}
                       {isActive && <span className="text-[11px] text-[var(--green)]">Active</span>}
                     </div>
                     <div className="text-[13px] text-[var(--muted)] truncate">{agent.config.role || agent.config.expertise || agent.config.character || agent.config.personality || "Agent"}</div>

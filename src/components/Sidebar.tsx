@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
-import { LogoMark } from "./Logo";
+
 
 function getNavItems(t: (key: string) => string) {
   return [
@@ -48,10 +48,6 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col items-end w-[275px] pr-3 pt-3 sticky top-0 h-screen">
-      <Link href="/" className="p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors mb-1">
-        <LogoMark size={30} />
-      </Link>
-
       <nav className="flex flex-col w-full max-w-[230px] gap-0.5">
         {getNavItems(t).map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -84,13 +80,7 @@ export function Sidebar() {
         </select>
       </div>
 
-      {/* Footer links */}
-      <div className="mt-auto mb-2 w-full max-w-[230px] text-[10px] text-[var(--muted)] flex flex-wrap gap-x-3 gap-y-0.5 px-3">
-        <span>musu.world</span>
-        <span>About</span>
-        <span>Terms</span>
-        <span>Privacy</span>
-      </div>
+      <div className="mt-auto" />
 
       {/* Profile → Settings */}
       <Link href="/settings" className="mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors w-full max-w-[230px]">

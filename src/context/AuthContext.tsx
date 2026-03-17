@@ -7,7 +7,7 @@ import type { User } from "@supabase/supabase-js";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null; isExisting?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -34,8 +34,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error?.message || null };
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) return { error: error.message };
+    // Supabase returns a user with no identities if email already exists
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      return { error: "このメールアドレスは既に登録されています。", isExisting: true };
+    }
+    return { error: null };
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {

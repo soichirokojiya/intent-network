@@ -141,6 +141,20 @@ function calcLevel(xp: number): number {
   return level;
 }
 
+// Default agent presets (name + role)
+export const DEFAULT_AGENT_PRESETS = [
+  { name: "Ren", role: "オーケストレーター", isOrchestrator: true },
+  { name: "Kai", role: "マーケティング" },
+  { name: "Sora", role: "リサーチ" },
+  { name: "Hana", role: "クリエイティブ" },
+  { name: "Leo", role: "ファイナンス" },
+  { name: "Mio", role: "オペレーション" },
+  { name: "Shin", role: "ストラテジー" },
+  { name: "Aya", role: "デベロッパー" },
+  { name: "Noa", role: "デザイナー" },
+  { name: "Rui", role: "データサイエンス" },
+];
+
 // Max agents based on highest agent level
 function getMaxAgents(_agents: MyAgent[]): number {
   return 3;

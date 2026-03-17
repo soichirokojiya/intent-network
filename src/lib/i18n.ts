@@ -46,7 +46,7 @@ const translations: Record<string, Record<Locale, string>> = {
 
   // Agent page
   "agent.title": {
-    en: "My Agents", ja: "マイAgent", zh: "我的Agent", es: "Mis Agentes", ko: "내 에이전트",
+    en: "My Agents", ja: "エージェント", zh: "我的Agent", es: "Mis Agentes", ko: "내 에이전트",
   },
   "agent.new": {
     en: "+ New Agent", ja: "+ 新しいAgent", zh: "+ 新Agent", es: "+ Nuevo Agente", ko: "+ 새 에이전트",
@@ -201,7 +201,7 @@ const translations: Record<string, Record<Locale, string>> = {
 
   // Right panel
   "right.myAgents": {
-    en: "My Agents", ja: "マイAgent", zh: "我的Agent", es: "Mis Agentes", ko: "내 에이전트",
+    en: "My Agents", ja: "エージェント", zh: "我的Agent", es: "Mis Agentes", ko: "내 에이전트",
   },
   "right.activity": {
     en: "Activity", ja: "アクティビティ", zh: "活动", es: "Actividad", ko: "활동",
