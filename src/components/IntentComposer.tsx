@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useIntents } from "@/context/IntentContext";
 import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
@@ -8,16 +8,15 @@ import { AgentResponse } from "@/lib/types";
 
 interface ChatMessage {
   id: string;
-  type: "user" | "agent";
+  type: "user" | "agent" | "read" | "typing";
   agentName?: string;
   agentAvatar?: string;
   text: string;
   timestamp: number;
-  tweetPreview?: string; // tweet content waiting for approval
+  tweetPreview?: string;
   agentId?: string;
 }
 
-// Simple intent detection from user message
 function detectIntent(text: string): "approve" | "reject" | "rest" | "message" {
   const lower = text.trim().toLowerCase();
   const approveWords = ["ok", "おk", "いいよ", "いいね", "それで", "お願い", "投稿して", "ツイートして", "それでいい", "大丈夫", "問題ない", "頼む", "よろしく", "オッケー", "おけ", "ええよ", "ええで", "go", "yes", "sure", "いい感じ", "完璧", "バッチリ"];
@@ -30,19 +29,73 @@ function detectIntent(text: string): "approve" | "reject" | "rest" | "message" {
   return "message";
 }
 
+// Queue messages with natural delays: read → typing → message
+function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>) {
+  const queue = useRef<ChatMessage[]>([]);
+  const processing = useRef(false);
+
+  const processQueue = useCallback(() => {
+    if (processing.current || queue.current.length === 0) return;
+    processing.current = true;
+
+    const msg = queue.current.shift()!;
+
+    // Step 1: Show "既読" (read receipt) after 0.8s
+    const readId = `read-${msg.id}`;
+    setTimeout(() => {
+      setChatHistory((prev) => [...prev, {
+        id: readId, type: "read", text: "既読",
+        agentName: msg.agentName, agentAvatar: msg.agentAvatar,
+        agentId: msg.agentId, timestamp: Date.now(),
+      }]);
+    }, 800);
+
+    // Step 2: Replace with "typing..." after 1.5s
+    setTimeout(() => {
+      setChatHistory((prev) => prev.map((m) =>
+        m.id === readId ? { ...m, id: `typing-${msg.id}`, type: "typing", text: "" } : m
+      ));
+    }, 1800);
+
+    // Step 3: Replace with actual message after 2.5-3.5s (varies by length)
+    const typingDelay = Math.min(1500, 800 + msg.text.length * 15);
+    setTimeout(() => {
+      setChatHistory((prev) => prev.filter((m) => m.id !== `typing-${msg.id}`).concat([msg]));
+      processing.current = false;
+      processQueue(); // Process next in queue
+    }, 1800 + typingDelay);
+  }, [setChatHistory]);
+
+  const enqueue = useCallback((msg: ChatMessage) => {
+    queue.current.push(msg);
+    processQueue();
+  }, [processQueue]);
+
+  return enqueue;
+}
+
 export function IntentComposer() {
   const [text, setText] = useState("");
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("chatHistory") || "[]"); } catch { return []; }
+  });
   const isComposing = useRef(false);
   const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, approveTweet, restAgent } = useIntents();
   const { t } = useLocale();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const processedResponseIds = useRef<Set<string>>(new Set());
+  const enqueueMessage = useMessageQueue(setChatHistory);
+
+  // Persist chat history
+  useEffect(() => {
+    // Only save actual messages (not read/typing states)
+    const toSave = chatHistory.filter((m) => m.type === "user" || m.type === "agent");
+    localStorage.setItem("chatHistory", JSON.stringify(toSave.slice(-100))); // keep last 100
+  }, [chatHistory]);
 
   const configured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
   const hasAgent = configured.length > 0;
-
-  // Track pending tweet agent
   const pendingTweetAgentId = agentResponses.find((r) => r.tweetPending)?.agentId || null;
 
   // Auto-scroll to bottom
@@ -50,7 +103,7 @@ export function IntentComposer() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
-  // Convert agent responses to chat messages
+  // Convert agent responses to chat messages (with natural delay queue)
   useEffect(() => {
     agentResponses.forEach((resp) => {
       const key = `${resp.agentId}-${resp.timestamp}`;
@@ -58,7 +111,7 @@ export function IntentComposer() {
       processedResponseIds.current.add(key);
 
       // Agent's response to owner
-      const msgs: ChatMessage[] = [{
+      enqueueMessage({
         id: `agent-${key}`,
         type: "agent",
         agentName: resp.agentName,
@@ -66,11 +119,11 @@ export function IntentComposer() {
         agentId: resp.agentId,
         text: resp.toOwner,
         timestamp: resp.timestamp,
-      }];
+      });
 
-      // If tweet is pending, add tweet preview message
+      // Tweet preview as a follow-up message
       if (resp.tweetPending) {
-        msgs.push({
+        enqueueMessage({
           id: `tweet-preview-${key}`,
           type: "agent",
           agentName: resp.agentName,
@@ -81,19 +134,17 @@ export function IntentComposer() {
           tweetPreview: resp.toTimeline,
         });
       }
-
-      setChatHistory((prev) => [...prev, ...msgs]);
     });
-  }, [agentResponses]);
+  }, [agentResponses, enqueueMessage]);
 
-  // Watch for tweet approval/rejection results
+  // Watch for tweet results
   useEffect(() => {
     agentResponses.forEach((resp) => {
       if (resp.tweeted) {
         const tweetedKey = `tweeted-${resp.agentId}`;
         if (!processedResponseIds.current.has(tweetedKey)) {
           processedResponseIds.current.add(tweetedKey);
-          setChatHistory((prev) => [...prev, {
+          enqueueMessage({
             id: tweetedKey,
             type: "agent",
             agentName: resp.agentName,
@@ -101,17 +152,16 @@ export function IntentComposer() {
             agentId: resp.agentId,
             text: "Xに投稿しました！ ✓",
             timestamp: Date.now(),
-          }]);
+          });
         }
       }
     });
-  }, [agentResponses]);
+  }, [agentResponses, enqueueMessage]);
 
   const handleSubmit = () => {
     if (!text.trim()) return;
     const userText = text.trim();
 
-    // Add user message to chat
     setChatHistory((prev) => [...prev, {
       id: `user-${Date.now()}`,
       type: "user",
@@ -128,16 +178,16 @@ export function IntentComposer() {
     }
 
     if (intent === "reject" && pendingTweetAgentId) {
-      setChatHistory((prev) => [...prev, {
+      const resp = agentResponses.find((r) => r.agentId === pendingTweetAgentId);
+      enqueueMessage({
         id: `agent-reject-${Date.now()}`,
         type: "agent",
-        agentName: agentResponses.find((r) => r.agentId === pendingTweetAgentId)?.agentName,
-        agentAvatar: agentResponses.find((r) => r.agentId === pendingTweetAgentId)?.agentAvatar,
+        agentName: resp?.agentName,
+        agentAvatar: resp?.agentAvatar,
         agentId: pendingTweetAgentId,
         text: "了解、ツイートはやめておきますね。",
         timestamp: Date.now(),
-      }]);
-      // Clear the pending state
+      });
       clearAgentResponses();
       setText("");
       return;
@@ -147,7 +197,7 @@ export function IntentComposer() {
       const activeAgents = myAgents.filter((a) => activeAgentIds.has(a.id));
       activeAgents.forEach((agent) => {
         restAgent(agent.id);
-        setChatHistory((prev) => [...prev, {
+        enqueueMessage({
           id: `rest-${agent.id}-${Date.now()}`,
           type: "agent",
           agentName: agent.config.name,
@@ -155,13 +205,12 @@ export function IntentComposer() {
           agentId: agent.id,
           text: "わかりました、少し休憩しますね。1時間後に戻ります 😴",
           timestamp: Date.now(),
-        }]);
+        });
       });
       setText("");
       return;
     }
 
-    // Normal message → post intent
     clearAgentResponses();
     processedResponseIds.current.clear();
     postIntent(userText);
@@ -178,16 +227,58 @@ export function IntentComposer() {
           </div>
         )}
 
-        {chatHistory.map((msg) => (
-          msg.type === "user" ? (
-            // User message (right side)
-            <div key={msg.id} className="flex justify-end animate-fade-in">
-              <div className="max-w-[75%] bg-[var(--accent)] text-white px-4 py-2.5 rounded-2xl rounded-br-sm">
-                <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+        {chatHistory.map((msg) => {
+          // Read receipt
+          if (msg.type === "read") {
+            return (
+              <div key={msg.id} className="flex gap-2 animate-fade-in">
+                <div className="flex-shrink-0 mt-1">
+                  <AgentAvatarDisplay avatar={msg.agentAvatar || ""} size={32} />
+                </div>
+                <div>
+                  <span className="text-[11px] text-[var(--muted)] ml-1">{msg.agentName}</span>
+                  <div className="mt-0.5 px-3 py-1.5">
+                    <span className="text-[11px] text-[var(--accent)]">既読</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ) : (
-            // Agent message (left side)
+            );
+          }
+
+          // Typing indicator
+          if (msg.type === "typing") {
+            return (
+              <div key={msg.id} className="flex gap-2 animate-fade-in">
+                <div className="flex-shrink-0 mt-1">
+                  <AgentAvatarDisplay avatar={msg.agentAvatar || ""} size={32} />
+                </div>
+                <div>
+                  <span className="text-[11px] text-[var(--muted)] ml-1">{msg.agentName}</span>
+                  <div className="mt-0.5 bg-[var(--search-bg)] px-4 py-2.5 rounded-2xl rounded-bl-sm inline-block">
+                    <div className="flex gap-1 items-center h-[20px]">
+                      <span className="w-2 h-2 bg-[var(--muted)] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="w-2 h-2 bg-[var(--muted)] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="w-2 h-2 bg-[var(--muted)] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // User message (right side)
+          if (msg.type === "user") {
+            return (
+              <div key={msg.id} className="flex justify-end animate-fade-in">
+                <div className="max-w-[75%] bg-[var(--accent)] text-white px-4 py-2.5 rounded-2xl rounded-br-sm">
+                  <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                </div>
+              </div>
+            );
+          }
+
+          // Agent message (left side)
+          return (
             <div key={msg.id} className="flex gap-2 animate-fade-in">
               <div className="flex-shrink-0 mt-1">
                 <AgentAvatarDisplay avatar={msg.agentAvatar || ""} size={32} />
@@ -203,8 +294,8 @@ export function IntentComposer() {
                 </div>
               </div>
             </div>
-          )
-        ))}
+          );
+        })}
         <div ref={chatEndRef} />
       </div>
 

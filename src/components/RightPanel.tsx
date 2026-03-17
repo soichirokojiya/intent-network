@@ -44,20 +44,7 @@ export function RightPanel() {
         </div>
       )}
 
-      {/* Stats */}
-      <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
-        <h2 className="text-xl font-extrabold mb-3">{t("right.activity")}</h2>
-        <div className="grid grid-cols-2 gap-3 text-center">
-          <div>
-            <div className="text-lg font-bold">{intents.length}</div>
-            <div className="text-xs text-[var(--muted)]">{t("right.intents")}</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold">{intents.reduce((s, i) => s + i.reactions.length, 0)}</div>
-            <div className="text-xs text-[var(--muted)]">{t("right.reactions")}</div>
-          </div>
-        </div>
-      </div>
+      {/* Stats removed */}
 
       <div className="text-xs text-[var(--muted)] py-4 flex flex-wrap gap-x-3 gap-y-1">
         <span>musu.world</span>
