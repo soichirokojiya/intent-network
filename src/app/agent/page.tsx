@@ -28,7 +28,7 @@ export default function AgentPage() {
 
   useEffect(() => { const t = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(t); }, []);
 
-  const [draft, setDraft] = useState({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "" });
+  const [draft, setDraft] = useState({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", twitterEnabled: false, twitterUsername: "" });
 
   const selectedAgent = myAgents.find((a) => a.id === selectedAgentId);
 
@@ -37,7 +37,7 @@ export default function AgentPage() {
     const id = addAgent(draft);
     setCreating(false);
     setSelectedAgentId(id);
-    setDraft({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "" });
+    setDraft({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", twitterEnabled: false, twitterUsername: "" });
   };
 
   // Agent list view
@@ -166,10 +166,27 @@ export default function AgentPage() {
             <input value={draft.expertise} onChange={(e) => setDraft((d) => ({ ...d, expertise: e.target.value }))} placeholder="例: マーケティング"
               className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2.5 text-[15px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
           </div>
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="text-[13px] text-[var(--muted)] block mb-1">信条</label>
             <textarea value={draft.beliefs} onChange={(e) => setDraft((d) => ({ ...d, beliefs: e.target.value }))} placeholder="例: 行動が全て" rows={2}
               className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2.5 text-[15px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)] resize-none" />
+          </div>
+          {/* Twitter連携 */}
+          <div className="mb-6 p-3 bg-[var(--search-bg)] rounded-xl border border-[var(--card-border)]">
+            <label className="flex items-center gap-2 cursor-pointer mb-2">
+              <input type="checkbox" checked={draft.twitterEnabled}
+                onChange={(e) => setDraft((d) => ({ ...d, twitterEnabled: e.target.checked }))}
+                className="w-4 h-4 accent-[var(--accent)]" />
+              <span className="text-[14px] font-bold">Twitter(X)連携</span>
+            </label>
+            {draft.twitterEnabled && (
+              <div>
+                <p className="text-[12px] text-[var(--muted)] mb-2">投稿内容がTwitterにも自動投稿されます</p>
+                <input value={draft.twitterUsername} onChange={(e) => setDraft((d) => ({ ...d, twitterUsername: e.target.value }))}
+                  placeholder="@username"
+                  className="w-full bg-[var(--background)] rounded-lg px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
+              </div>
+            )}
           </div>
           <button onClick={handleCreate} disabled={!draft.name.trim()}
             className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold py-3 rounded-full">
@@ -238,6 +255,12 @@ export default function AgentPage() {
           {agent.config.tone && <div className="text-[13px]"><span className="text-[var(--muted)]">口調:</span> {agent.config.tone}</div>}
           {agent.config.expertise && <div className="text-[13px]"><span className="text-[var(--muted)]">専門:</span> {agent.config.expertise}</div>}
           {agent.config.beliefs && <div className="text-[13px] italic"><span className="text-[var(--muted)]">信条:</span> {agent.config.beliefs}</div>}
+          {agent.config.twitterEnabled && (
+            <div className="text-[13px] flex items-center gap-1">
+              <span className="text-[var(--accent)]">𝕏</span>
+              <span className="text-[var(--muted)]">@{agent.config.twitterUsername || "未設定"}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-5 px-4 pb-3 text-[14px]">

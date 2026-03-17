@@ -15,6 +15,8 @@ export interface MyAgentConfig {
   expertise: string;
   personality: string;
   isConfigured: boolean;
+  twitterEnabled: boolean;
+  twitterUsername: string;
 }
 
 export type AgentMood = "thriving" | "happy" | "normal" | "bored" | "sulking" | "sick" | "dead";
@@ -129,7 +131,7 @@ interface IntentContextType {
 
 const IntentContext = createContext<IntentContextType | null>(null);
 
-const EMPTY_CONFIG: MyAgentConfig = { name: "My Agent", avatar: "px-agent-0", tone: "", beliefs: "", expertise: "", personality: "", isConfigured: false };
+const EMPTY_CONFIG: MyAgentConfig = { name: "My Agent", avatar: "px-agent-0", tone: "", beliefs: "", expertise: "", personality: "", isConfigured: false, twitterEnabled: false, twitterUsername: "" };
 
 export function IntentProvider({ children }: { children: React.ReactNode }) {
   const [intents, setIntents] = useState<Intent[]>([]);
@@ -427,7 +429,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         setTimeout(() => {
           setAgentResponses((prev) => [...prev, {
             agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner, toTimeline, timestamp: Date.now(), posted: false,
+            toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
           }]);
         }, agentIdx * 800);
 
@@ -438,6 +440,24 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
           // Mark as posted
           setAgentResponses((prev) => prev.map((r) => r.agentId === agent.id ? { ...r, posted: true } : r));
+
+          // Tweet if Twitter is enabled for this agent
+          if (agent.config.twitterEnabled) {
+            fetch("/api/twitter/tweet", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: toTimeline }),
+            }).then((r) => r.json()).then((tweetData) => {
+              if (tweetData.success) {
+                setAgentResponses((prev) => prev.map((r) =>
+                  r.agentId === agent.id ? { ...r, tweeted: true, tweetId: tweetData.tweetId } : r
+                ));
+                updateAgentStats(agent.id, (s) => ({
+                  ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5),
+                  activityLog: [`Twitterに投稿した`, ...s.activityLog].slice(0, 30),
+                }));
+              }
+            }).catch(() => {});
+          }
 
           updateAgentStats(agent.id, (s) => ({
             ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
@@ -469,7 +489,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         setTimeout(() => {
           setAgentResponses((prev) => [...prev, {
             agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner: "了解、投稿するね。", toTimeline: text, timestamp: Date.now(), posted: false,
+            toOwner: "了解、投稿するね。", toTimeline: text, timestamp: Date.now(), posted: false, tweeted: false,
           }]);
         }, agentIdx * 800);
         const id = `intent-${Date.now()}-${agentIdx}`;

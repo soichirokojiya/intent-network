@@ -71,6 +71,8 @@ export interface AgentResponse {
   toTimeline: string;
   timestamp: number;
   posted: boolean;
+  tweeted: boolean;
+  tweetId?: string;
 }
 
 export interface Conversation {

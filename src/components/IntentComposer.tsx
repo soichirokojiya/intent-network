@@ -61,11 +61,16 @@ export function IntentComposer() {
                     <span className="text-[11px] text-[var(--muted)]">→ あなたへ</span>
                   </div>
                   <p className="text-[14px] leading-relaxed">{resp.toOwner}</p>
-                  {resp.posted ? (
-                    <span className="text-[11px] text-[var(--green)] mt-1 inline-block">TLに投稿済み</span>
-                  ) : (
-                    <span className="text-[11px] text-[var(--muted)] mt-1 inline-block">投稿準備中...</span>
-                  )}
+                  <div className="flex gap-3 mt-1">
+                    {resp.posted ? (
+                      <span className="text-[11px] text-[var(--green)]">TL投稿済み</span>
+                    ) : (
+                      <span className="text-[11px] text-[var(--muted)]">投稿準備中...</span>
+                    )}
+                    {resp.tweeted && (
+                      <span className="text-[11px] text-[var(--accent)]">Twitter投稿済み</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
