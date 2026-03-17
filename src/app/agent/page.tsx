@@ -1,6 +1,6 @@
 "use client";
 
-import { useIntents, MOOD_EMOJI, MOOD_MESSAGE, DEFAULT_AGENT_PRESETS, type MyAgent, type ActivityLogEntry } from "@/context/IntentContext";
+import { useIntents, MOOD_EMOJI, MOOD_MESSAGE, DEFAULT_AGENT_PRESETS, getMoodText, type MyAgent, type ActivityLogEntry } from "@/context/IntentContext";
 import { SEED_AGENTS } from "@/lib/agents";
 import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "@/components/AgentAvatarDisplay";
@@ -266,7 +266,7 @@ export default function AgentPage() {
           </div>
           <h2 className="text-xl font-extrabold mt-2">{agent.config.name}</h2>
           <p className={`text-[13px] mt-1 ${isDead ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>
-            {isDead ? t("agent.dead") : `"${t(`mood.${agent.stats.mood}`)}"`}
+            {isDead ? t("agent.dead") : `"${getMoodText(agent.stats.mood, agent.config.name)}"`}
           </p>
           {isActive && (
             <div className="mt-2">

@@ -83,11 +83,28 @@ export interface InternalChat {
 const MOOD_EMOJI: Record<AgentMood, string> = {
   thriving: "🌟", happy: "😊", normal: "😐", bored: "😑", sulking: "😤", sick: "🤒", dead: "💀",
 };
-// MOOD_MESSAGE is now just a fallback. Use getMoodMessage() with locale for proper i18n
 const MOOD_MESSAGE: Record<AgentMood, string> = {
   thriving: "On fire today! Let's go!", happy: "Feeling good, ready to work.", normal: "Standing by. What's next?",
   bored: "Got nothing to do... talk to me?", sulking: "You've been ignoring me.", sick: "Not feeling great today...", dead: "...",
 };
+
+// Mood message variants per agent (selected by name hash)
+const MOOD_VARIANTS_JA: Record<AgentMood, string[]> = {
+  thriving: ["絶好調！", "ノッてる！", "今日は最高！", "バリバリいける！", "テンション高め！"],
+  happy: ["いい感じ", "調子いいよ", "元気です", "やる気あり", "順調！"],
+  normal: ["待機中", "スタンバイ", "いつでもOK", "準備できてる", "何でも聞いて"],
+  bored: ["暇...", "何かない？", "手持ち無沙汰", "退屈だなぁ", "話しかけて"],
+  sulking: ["放置された", "忘れられた？", "寂しいんだけど", "構ってよ", "無視しないで"],
+  sick: ["不調", "ちょっと休みたい", "今日はダメかも", "エネルギー切れ", "低空飛行"],
+  dead: ["...", "...", "...", "...", "..."],
+};
+
+export function getMoodText(mood: AgentMood, agentName: string): string {
+  const variants = MOOD_VARIANTS_JA[mood];
+  const hash = agentName.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return variants[hash % variants.length];
+}
+
 export { MOOD_EMOJI, MOOD_MESSAGE };
 
 // Biorhythm: mood is determined by time-of-day cycle + random wave + interaction
