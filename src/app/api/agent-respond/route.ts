@@ -24,7 +24,11 @@ async function summarizeHistory(messages: { role: string; text: string }[], agen
 
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory } = await req.json();
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId } = await req.json();
+
+    // Track total tokens for billing
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
 
     if (!intentText || !agentName) {
       return NextResponse.json({ error: "required" }, { status: 400 });
@@ -95,6 +99,10 @@ JSON形式で出力してください（他の文字不要）:
       messages: [{ role: "user", content: userPrompt }],
     });
 
+    // Track tokens
+    totalInputTokens += message.usage?.input_tokens || 0;
+    totalOutputTokens += message.usage?.output_tokens || 0;
+
     // Extract final text from response (may include tool use results)
     let finalText = "";
     for (const block of message.content) {
@@ -125,12 +133,30 @@ JSON形式で出力してください（他の文字不要）:
         ],
       });
 
+      totalInputTokens += continuation.usage?.input_tokens || 0;
+      totalOutputTokens += continuation.usage?.output_tokens || 0;
+
       finalText = "";
       for (const block of continuation.content) {
         if (block.type === "text") {
           finalText += block.text;
         }
       }
+    }
+
+    // Bill the user
+    if (deviceId) {
+      const MARGIN = 1.5;
+      const costUsd = totalInputTokens * (15 / 1_000_000) + totalOutputTokens * (75 / 1_000_000);
+      const costYen = Math.round(costUsd * 150 * MARGIN * 1000) / 1000;
+      await fetch(new URL("/api/credits", req.url).toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deviceId, inputTokens: totalInputTokens, outputTokens: totalOutputTokens,
+          costYen, model: "claude-opus-4-20250514", apiRoute: "agent-respond",
+        }),
+      });
     }
 
     const jsonMatch = finalText.match(/\{[\s\S]*\}/);

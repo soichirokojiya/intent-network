@@ -623,6 +623,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         agentMood: agent.stats.mood,
         requestTweet,
         conversationHistory: history,
+        deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
       }),
     }).then((r) => r.json()).then((data) => {
       const toOwner = data.toOwner || "了解。";

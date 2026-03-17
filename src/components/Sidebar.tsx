@@ -49,6 +49,7 @@ export function Sidebar() {
   const { locale, setLocale, t } = useLocale();
   const router = useRouter();
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [balance, setBalance] = useState<number | null>(null);
   const [showNewRoom, setShowNewRoom] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
@@ -70,6 +71,10 @@ export function Sidebar() {
 
   useEffect(() => {
     loadRooms().then(setRooms);
+    const deviceId = localStorage.getItem("musu_device_id");
+    if (deviceId) {
+      fetch(`/api/credits?deviceId=${deviceId}`).then((r) => r.json()).then((d) => setBalance(d.balance));
+    }
   }, []);
 
   const handleCreateRoom = async () => {
@@ -197,6 +202,12 @@ export function Sidebar() {
       </div>
 
       <div className="mt-auto" />
+
+      {/* Credit balance */}
+      <Link href="/charge" className="w-full max-w-[230px] mb-2 px-3 py-2 rounded-xl bg-[var(--search-bg)] hover:bg-[var(--hover-bg)] transition-colors flex items-center justify-between">
+        <span className="text-[12px] text-[var(--muted)]">残高</span>
+        <span className="text-[14px] font-bold">¥{balance !== null ? balance.toLocaleString() : "..."}</span>
+      </Link>
 
       {/* Profile → Settings */}
       <Link href="/settings" className="mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors w-full max-w-[230px]">
