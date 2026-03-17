@@ -35,6 +35,7 @@ export function RightPanel() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-bold truncate">{agent.config.name}</span>
+                  {(agent.config.role || agent.config.expertise) && <span className="text-[11px] text-[var(--muted)]">{agent.config.role || agent.config.expertise}</span>}
                   <span className="text-xs">{MOOD_EMOJI[agent.stats.mood]}</span>
                 </div>
                 <div className="text-[10px] text-[var(--muted)] mt-1">{agent.stats.totalReactions} {t("agent.posts")}</div>
