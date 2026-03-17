@@ -9,6 +9,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 const TONE_KEYS = ["tone.polite", "tone.casual", "tone.sarcastic", "tone.kansai", "tone.deadpan", "tone.passionate", "tone.philosophical"];
+const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.operations", "role.strategy", "role.developer", "role.designer"];
+const CHARACTER_KEYS = ["character.logical", "character.creative", "character.cautious", "character.bold", "character.empathetic", "character.analytical", "character.optimistic", "character.skeptical"];
+const CORE_VALUE_KEYS = ["coreValue.efficiency", "coreValue.people", "coreValue.innovation", "coreValue.dataDriven", "coreValue.action", "coreValue.quality"];
 
 // No HP/energy bars - mood is expressed through behavior and emoji
 
@@ -21,7 +24,7 @@ export default function AgentPage() {
 
   useEffect(() => { const t = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(t); }, []);
 
-  const [draft, setDraft] = useState({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", twitterEnabled: false, twitterUsername: "" });
+  const [draft, setDraft] = useState({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", twitterEnabled: false, twitterUsername: "" });
 
   const selectedAgent = myAgents.find((a) => a.id === selectedAgentId);
 
@@ -30,7 +33,7 @@ export default function AgentPage() {
     const id = addAgent(draft);
     setCreating(false);
     setSelectedAgentId(id);
-    setDraft({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", twitterEnabled: false, twitterUsername: "" });
+    setDraft({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", twitterEnabled: false, twitterUsername: "" });
   };
 
   // Agent list view
@@ -92,7 +95,7 @@ export default function AgentPage() {
                       <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white font-bold">Lv.{agent.stats.level}</span>
                       {isActive && <span className="text-[11px] text-[var(--green)]">Active</span>}
                     </div>
-                    <div className="text-[13px] text-[var(--muted)] truncate">{agent.config.expertise || agent.config.personality || "Agent"}</div>
+                    <div className="text-[13px] text-[var(--muted)] truncate">{agent.config.role || agent.config.expertise || agent.config.character || agent.config.personality || "Agent"}</div>
                     {/* Mood expressed through emoji */}
                   </div>
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
@@ -129,34 +132,64 @@ export default function AgentPage() {
             <PixelAvatarGrid baseSeed={`px-${draft.name || "new"}`} selected={draft.avatar} onSelect={(s) => setDraft((d) => ({ ...d, avatar: s }))} />
           </div>
           <div className="mb-4">
-            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.personality")}</label>
-            <input value={draft.personality} onChange={(e) => setDraft((d) => ({ ...d, personality: e.target.value }))} placeholder={t("placeholder.personality")}
-              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2.5 text-[15px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
+            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.role")}</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {ROLE_KEYS.map((key) => {
+                const label = t(key);
+                return (
+                  <button key={key} onClick={() => setDraft((d) => ({ ...d, role: label, expertise: label }))}
+                    className={`px-3 py-1.5 rounded-full text-[13px] ${draft.role === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
+                );
+              })}
+            </div>
+            <input value={draft.role} onChange={(e) => setDraft((d) => ({ ...d, role: e.target.value, expertise: e.target.value }))}
+              placeholder={t("placeholder.role")}
+              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
           </div>
           <div className="mb-4">
-            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.tone")}</label>
+            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.character")}</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {CHARACTER_KEYS.map((key) => {
+                const label = t(key);
+                return (
+                  <button key={key} onClick={() => setDraft((d) => ({ ...d, character: label, personality: label }))}
+                    className={`px-3 py-1.5 rounded-full text-[13px] ${draft.character === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
+                );
+              })}
+            </div>
+            <input value={draft.character} onChange={(e) => setDraft((d) => ({ ...d, character: e.target.value, personality: e.target.value }))}
+              placeholder={t("placeholder.character")}
+              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
+          </div>
+          <div className="mb-4">
+            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.speakingStyle")}</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {TONE_KEYS.map((key) => {
                 const label = t(key);
                 return (
-                  <button key={key} onClick={() => setDraft((d) => ({ ...d, tone: label }))}
-                    className={`px-3 py-1.5 rounded-full text-[13px] ${draft.tone === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
+                  <button key={key} onClick={() => setDraft((d) => ({ ...d, speakingStyle: label, tone: label }))}
+                    className={`px-3 py-1.5 rounded-full text-[13px] ${draft.speakingStyle === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
                 );
               })}
             </div>
-            <input value={draft.tone} onChange={(e) => setDraft((d) => ({ ...d, tone: e.target.value }))}
-              placeholder={t("agent.tone")}
+            <input value={draft.speakingStyle} onChange={(e) => setDraft((d) => ({ ...d, speakingStyle: e.target.value, tone: e.target.value }))}
+              placeholder={t("agent.speakingStyle")}
               className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
           </div>
           <div className="mb-4">
-            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.expertise")}</label>
-            <input value={draft.expertise} onChange={(e) => setDraft((d) => ({ ...d, expertise: e.target.value }))} placeholder={t("placeholder.expertise")}
-              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2.5 text-[15px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
-          </div>
-          <div className="mb-4">
-            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.beliefs")}</label>
-            <textarea value={draft.beliefs} onChange={(e) => setDraft((d) => ({ ...d, beliefs: e.target.value }))} placeholder={t("placeholder.beliefs")} rows={2}
-              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2.5 text-[15px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)] resize-none" />
+            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.coreValue")}</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {CORE_VALUE_KEYS.map((key) => {
+                const label = t(key);
+                return (
+                  <button key={key} onClick={() => setDraft((d) => ({ ...d, coreValue: label, beliefs: label }))}
+                    className={`px-3 py-1.5 rounded-full text-[13px] ${draft.coreValue === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
+                );
+              })}
+            </div>
+            <input value={draft.coreValue} onChange={(e) => setDraft((d) => ({ ...d, coreValue: e.target.value, beliefs: e.target.value }))}
+              placeholder={t("placeholder.coreValue")}
+              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
           </div>
           {/* Twitter連携 */}
           <div className="mb-6 p-3 bg-[var(--search-bg)] rounded-xl border border-[var(--card-border)]">
@@ -234,10 +267,10 @@ export default function AgentPage() {
 
         {/* Info */}
         <div className="px-4 pb-3 space-y-2">
-          {agent.config.personality && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.personality")}:</span> {agent.config.personality}</div>}
-          {agent.config.tone && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.tone")}:</span> {agent.config.tone}</div>}
-          {agent.config.expertise && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.expertise")}:</span> {agent.config.expertise}</div>}
-          {agent.config.beliefs && <div className="text-[13px] italic"><span className="text-[var(--muted)]">{t("agent.beliefs")}:</span> {agent.config.beliefs}</div>}
+          {(agent.config.role || agent.config.expertise) && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.role")}:</span> {agent.config.role || agent.config.expertise}</div>}
+          {(agent.config.character || agent.config.personality) && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.character")}:</span> {agent.config.character || agent.config.personality}</div>}
+          {(agent.config.speakingStyle || agent.config.tone) && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.speakingStyle")}:</span> {agent.config.speakingStyle || agent.config.tone}</div>}
+          {(agent.config.coreValue || agent.config.beliefs) && <div className="text-[13px] italic"><span className="text-[var(--muted)]">{t("agent.coreValue")}:</span> {agent.config.coreValue || agent.config.beliefs}</div>}
           {agent.config.twitterEnabled && (
             <div className="text-[13px] flex items-center gap-1">
               <span className="text-[var(--accent)]">𝕏</span>

@@ -241,6 +241,89 @@ const translations: Record<string, Record<Locale, string>> = {
     en: "e.g. Action is everything", ja: "例：行動が全て", zh: "例：行动就是一切", es: "ej. La acción es todo", ko: "예: 행동이 전부다",
   },
 
+  // New agent fields
+  "agent.role": {
+    en: "Role", ja: "役割", zh: "角色", es: "Rol", ko: "역할",
+  },
+  "agent.character": {
+    en: "Character", ja: "キャラクター", zh: "性格特征", es: "Carácter", ko: "캐릭터",
+  },
+  "agent.speakingStyle": {
+    en: "Speaking Style", ja: "話し方", zh: "说话方式", es: "Estilo de habla", ko: "말하는 스타일",
+  },
+  "agent.coreValue": {
+    en: "Core Value", ja: "コアバリュー", zh: "核心价值", es: "Valor central", ko: "핵심 가치",
+  },
+
+  // Role presets
+  "role.marketing": { en: "Marketing", ja: "マーケティング", zh: "市场营销", es: "Marketing", ko: "마케팅" },
+  "role.research": { en: "Research", ja: "リサーチ", zh: "研究", es: "Investigación", ko: "리서치" },
+  "role.creative": { en: "Creative", ja: "クリエイティブ", zh: "创意", es: "Creativo", ko: "크리에이티브" },
+  "role.finance": { en: "Finance", ja: "ファイナンス", zh: "金融", es: "Finanzas", ko: "금융" },
+  "role.operations": { en: "Operations", ja: "オペレーション", zh: "运营", es: "Operaciones", ko: "운영" },
+  "role.strategy": { en: "Strategy", ja: "戦略", zh: "战略", es: "Estrategia", ko: "전략" },
+  "role.developer": { en: "Developer", ja: "開発者", zh: "开发者", es: "Desarrollador", ko: "개발자" },
+  "role.designer": { en: "Designer", ja: "デザイナー", zh: "设计师", es: "Diseñador", ko: "디자이너" },
+
+  // Character presets
+  "character.logical": { en: "Logical", ja: "論理的", zh: "逻辑性强", es: "Lógico", ko: "논리적" },
+  "character.creative": { en: "Creative", ja: "創造的", zh: "创造性强", es: "Creativo", ko: "창의적" },
+  "character.cautious": { en: "Cautious", ja: "慎重", zh: "谨慎", es: "Cauteloso", ko: "신중한" },
+  "character.bold": { en: "Bold", ja: "大胆", zh: "大胆", es: "Audaz", ko: "대담한" },
+  "character.empathetic": { en: "Empathetic", ja: "共感的", zh: "有同理心", es: "Empático", ko: "공감적" },
+  "character.analytical": { en: "Analytical", ja: "分析的", zh: "分析型", es: "Analítico", ko: "분석적" },
+  "character.optimistic": { en: "Optimistic", ja: "楽観的", zh: "乐观", es: "Optimista", ko: "낙관적" },
+  "character.skeptical": { en: "Skeptical", ja: "懐疑的", zh: "怀疑论者", es: "Escéptico", ko: "회의적" },
+
+  // Core value presets
+  "coreValue.efficiency": { en: "Efficiency first", ja: "効率第一", zh: "效率优先", es: "Eficiencia primero", ko: "효율 우선" },
+  "coreValue.people": { en: "People first", ja: "人が第一", zh: "以人为本", es: "Las personas primero", ko: "사람 우선" },
+  "coreValue.innovation": { en: "Innovation above all", ja: "革新こそ全て", zh: "创新至上", es: "Innovación ante todo", ko: "혁신이 최우선" },
+  "coreValue.dataDriven": { en: "Data-driven", ja: "データドリブン", zh: "数据驱动", es: "Basado en datos", ko: "데이터 기반" },
+  "coreValue.action": { en: "Action over planning", ja: "計画より行動", zh: "行动胜于计划", es: "Acción sobre planificación", ko: "계획보다 행동" },
+  "coreValue.quality": { en: "Quality over speed", ja: "速度より品質", zh: "质量优于速度", es: "Calidad sobre velocidad", ko: "속도보다 품질" },
+
+  // Placeholders for new fields
+  "placeholder.role": {
+    en: "e.g. Marketing", ja: "例：マーケティング", zh: "例：市场营销", es: "ej. Marketing", ko: "예: 마케팅",
+  },
+  "placeholder.character": {
+    en: "e.g. Logical", ja: "例：論理的", zh: "例：逻辑性强", es: "ej. Lógico", ko: "예: 논리적",
+  },
+  "placeholder.coreValue": {
+    en: "e.g. Efficiency first", ja: "例：効率第一", zh: "例：效率优先", es: "ej. Eficiencia primero", ko: "예: 효율 우선",
+  },
+
+  // Contact page
+  "nav.contact": {
+    en: "Contact", ja: "お問い合わせ", zh: "联系我们", es: "Contacto", ko: "문의",
+  },
+  "contact.title": {
+    en: "Contact Us", ja: "お問い合わせ", zh: "联系我们", es: "Contáctenos", ko: "문의하기",
+  },
+  "contact.name": {
+    en: "Your Name", ja: "お名前", zh: "您的姓名", es: "Su nombre", ko: "이름",
+  },
+  "contact.email": {
+    en: "Your Email", ja: "メールアドレス", zh: "您的邮箱", es: "Su email", ko: "이메일",
+  },
+  "contact.subject": {
+    en: "Subject", ja: "件名", zh: "主题", es: "Asunto", ko: "제목",
+  },
+  "contact.message": {
+    en: "Message", ja: "メッセージ", zh: "消息", es: "Mensaje", ko: "메시지",
+  },
+  "contact.send": {
+    en: "Send Message", ja: "メッセージを送信", zh: "发送消息", es: "Enviar mensaje", ko: "메시지 보내기",
+  },
+  "contact.description": {
+    en: "Have a question or feedback? We'd love to hear from you.",
+    ja: "ご質問やフィードバックがございましたら、お気軽にどうぞ。",
+    zh: "有问题或反馈？我们很乐意听到您的声音。",
+    es: "¿Tienes alguna pregunta o comentario? Nos encantaría saber de ti.",
+    ko: "질문이나 피드백이 있으신가요? 연락을 기다리겠습니다.",
+  },
+
   // Tones
   "tone.polite": { en: "Polite", ja: "丁寧語", zh: "礼貌", es: "Educado", ko: "존댓말" },
   "tone.casual": { en: "Casual", ja: "タメ口", zh: "随意", es: "Informal", ko: "반말" },

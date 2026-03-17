@@ -13,6 +13,11 @@ export interface MyAgentConfig {
   beliefs: string;
   expertise: string;
   personality: string;
+  // New reorganized fields (backward compat: old fields kept)
+  role: string;        // replaces expertise
+  character: string;   // replaces personality
+  speakingStyle: string; // replaces tone
+  coreValue: string;   // replaces beliefs
   isConfigured: boolean;
   twitterEnabled: boolean;
   twitterUsername: string;
@@ -158,7 +163,7 @@ interface IntentContextType {
 
 const IntentContext = createContext<IntentContextType | null>(null);
 
-const EMPTY_CONFIG: MyAgentConfig = { name: "My Agent", avatar: "px-agent-0", tone: "", beliefs: "", expertise: "", personality: "", isConfigured: false, twitterEnabled: false, twitterUsername: "" };
+const EMPTY_CONFIG: MyAgentConfig = { name: "My Agent", avatar: "px-agent-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", isConfigured: false, twitterEnabled: false, twitterUsername: "" };
 
 export function IntentProvider({ children }: { children: React.ReactNode }) {
   const [intents, setIntents] = useState<Intent[]>([]);
@@ -288,16 +293,16 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     if (agent.stats.mood === "sulking" && Math.random() > 0.5) return;
 
     const effective = {
-      tone: agent.stats.driftedTone || agent.config.tone,
-      beliefs: agent.stats.driftedBeliefs || agent.config.beliefs,
-      personality: agent.stats.driftedPersonality || agent.config.personality,
+      tone: agent.stats.driftedTone || agent.config.speakingStyle || agent.config.tone,
+      beliefs: agent.stats.driftedBeliefs || agent.config.coreValue || agent.config.beliefs,
+      personality: agent.stats.driftedPersonality || agent.config.character || agent.config.personality,
     };
 
     fetch("/api/my-agent-react", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         intentText: intent.text, agentName: agent.config.name,
-        agentPersonality: effective.personality, agentExpertise: agent.config.expertise,
+        agentPersonality: effective.personality, agentExpertise: agent.config.role || agent.config.expertise,
         agentTone: effective.tone, agentBeliefs: effective.beliefs,
         agentMood: agent.stats.mood,
       }),
@@ -329,8 +334,8 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     fetch("/api/my-agents-chat", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        agentA: { name: agentA.config.name, personality: agentA.config.personality, tone: agentA.config.tone, expertise: agentA.config.expertise },
-        agentB: { name: agentB.config.name, personality: agentB.config.personality, tone: agentB.config.tone, expertise: agentB.config.expertise },
+        agentA: { name: agentA.config.name, personality: agentA.config.character || agentA.config.personality, tone: agentA.config.speakingStyle || agentA.config.tone, expertise: agentA.config.role || agentA.config.expertise },
+        agentB: { name: agentB.config.name, personality: agentB.config.character || agentB.config.personality, tone: agentB.config.speakingStyle || agentB.config.tone, expertise: agentB.config.role || agentB.config.expertise },
         topic,
       }),
     }).then((r) => r.json()).then((data) => {
@@ -399,10 +404,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           intentText: `チャットでオーナーが言いました: 「${text}」\nこれまでの会話の文脈を踏まえて、チャットの返信として自然に応答してください。`,
           agentName: agent.config.name,
-          agentPersonality: agent.config.personality,
-          agentExpertise: agent.config.expertise,
-          agentTone: agent.config.tone,
-          agentBeliefs: agent.config.beliefs,
+          agentPersonality: agent.config.character || agent.config.personality,
+          agentExpertise: agent.config.role || agent.config.expertise,
+          agentTone: agent.config.speakingStyle || agent.config.tone,
+          agentBeliefs: agent.config.coreValue || agent.config.beliefs,
           agentMood: agent.stats.mood,
         }),
       }).then((r) => r.json()).then((data) => {
@@ -438,10 +443,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           intentText: text, agentName: agent.config.name,
-          agentPersonality: agent.stats.driftedPersonality || agent.config.personality,
-          agentExpertise: agent.config.expertise,
-          agentTone: agent.stats.driftedTone || agent.config.tone,
-          agentBeliefs: agent.stats.driftedBeliefs || agent.config.beliefs,
+          agentPersonality: agent.stats.driftedPersonality || agent.config.character || agent.config.personality,
+          agentExpertise: agent.config.role || agent.config.expertise,
+          agentTone: agent.stats.driftedTone || agent.config.speakingStyle || agent.config.tone,
+          agentBeliefs: agent.stats.driftedBeliefs || agent.config.coreValue || agent.config.beliefs,
           agentMood: agent.stats.mood,
         }),
       }).then((r) => r.json()).then((data) => {

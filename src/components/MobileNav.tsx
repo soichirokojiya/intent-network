@@ -9,6 +9,7 @@ export function MobileNav() {
   const items = [
     { href: "/", label: "Home", icon: "home" },
     { href: "/agent", label: "Agent", icon: "agent" },
+    { href: "/contact", label: "Contact", icon: "contact" },
   ];
 
   return (
@@ -28,6 +29,11 @@ export function MobileNav() {
                 {item.icon === "home" ? (
                   <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={isActive ? 2.5 : 1.5}>
                     <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10" />
+                  </svg>
+                ) : item.icon === "contact" ? (
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={isActive ? 2.5 : 1.5}>
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
                   </svg>
                 ) : (
                   <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={isActive ? 2.5 : 1.5}>
