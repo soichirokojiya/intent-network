@@ -38,7 +38,7 @@ const translations: Record<string, Record<Locale, string>> = {
     en: "Chat", ja: "チャット", zh: "聊天", es: "Chat", ko: "채팅",
   },
   "nav.myAgents": {
-    en: "Agent Settings", ja: "エージェント設定", zh: "Agent设置", es: "Config. de Agentes", ko: "에이전트 설정",
+    en: "Agents", ja: "エージェント", zh: "Agent", es: "Agentes", ko: "에이전트",
   },
   "nav.send": {
     en: "Send", ja: "送信", zh: "发送", es: "Enviar", ko: "보내기",

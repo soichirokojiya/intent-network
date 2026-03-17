@@ -133,15 +133,19 @@ export function IntentComposer() {
   // Convert agent responses to chat messages (with natural delay queue)
   useEffect(() => {
     agentResponses.forEach((resp) => {
+      // Use agentId + content hash as key to prevent duplicates
+      const contentKey = `${resp.agentId}-${resp.toOwner.slice(0, 30)}`;
       const key = `${resp.agentId}-${resp.timestamp}`;
       if (processedResponseIds.current.has(key)) return;
-      // Also check if already in chatHistory (from Supabase load)
-      const existingId = `agent-${key}`;
-      if (chatHistory.some((m) => m.id === existingId)) {
+      if (processedResponseIds.current.has(contentKey)) return;
+      // Check if same content already in chat
+      if (chatHistory.some((m) => m.agentId === resp.agentId && m.text === resp.toOwner)) {
         processedResponseIds.current.add(key);
+        processedResponseIds.current.add(contentKey);
         return;
       }
       processedResponseIds.current.add(key);
+      processedResponseIds.current.add(contentKey);
 
       // Agent's response to owner
       enqueueMessage({

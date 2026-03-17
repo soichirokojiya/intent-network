@@ -9,6 +9,7 @@ export function MobileNav() {
   const items = [
     { href: "/", label: "Chat", icon: "home" },
     { href: "/agent", label: "Agent", icon: "agent" },
+    { href: "/contact", label: "Contact", icon: "contact" },
   ];
 
   return (
