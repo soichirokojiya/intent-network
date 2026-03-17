@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { Intent, Conversation, AgentReaction, AgentResponse } from "@/lib/types";
 import { SEED_AGENTS } from "@/lib/agents";
 import { loadAgents, saveAgent, deleteAgent as deleteAgentFromDb } from "@/lib/agentStorage";
+import { getAgentConversation } from "@/lib/chatStorage";
 
 // --- Types ---
 
@@ -607,7 +608,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   // --- Post intent ---
   // --- Helper: direct agent response ---
-  const directAgentRespond = useCallback((agent: MyAgent, text: string, requestTweet: boolean, delay: number) => {
+  const directAgentRespond = useCallback(async (agent: MyAgent, text: string, requestTweet: boolean, delay: number) => {
+    // Get conversation history for context
+    const history = await getAgentConversation(agent.id, "general", 20);
+
     fetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -618,6 +622,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         agentBeliefs: agent.stats.driftedBeliefs || agent.config.coreValue || agent.config.beliefs,
         agentMood: agent.stats.mood,
         requestTweet,
+        conversationHistory: history,
       }),
     }).then((r) => r.json()).then((data) => {
       const toOwner = data.toOwner || "了解。";

@@ -45,6 +45,29 @@ export async function loadChatHistory(roomId: string = "general"): Promise<ChatM
   }));
 }
 
+// Get recent conversation for an agent (for context injection)
+export async function getAgentConversation(agentId: string, roomId: string = "general", limit: number = 20): Promise<{ role: string; text: string }[]> {
+  const deviceId = getDeviceId();
+  const { data } = await supabase
+    .from("owner_chats")
+    .select("*")
+    .eq("device_id", deviceId)
+    .eq("room_id", roomId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!data) return [];
+
+  // Filter to only this agent's messages and user messages near them
+  return data
+    .reverse()
+    .filter((row) => row.type === "user" || row.agent_id === agentId)
+    .map((row) => ({
+      role: row.type === "user" ? "オーナー" : row.agent_name || "Agent",
+      text: row.text,
+    }));
+}
+
 export async function saveChatMessage(msg: ChatMessage, roomId: string = "general"): Promise<void> {
   const deviceId = getDeviceId();
   await supabase.from("owner_chats").insert({

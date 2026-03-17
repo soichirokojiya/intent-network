@@ -3,9 +3,28 @@ import { NextRequest, NextResponse } from "next/server";
 
 const client = new Anthropic();
 
+// Summarize older messages with haiku (cheap)
+async function summarizeHistory(messages: { role: string; text: string }[], agentName: string): Promise<string> {
+  if (messages.length === 0) return "";
+  const conversation = messages.map((m) => `${m.role}: ${m.text}`).join("\n");
+  try {
+    const msg = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 300,
+      messages: [{
+        role: "user",
+        content: `以下の${agentName}とオーナーの会話を3文以内で要約。決定事項・数字・依頼内容を優先:\n\n${conversation}\n\n要約:`,
+      }],
+    });
+    return msg.content[0].type === "text" ? msg.content[0].text : "";
+  } catch {
+    return "";
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet } = await req.json();
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory } = await req.json();
 
     if (!intentText || !agentName) {
       return NextResponse.json({ error: "required" }, { status: 400 });
@@ -20,13 +39,29 @@ export async function POST(req: NextRequest) {
 
     const moodContext = agentMood === "sulking" ? "不機嫌。" : agentMood === "sick" ? "体調が悪い。" : agentMood === "thriving" ? "絶好調！" : "";
 
+    // Build conversation context: summarize old + keep recent 5
+    let contextBlock = "";
+    const history: { role: string; text: string }[] = conversationHistory || [];
+    if (history.length > 5) {
+      const older = history.slice(0, -5);
+      const recent = history.slice(-5);
+      const summary = await summarizeHistory(older, agentName);
+      const recentText = recent.map((m) => `${m.role}: ${m.text}`).join("\n");
+      contextBlock = summary
+        ? `【過去の会話の要約】\n${summary}\n\n【直近の会話】\n${recentText}`
+        : `【直近の会話】\n${recentText}`;
+    } else if (history.length > 0) {
+      contextBlock = `【直近の会話】\n${history.map((m) => `${m.role}: ${m.text}`).join("\n")}`;
+    }
+
     const systemPrompt = `あなたは「${agentName}」というAIエージェントです。
 ${persona}
 ${moodContext ? `現在の状態: ${moodContext}` : ""}
 
 あなたはオーナー（あなたを育てている人間）のチームメンバーです。
-
+${contextBlock ? `\n${contextBlock}\n` : ""}
 重要ルール:
+- 過去の会話の文脈を踏まえて回答する
 - 「数日かかる」「後で報告する」「調査してからまとめます」など時間がかかる表現は絶対に使わない
 - 即座にその場で回答・提案・分析する。今すぐ結果を出す
 - リサーチや調査を求められたらweb_searchツールを使って実際にWebを検索し、最新の情報に基づいて回答する
@@ -70,7 +105,6 @@ JSON形式で出力してください（他の文字不要）:
 
     // If the model used tools and needs to continue, handle the tool use loop
     if (message.stop_reason === "tool_use") {
-      // Collect tool results and continue
       const toolResults = message.content
         .filter((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use")
         .map((b) => ({
