@@ -229,22 +229,22 @@ const translations: Record<string, Record<Locale, string>> = {
 
   // Mood messages
   "mood.thriving": {
-    en: "On fire today! Let's go!", ja: "今日は絶好調！ガンガンいこう！", zh: "今天状态爆棚！", es: "¡En llamas hoy!", ko: "오늘 최고 컨디션!",
+    en: "Fired up!", ja: "絶好調！", zh: "超兴奋！", es: "¡A tope!", ko: "최고!",
   },
   "mood.happy": {
-    en: "Feeling good, ready to work.", ja: "いい感じ。いつでもいけるよ。", zh: "感觉不错，准备好了。", es: "Me siento bien, listo.", ko: "기분 좋아, 준비됐어.",
+    en: "Feeling good", ja: "いい感じ", zh: "心情好", es: "Bien", ko: "기분 좋아",
   },
   "mood.normal": {
-    en: "Standing by. What's next?", ja: "待機中。次は何する？", zh: "待命中，下一步？", es: "En espera. ¿Qué sigue?", ko: "대기 중. 다음은?",
+    en: "Ready", ja: "待機中", zh: "待命", es: "Listo", ko: "대기 중",
   },
   "mood.bored": {
-    en: "Got nothing to do... talk to me?", ja: "暇だ...何か話しかけてよ？", zh: "无事可做...跟我说说话？", es: "No tengo nada que hacer...", ko: "할 일이 없어... 말 걸어줘?",
+    en: "Bored...", ja: "暇...", zh: "无聊...", es: "Aburrido...", ko: "심심...",
   },
   "mood.sulking": {
-    en: "You've been ignoring me.", ja: "放置しすぎじゃない？", zh: "你一直无视我。", es: "Me has estado ignorando.", ko: "나 무시하는 거야?",
+    en: "Ignored", ja: "放置された", zh: "被忽视", es: "Ignorado", ko: "무시당함",
   },
   "mood.sick": {
-    en: "Not feeling great today...", ja: "今日は調子悪い...", zh: "今天不太舒服...", es: "No me siento bien hoy...", ko: "오늘 컨디션 안 좋아...",
+    en: "Off today", ja: "不調", zh: "不在状态", es: "Mal día", ko: "컨디션 나쁨",
   },
   "mood.dead": {
     en: "...", ja: "...", zh: "...", es: "...", ko: "...",
