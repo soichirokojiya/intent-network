@@ -42,7 +42,7 @@ function detectMention(text: string, agents: { id: string; config: { name: strin
 }
 
 // Queue messages with natural delays: read → typing → message
-function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>) {
+function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>, roomId: string = "general") {
   const queue = useRef<ChatMessage[]>([]);
   const processing = useRef(false);
 
@@ -77,7 +77,7 @@ function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<Cha
         id: msg.id, type: msg.type as "user" | "agent", text: msg.text,
         agentName: msg.agentName, agentAvatar: msg.agentAvatar,
         agentId: msg.agentId, tweetPreview: msg.tweetPreview, timestamp: msg.timestamp,
-      });
+      }, roomId);
       processing.current = false;
       processQueue();
     }, 1800 + typingDelay);
@@ -91,7 +91,7 @@ function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<Cha
   return enqueue;
 }
 
-export function IntentComposer() {
+export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const [text, setText] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const isComposing = useRef(false);
@@ -99,14 +99,12 @@ export function IntentComposer() {
   const { t } = useLocale();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const processedResponseIds = useRef<Set<string>>(new Set());
-  const enqueueMessage = useMessageQueue(setChatHistory);
-  const initLoaded = useRef(false);
-
-  // Load chat history from Supabase on mount + mark existing IDs as processed
+  const enqueueMessage = useMessageQueue(setChatHistory, roomId);
+  // Load chat history from Supabase on mount or room change
   useEffect(() => {
-    if (initLoaded.current) return;
-    initLoaded.current = true;
-    loadChatHistory().then((msgs) => {
+    setChatHistory([]);
+    processedResponseIds.current.clear();
+    loadChatHistory(roomId).then((msgs) => {
       if (msgs.length > 0) {
         setChatHistory(msgs as ChatMessage[]);
         // Mark all loaded message IDs as processed to prevent re-adding
@@ -119,7 +117,7 @@ export function IntentComposer() {
         });
       }
     });
-  }, []);
+  }, [roomId]);
 
   const configured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
   const hasAgent = configured.length > 0;
@@ -206,7 +204,7 @@ export function IntentComposer() {
       timestamp: Date.now(),
     };
     setChatHistory((prev) => [...prev, userMsg]);
-    saveChatMessage(userMsg);
+    saveChatMessage(userMsg, roomId);
 
     const intent = detectIntent(userText);
 

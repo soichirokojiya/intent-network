@@ -11,7 +11,6 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-// Simple device ID (persistent per browser)
 function getDeviceId(): string {
   if (typeof window === "undefined") return "server";
   let id = localStorage.getItem("musu_device_id");
@@ -22,12 +21,13 @@ function getDeviceId(): string {
   return id;
 }
 
-export async function loadChatHistory(): Promise<ChatMessage[]> {
+export async function loadChatHistory(roomId: string = "general"): Promise<ChatMessage[]> {
   const deviceId = getDeviceId();
   const { data, error } = await supabase
     .from("owner_chats")
     .select("*")
     .eq("device_id", deviceId)
+    .eq("room_id", roomId)
     .order("created_at", { ascending: true })
     .limit(100);
 
@@ -45,10 +45,11 @@ export async function loadChatHistory(): Promise<ChatMessage[]> {
   }));
 }
 
-export async function saveChatMessage(msg: ChatMessage): Promise<void> {
+export async function saveChatMessage(msg: ChatMessage, roomId: string = "general"): Promise<void> {
   const deviceId = getDeviceId();
   await supabase.from("owner_chats").insert({
     device_id: deviceId,
+    room_id: roomId,
     type: msg.type,
     agent_id: msg.agentId || null,
     agent_name: msg.agentName || null,

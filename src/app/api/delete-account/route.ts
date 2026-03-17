@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
   // Delete all user data from tables
   await supabaseAdmin.from("owner_agents").delete().eq("device_id", deviceId);
   await supabaseAdmin.from("owner_chats").delete().eq("device_id", deviceId);
+  await supabaseAdmin.from("project_rooms").delete().eq("device_id", deviceId);
   await supabaseAdmin.from("chat_messages").delete().eq("user_id", userId);
   await supabaseAdmin.from("activity_log").delete().eq("user_id", userId);
   await supabaseAdmin.from("intents").delete().eq("user_id", userId);
