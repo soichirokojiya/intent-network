@@ -20,12 +20,16 @@ export default function ChargePage() {
     }
   }, []);
 
-  // After successful payment, add credit client-side (webhook also handles it)
+  // After successful payment, add credit
   useEffect(() => {
     if (success && amount) {
       const deviceId = localStorage.getItem("musu_device_id");
       if (deviceId) {
-        fetch(`/api/credits?deviceId=${deviceId}`).then((r) => r.json()).then((d) => setBalance(d.balance));
+        fetch("/api/credits/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId, amount: Number(amount) }),
+        }).then((r) => r.json()).then((d) => setBalance(d.balance));
       }
     }
   }, [success, amount]);
