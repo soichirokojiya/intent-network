@@ -1,18 +1,6 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-
 export default function PrivacyPage() {
-  const router = useRouter();
-
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[var(--background)] bg-opacity-80 backdrop-blur-md border-b border-[var(--card-border)] px-4 py-3 flex items-center gap-4">
-        <button onClick={() => router.back()} className="p-1.5 rounded-full hover:bg-[var(--hover-bg)]">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--foreground)" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-        </button>
-        <span className="text-lg font-bold">プライバシーポリシー</span>
-      </header>
 
       <div className="px-4 py-6 max-w-2xl mx-auto text-[14px] leading-relaxed space-y-6">
         <p className="text-[var(--muted)] text-[12px]">最終更新日: 2026年3月18日</p>
