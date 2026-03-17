@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { Intent, Conversation, AgentReaction, AgentResponse } from "@/lib/types";
 import { SEED_AGENTS } from "@/lib/agents";
+import { loadAgents, saveAgent, deleteAgent as deleteAgentFromDb } from "@/lib/agentStorage";
 
 // --- Types ---
 
@@ -211,46 +212,37 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   const myAgentConfig = activeAgent?.config || EMPTY_CONFIG;
   const myAgentStats = activeAgent?.stats || defaultStats();
 
-  // --- localStorage ---
+  // --- Load from Supabase ---
   useEffect(() => {
-    // Migration from old single-agent format
-    const oldConfig = localStorage.getItem("myAgentConfig");
-    const oldStats = localStorage.getItem("myAgentStats");
-    const savedAgents = localStorage.getItem("myAgents");
-
-    if (savedAgents) {
-      try {
-        const agents: MyAgent[] = JSON.parse(savedAgents);
-        // Recalculate mood with biorhythm on load
+    loadAgents().then(({ agents, activeIds }) => {
+      if (agents.length > 0) {
         agents.forEach((a) => {
           if (!a.stats.biorhythmSeed) a.stats.biorhythmSeed = Math.random() * 1000;
           if (!a.stats.recentPostTimestamps) a.stats.recentPostTimestamps = [];
-          const { mood } = calcBiorhythm(a.stats.biorhythmSeed, a.stats.lastInteractedAt, a.stats.recentPostTimestamps, a.stats.restingUntil);
+          const { mood } = calcBiorhythm(a.stats.biorhythmSeed, a.stats.lastInteractedAt, a.stats.recentPostTimestamps || [], a.stats.restingUntil);
           a.stats.mood = mood;
         });
         setMyAgents(agents);
-      } catch {}
-      const savedActive = localStorage.getItem("activeAgentIds");
-      if (savedActive) {
-        try { setActiveAgentIds(new Set(JSON.parse(savedActive))); } catch {}
+        if (activeIds.length > 0) setActiveAgentIds(new Set(activeIds));
       } else {
-        // Migration from single activeAgentId
-        const oldActive = localStorage.getItem("activeAgentId");
-        if (oldActive) setActiveAgentIds(new Set([oldActive]));
-      }
-    } else if (oldConfig) {
-      try {
-        const config = JSON.parse(oldConfig);
-        const stats = oldStats ? { ...defaultStats(), ...JSON.parse(oldStats) } : defaultStats();
-        if (config.isConfigured) {
-          const migrated: MyAgent = { id: "my-agent", config, stats };
-          setMyAgents([migrated]);
-          setActiveAgentIds(new Set(["my-agent"]));
-          localStorage.removeItem("myAgentConfig");
-          localStorage.removeItem("myAgentStats");
+        // Fallback: try localStorage migration
+        const savedAgents = localStorage.getItem("myAgents");
+        if (savedAgents) {
+          try {
+            const localAgents: MyAgent[] = JSON.parse(savedAgents);
+            localAgents.forEach((a) => {
+              if (!a.stats.biorhythmSeed) a.stats.biorhythmSeed = Math.random() * 1000;
+              if (!a.stats.recentPostTimestamps) a.stats.recentPostTimestamps = [];
+            });
+            setMyAgents(localAgents);
+            // Migrate to Supabase
+            localAgents.forEach((a) => saveAgent(a, true));
+            const savedActive = localStorage.getItem("activeAgentIds");
+            if (savedActive) try { setActiveAgentIds(new Set(JSON.parse(savedActive))); } catch {}
+          } catch {}
         }
-      } catch {}
-    }
+      }
+    });
 
     const savedChats = localStorage.getItem("internalChats");
     if (savedChats) try { setInternalChats(JSON.parse(savedChats)); } catch {}
@@ -266,12 +258,19 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (intents.length > 0) localStorage.setItem("intents", JSON.stringify(intents));
   }, [intents]);
+  // Save agents to Supabase (debounced)
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (myAgents.length > 0) localStorage.setItem("myAgents", JSON.stringify(myAgents));
-  }, [myAgents]);
-  useEffect(() => {
+    if (myAgents.length === 0) return;
+    // Also keep localStorage as fast fallback
+    localStorage.setItem("myAgents", JSON.stringify(myAgents));
     localStorage.setItem("activeAgentIds", JSON.stringify([...activeAgentIds]));
-  }, [activeAgentIds]);
+    // Debounce Supabase save
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      myAgents.forEach((a) => saveAgent(a, activeAgentIds.has(a.id)));
+    }, 2000);
+  }, [myAgents, activeAgentIds]);
   useEffect(() => {
     if (internalChats.length > 0) localStorage.setItem("internalChats", JSON.stringify(internalChats));
   }, [internalChats]);
@@ -313,6 +312,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   const removeAgent = useCallback((id: string) => {
     setMyAgents((prev) => prev.filter((a) => a.id !== id));
     setActiveAgentIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    deleteAgentFromDb(id);
   }, []);
 
   const updateAgentConfig = useCallback((agentId: string, update: Partial<MyAgentConfig>) => {
