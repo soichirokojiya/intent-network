@@ -54,6 +54,20 @@ export default function AgentPage() {
           )}
         </header>
 
+        {/* Reset button */}
+        {myAgents.length > 0 && (
+          <div className="px-4 py-2 border-b border-[var(--card-border)]">
+            <button onClick={() => {
+              if (confirm("全てのAgentとデータをリセットしますか？")) {
+                localStorage.clear();
+                window.location.reload();
+              }
+            }} className="text-[12px] text-[var(--danger)] hover:underline">
+              全データリセット
+            </button>
+          </div>
+        )}
+
         {myAgents.length === 0 ? (
           <div className="px-4 py-12 text-center">
             <div className="text-5xl mb-4">🤖</div>
