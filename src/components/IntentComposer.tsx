@@ -33,6 +33,7 @@ function detectIntent(text: string): "approve" | "reject" | "rest" | "message" {
 export function IntentComposer() {
   const [text, setText] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const isComposing = useRef(false);
   const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, approveTweet, restAgent } = useIntents();
   const { t } = useLocale();
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -216,8 +217,10 @@ export function IntentComposer() {
             placeholder={hasAgent ? t("home.placeholder") : "エージェントを作成してください"}
             className="flex-1 bg-[var(--search-bg)] rounded-2xl px-4 py-2.5 text-[15px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)] resize-none max-h-[120px]"
             rows={1}
+            onCompositionStart={() => { isComposing.current = true; }}
+            onCompositionEnd={() => { isComposing.current = false; }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && !e.shiftKey && !isComposing.current) {
                 e.preventDefault();
                 handleSubmit();
               }
