@@ -125,6 +125,12 @@ export function AuthScreen() {
             <p className="text-[var(--green)] text-[13px] text-center">{success}</p>
           )}
 
+          {isSignUp && (
+            <p className="text-[11px] text-[var(--muted)] text-center leading-relaxed">
+              アカウントを作成することにより、<a href="/terms" target="_blank" className="text-[var(--accent)] hover:underline">利用規約</a>と<a href="/privacy" target="_blank" className="text-[var(--accent)] hover:underline">プライバシーポリシー</a>に同意したことになります。
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={loading}
