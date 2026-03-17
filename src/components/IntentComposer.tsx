@@ -5,6 +5,7 @@ import { useIntents } from "@/context/IntentContext";
 import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { AgentResponse } from "@/lib/types";
+import { loadChatHistory, saveChatMessage } from "@/lib/chatStorage";
 
 interface ChatMessage {
   id: string;
@@ -61,8 +62,13 @@ function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<Cha
     const typingDelay = Math.min(1500, 800 + msg.text.length * 15);
     setTimeout(() => {
       setChatHistory((prev) => prev.filter((m) => m.id !== `typing-${msg.id}`).concat([msg]));
+      saveChatMessage({
+        id: msg.id, type: msg.type as "user" | "agent", text: msg.text,
+        agentName: msg.agentName, agentAvatar: msg.agentAvatar,
+        agentId: msg.agentId, tweetPreview: msg.tweetPreview, timestamp: msg.timestamp,
+      });
       processing.current = false;
-      processQueue(); // Process next in queue
+      processQueue();
     }, 1800 + typingDelay);
   }, [setChatHistory]);
 
@@ -76,23 +82,33 @@ function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<Cha
 
 export function IntentComposer() {
   const [text, setText] = useState("");
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() => {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("chatHistory") || "[]"); } catch { return []; }
-  });
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const isComposing = useRef(false);
   const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, approveTweet, restAgent } = useIntents();
   const { t } = useLocale();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const processedResponseIds = useRef<Set<string>>(new Set());
   const enqueueMessage = useMessageQueue(setChatHistory);
+  const initLoaded = useRef(false);
 
-  // Persist chat history
+  // Load chat history from Supabase on mount + mark existing IDs as processed
   useEffect(() => {
-    // Only save actual messages (not read/typing states)
-    const toSave = chatHistory.filter((m) => m.type === "user" || m.type === "agent");
-    localStorage.setItem("chatHistory", JSON.stringify(toSave.slice(-100))); // keep last 100
-  }, [chatHistory]);
+    if (initLoaded.current) return;
+    initLoaded.current = true;
+    loadChatHistory().then((msgs) => {
+      if (msgs.length > 0) {
+        setChatHistory(msgs as ChatMessage[]);
+        // Mark all loaded message IDs as processed to prevent re-adding
+        msgs.forEach((m) => {
+          processedResponseIds.current.add(m.id);
+          // Also mark the source keys for agent responses
+          if (m.id.startsWith("agent-")) processedResponseIds.current.add(m.id.replace("agent-", ""));
+          if (m.id.startsWith("tweet-preview-")) processedResponseIds.current.add(m.id.replace("tweet-preview-", ""));
+          if (m.id.startsWith("tweeted-")) processedResponseIds.current.add(m.id);
+        });
+      }
+    });
+  }, []);
 
   const configured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
   const hasAgent = configured.length > 0;
@@ -108,6 +124,12 @@ export function IntentComposer() {
     agentResponses.forEach((resp) => {
       const key = `${resp.agentId}-${resp.timestamp}`;
       if (processedResponseIds.current.has(key)) return;
+      // Also check if already in chatHistory (from Supabase load)
+      const existingId = `agent-${key}`;
+      if (chatHistory.some((m) => m.id === existingId)) {
+        processedResponseIds.current.add(key);
+        return;
+      }
       processedResponseIds.current.add(key);
 
       // Agent's response to owner
@@ -162,12 +184,14 @@ export function IntentComposer() {
     if (!text.trim()) return;
     const userText = text.trim();
 
-    setChatHistory((prev) => [...prev, {
+    const userMsg = {
       id: `user-${Date.now()}`,
-      type: "user",
+      type: "user" as const,
       text: userText,
       timestamp: Date.now(),
-    }]);
+    };
+    setChatHistory((prev) => [...prev, userMsg]);
+    saveChatMessage(userMsg);
 
     const intent = detectIntent(userText);
 
