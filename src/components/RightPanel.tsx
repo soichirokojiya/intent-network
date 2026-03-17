@@ -36,7 +36,6 @@ export function RightPanel() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-bold truncate">{agent.config.name}</span>
                   <span className="text-xs">{MOOD_EMOJI[agent.stats.mood]}</span>
-                  <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--accent)] text-white font-bold">Lv.{agent.stats.level}</span>
                 </div>
                 <div className="text-[10px] text-[var(--muted)] mt-1">{agent.stats.totalReactions} {t("agent.posts")}</div>
               </div>

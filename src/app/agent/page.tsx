@@ -102,7 +102,6 @@ export default function AgentPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-[15px]">{agent.config.name}</span>
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white font-bold">Lv.{agent.stats.level}</span>
                       {isActive && <span className="text-[11px] text-[var(--green)]">Active</span>}
                     </div>
                     <div className="text-[13px] text-[var(--muted)] truncate">{agent.config.role || agent.config.expertise || agent.config.character || agent.config.personality || "Agent"}</div>
@@ -258,10 +257,11 @@ export default function AgentPage() {
           <p className={`text-[13px] mt-1 ${isDead ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>
             {isDead ? t("agent.dead") : `"${t(`mood.${agent.stats.mood}`)}"`}
           </p>
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-[13px] px-2.5 py-0.5 rounded-full bg-[var(--accent)] text-white font-bold">Lv.{agent.stats.level}</span>
-            {isActive && <span className="text-[12px] text-[var(--green)] font-bold">{t("agent.active")}</span>}
-          </div>
+          {isActive && (
+            <div className="mt-2">
+              <span className="text-[12px] text-[var(--green)] font-bold">{t("agent.active")}</span>
+            </div>
+          )}
         </div>
 
         <div className="px-4 pb-4 flex gap-2">
@@ -327,8 +327,6 @@ export default function AgentPage() {
 
         <div className="flex gap-5 px-4 pb-3 text-[14px]">
           <span><strong>{agent.stats.totalReactions}</strong> <span className="text-[var(--muted)]">{t("agent.posts")}</span></span>
-          <span><strong>{agent.stats.influence}</strong> <span className="text-[var(--muted)]">{t("agent.influence")}</span></span>
-          <span><strong>{agent.stats.xp}</strong> <span className="text-[var(--muted)]">XP</span></span>
         </div>
       </div>
 
