@@ -16,7 +16,7 @@ const CORE_VALUE_KEYS = ["coreValue.efficiency", "coreValue.people", "coreValue.
 // No HP/energy bars - mood is expressed through behavior and emoji
 
 export default function AgentPage() {
-  const { myAgents, activeAgentId, setActiveAgentId, addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, revertDrift, internalChats, intents } = useIntents();
+  const { myAgents, activeAgentId, setActiveAgentId, addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, encourageAgent, revertDrift, internalChats, intents } = useIntents();
   const { t } = useLocale();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -266,6 +266,12 @@ export default function AgentPage() {
             <button onClick={() => reviveAgent(agent.id)} className="flex-1 bg-[var(--danger)] text-white font-bold py-2.5 rounded-full text-sm">{t("agent.revive")}</button>
           ) : (
             <>
+              {(agent.stats.mood === "bored" || agent.stats.mood === "sulking" || agent.stats.mood === "sick") && (
+                <button onClick={() => encourageAgent(agent.id)}
+                  className="flex-1 bg-[var(--green)] text-white font-bold py-2.5 rounded-full text-sm hover:brightness-110 transition-all">
+                  👋 Hey!
+                </button>
+              )}
               <button onClick={() => {
                 setDraft({
                   name: agent.config.name, avatar: agent.config.avatar,
