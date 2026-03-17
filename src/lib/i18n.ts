@@ -339,6 +339,16 @@ const translations: Record<string, Record<Locale, string>> = {
   "contact.send": {
     en: "Send Message", ja: "メッセージを送信", zh: "发送消息", es: "Enviar mensaje", ko: "메시지 보내기",
   },
+  "contact.sent": {
+    en: "Message Sent!", ja: "送信しました！", zh: "消息已发送！", es: "¡Mensaje enviado!", ko: "메시지 전송됨!",
+  },
+  "contact.sentDesc": {
+    en: "Thank you for reaching out. We'll get back to you soon.",
+    ja: "お問い合わせありがとうございます。近日中にご連絡いたします。",
+    zh: "感谢您的联系。我们会尽快回复您。",
+    es: "Gracias por contactarnos. Le responderemos pronto.",
+    ko: "문의해 주셔서 감사합니다. 곧 답변드리겠습니다.",
+  },
   "contact.description": {
     en: "Have a question or feedback? We'd love to hear from you.",
     ja: "ご質問やフィードバックがございましたら、お気軽にどうぞ。",

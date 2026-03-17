@@ -61,9 +61,6 @@ export function Sidebar() {
               <NavIcon type={item.icon} active={isActive} />
               <span className={`text-xl ${isActive ? "font-bold" : ""}`}>
                 {item.label}
-                {item.icon === "agent" && myAgentConfig.isConfigured && (
-                  <span className="ml-1 text-sm">{MOOD_EMOJI[myAgentStats.mood]}</span>
-                )}
               </span>
             </Link>
           );
