@@ -107,7 +107,19 @@ export default function AgentPage() {
               return (
                 <button
                   key={agent.id}
-                  onClick={() => setSelectedAgentId(agent.id)}
+                  onClick={() => {
+                    setDraft({
+                      name: agent.config.name, avatar: agent.config.avatar,
+                      tone: agent.config.speakingStyle || agent.config.tone, beliefs: agent.config.coreValue || agent.config.beliefs,
+                      expertise: agent.config.role || agent.config.expertise, personality: agent.config.character || agent.config.personality,
+                      role: agent.config.role || "", character: agent.config.character || "",
+                      speakingStyle: agent.config.speakingStyle || "", coreValue: agent.config.coreValue || "",
+                      twitterEnabled: agent.config.twitterEnabled || false, twitterUsername: agent.config.twitterUsername || "",
+                      isOrchestrator: agent.config.isOrchestrator || false,
+                    });
+                    setEditingAgentId(agent.id);
+                    setCreating(true);
+                  }}
                   className={`w-full px-4 py-4 border-b border-[var(--card-border)] flex items-center gap-3 hover:bg-[var(--hover-bg)] transition-colors text-left ${isDead ? "opacity-60" : ""}`}
                 >
                   <div className={`relative ${isDead ? "grayscale" : ""}`}>
