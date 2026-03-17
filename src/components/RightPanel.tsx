@@ -28,7 +28,7 @@ export function RightPanel() {
         <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
           <h2 className="text-xl font-extrabold mb-3">{t("right.myAgents")}</h2>
           {myAgents.map((agent) => (
-            <Link href="/agent" key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors">
+            <Link href={`/agent?id=${agent.id}`} key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors">
               <div className={`${agent.stats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
                 <AgentAvatarDisplay avatar={agent.config.avatar} size={36} />
               </div>

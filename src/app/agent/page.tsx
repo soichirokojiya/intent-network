@@ -7,7 +7,7 @@ import { AgentAvatarDisplay } from "@/components/AgentAvatarDisplay";
 import { PixelAvatarGrid } from "@/components/PixelAvatar";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 const TONE_KEYS = ["tone.polite", "tone.casual", "tone.sarcastic", "tone.kansai", "tone.deadpan", "tone.passionate", "tone.philosophical"];
@@ -21,10 +21,19 @@ export default function AgentPage() {
   const { myAgents, maxAgents, activeAgentId, setActiveAgentId, addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, restAgent, encourageAgent, revertDrift, internalChats, intents } = useIntents();
   const { t } = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
   const [, setTick] = useState(0);
+
+  // Auto-select agent from query param (e.g. /agent?id=xxx)
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (id && myAgents.some((a) => a.id === id)) {
+      setSelectedAgentId(id);
+    }
+  }, [searchParams, myAgents]);
 
   useEffect(() => { const ti = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(ti); }, []);
 
