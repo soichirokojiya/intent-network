@@ -53,7 +53,7 @@ JSON形式で出力してください（他の文字不要）:
 
     // Use web_search tool for research-capable responses
     const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-opus-4-20250514",
       max_tokens: 4000,
       system: systemPrompt,
       tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
@@ -80,7 +80,7 @@ JSON形式で出力してください（他の文字不要）:
         }));
 
       const continuation = await client.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-opus-4-20250514",
         max_tokens: 4000,
         system: systemPrompt,
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
