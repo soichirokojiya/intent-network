@@ -9,9 +9,28 @@ const supabaseAdmin = createClient(
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
+// Rate limit: max 3 requests per email per 15 minutes
+const rateLimitMap = new Map<string, number[]>();
+
+function checkRateLimit(email: string): boolean {
+  const now = Date.now();
+  const window = 15 * 60 * 1000; // 15 minutes
+  const maxRequests = 3;
+
+  const timestamps = (rateLimitMap.get(email) || []).filter((t) => now - t < window);
+  if (timestamps.length >= maxRequests) return false;
+  timestamps.push(now);
+  rateLimitMap.set(email, timestamps);
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   const { email } = await req.json();
   if (!email) return NextResponse.json({ error: "Missing email" }, { status: 400 });
+
+  if (!checkRateLimit(email)) {
+    return NextResponse.json({ error: "しばらく時間をおいてから再度お試しください。" }, { status: 429 });
+  }
 
   // Generate password reset link via Supabase Admin API
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({

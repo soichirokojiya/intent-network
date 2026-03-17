@@ -6,7 +6,18 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
+// Rate limit: max 1 request per IP per 10 minutes
+const rateLimitMap = new Map<string, number>();
+
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const now = Date.now();
+  const last = rateLimitMap.get(ip) || 0;
+  if (now - last < 10 * 60 * 1000) {
+    return NextResponse.json({ error: "しばらく時間をおいてから再度お試しください。" }, { status: 429 });
+  }
+  rateLimitMap.set(ip, now);
+
   const { userId, deviceId } = await req.json();
   if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
 
