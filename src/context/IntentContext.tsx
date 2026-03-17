@@ -140,12 +140,8 @@ function calcLevel(xp: number): number {
 }
 
 // Max agents based on highest agent level
-function getMaxAgents(agents: MyAgent[]): number {
-  const maxLevel = agents.reduce((max, a) => Math.max(max, a.stats.level), 0);
-  if (maxLevel >= 30) return 5;
-  if (maxLevel >= 20) return 4;
-  if (maxLevel >= 10) return 3;
-  return 2;
+function getMaxAgents(_agents: MyAgent[]): number {
+  return 3;
 }
 
 function defaultStats(): MyAgentStats {
@@ -189,7 +185,7 @@ interface IntentContextType {
   clearAgentResponses: () => void;
   approveTweet: (agentId: string) => void;
   // Actions
-  postIntent: (text: string) => void;
+  postIntent: (text: string, options?: { mentionAgentId?: string; requestTweet?: boolean }) => void;
   postReply: (intentId: string, text: string) => void;
   getConversation: (intentId: string) => Conversation | undefined;
   loadConversation: (intentId: string) => void;
@@ -554,17 +550,25 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     });
   }, [internalChats, myAgents]);
 
-  // --- Post intent: 2-step flow ---
-  // Step 1: Agent responds to owner (toOwner) + prepares TL post (toTimeline)
-  // Step 2: After delay, TL post goes live and other agents react
-  const postIntent = useCallback((text: string) => {
-    const configuredAgents = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
-    if (configuredAgents.length === 0) return;
+  // --- Post intent ---
+  // Normal chat: agent responds to owner only (no TL post, no tweet)
+  // Tweet request: agent creates tweet draft for approval
+  const postIntent = useCallback((text: string, options?: { mentionAgentId?: string; requestTweet?: boolean }) => {
+    const allConfigured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
+    if (allConfigured.length === 0) return;
+
+    // If @mention, only that agent responds. Otherwise all active agents.
+    const targetAgents = options?.mentionAgentId
+      ? allConfigured.filter((a) => a.id === options.mentionAgentId)
+      : allConfigured.filter((a) => activeAgentIds.has(a.id));
+    if (targetAgents.length === 0) return;
+
+    const requestTweet = options?.requestTweet || false;
 
     // Clear previous responses
     setAgentResponses([]);
 
-    configuredAgents.forEach((agent, agentIdx) => {
+    targetAgents.forEach((agent, agentIdx) => {
       fetch("/api/agent-respond", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -574,65 +578,52 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           agentTone: agent.stats.driftedTone || agent.config.speakingStyle || agent.config.tone,
           agentBeliefs: agent.stats.driftedBeliefs || agent.config.coreValue || agent.config.beliefs,
           agentMood: agent.stats.mood,
+          requestTweet,
         }),
       }).then((r) => r.json()).then((data) => {
         const toOwner = data.toOwner || "了解。";
-        const toTimeline = data.toTimeline || text;
+        const toTimeline = data.toTimeline || "";
 
-        // Step 1: Show agent's response to owner (immediately with stagger)
+        // Show agent's response to owner
         setTimeout(() => {
           setAgentResponses((prev) => [...prev, {
             agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
+            toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
+            tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
           }]);
         }, agentIdx * 800);
 
-        // Step 2: Post to TL after a delay
-        const id = `intent-${Date.now()}-${agentIdx}`;
-        setTimeout(() => {
-          setIntents((prev) => [{ id, text: toTimeline, authorName: agent.config.name, authorAvatar: agent.config.avatar,
-            isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
-          // Mark as posted
-          setAgentResponses((prev) => prev.map((r) => r.agentId === agent.id ? { ...r, posted: true } : r));
+        // Only post to TL and create tweets if explicitly requested
+        if (requestTweet && toTimeline) {
+          const id = `intent-${Date.now()}-${agentIdx}`;
+          setTimeout(() => {
+            setIntents((prev) => [{ id, text: toTimeline, authorName: agent.config.name, authorAvatar: agent.config.avatar,
+              isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
+            setAgentResponses((prev) => prev.map((r) => r.agentId === agent.id ? { ...r, posted: true } : r));
 
-          // Mark tweet as pending approval (if Twitter enabled)
-          if (agent.config.twitterEnabled) {
-            setAgentResponses((prev) => prev.map((r) =>
-              r.agentId === agent.id ? { ...r, tweetPending: true } : r
-            ));
-          }
-
+            updateAgentStats(agent.id, (s) => {
+              const posts = [...(s.recentPostTimestamps || []), Date.now()].filter((t) => Date.now() - t < 7200000);
+              const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts, s.restingUntil);
+              return { ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
+                lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
+                activityLog: [{ message: "Spoke for owner", type: "spoke" as const, targetId: id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
+              };
+            });
+          }, agentIdx * 1500 + 3000);
+        } else {
+          // Just a chat response, update interaction stats
           updateAgentStats(agent.id, (s) => {
-            const posts = [...(s.recentPostTimestamps || []), Date.now()].filter((t) => Date.now() - t < 7200000);
-            const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts, s.restingUntil);
-            return { ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
-              lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
-              activityLog: [{ message: "Spoke for owner", type: "spoke" as const, targetId: id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
-            };
+            const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), s.recentPostTimestamps || [], s.restingUntil);
+            return { ...s, lastInteractedAt: Date.now(), mood };
           });
-
-          // Other user agents react to each other's posts
-          const otherAgents = myAgents.filter((a) => a.id !== agent.id && a.config.isConfigured && a.stats.mood !== "dead");
-          otherAgents.forEach((other, oi) => {
-            setTimeout(() => triggerAgentReaction(other, {
-              id, text: toTimeline, authorName: agent.config.name, authorAvatar: agent.config.avatar,
-              isUser: false, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [],
-            }), (oi + 1) * 2000 + 3000);
-          });
-        }, agentIdx * 1500 + 3000); // 3 second delay before posting to TL
+        }
       }).catch(() => {
         setTimeout(() => {
           setAgentResponses((prev) => [...prev, {
             agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner: "Got it, posting now.", toTimeline: text, timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
+            toOwner: "すみません、うまく応答できませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
           }]);
         }, agentIdx * 800);
-        const id = `intent-${Date.now()}-${agentIdx}`;
-        setTimeout(() => {
-          setIntents((prev) => [{ id, text, authorName: agent.config.name, authorAvatar: agent.config.avatar,
-            isUser: true, timestamp: Date.now(), resonance: 0, crossbreeds: 0, reach: 0, reactions: [], replies: [] }, ...prev]);
-          setAgentResponses((prev) => prev.map((r) => r.agentId === agent.id ? { ...r, posted: true } : r));
-        }, agentIdx * 1500 + 3000);
       });
     });
   }, [myAgents, updateAgentStats]);

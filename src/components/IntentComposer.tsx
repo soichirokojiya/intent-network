@@ -18,16 +18,27 @@ interface ChatMessage {
   agentId?: string;
 }
 
-function detectIntent(text: string): "approve" | "reject" | "rest" | "message" {
+function detectIntent(text: string): "approve" | "reject" | "rest" | "tweet" | "message" {
   const lower = text.trim().toLowerCase();
-  const approveWords = ["ok", "おk", "いいよ", "いいね", "それで", "お願い", "投稿して", "ツイートして", "それでいい", "大丈夫", "問題ない", "頼む", "よろしく", "オッケー", "おけ", "ええよ", "ええで", "go", "yes", "sure", "いい感じ", "完璧", "バッチリ"];
+  const approveWords = ["ok", "おk", "いいよ", "いいね", "それで", "お願い", "それでいい", "大丈夫", "問題ない", "頼む", "よろしく", "オッケー", "おけ", "ええよ", "ええで", "go", "yes", "sure", "いい感じ", "完璧", "バッチリ"];
   const rejectWords = ["やめて", "やめ", "やり直し", "修正", "変えて", "違う", "ダメ", "だめ", "no", "nope", "cancel", "キャンセル", "やっぱやめ", "なし"];
   const restWords = ["休んで", "休憩", "少し休んで", "ちょっと休んで", "疲れた", "おやすみ", "休め", "寝て"];
+  const tweetWords = ["ツイートして", "ツイート作って", "ツイートお願い", "投稿して", "投稿作って", "xに投稿", "tweetして", "ポストして", "つぶやいて"];
 
   if (restWords.some((w) => lower.includes(w))) return "rest";
+  if (tweetWords.some((w) => lower.includes(w))) return "tweet";
   if (approveWords.some((w) => lower === w || lower.includes(w))) return "approve";
   if (rejectWords.some((w) => lower === w || lower.includes(w))) return "reject";
   return "message";
+}
+
+// Detect @mention in message text
+function detectMention(text: string, agents: { id: string; config: { name: string } }[]): string | null {
+  const match = text.match(/@(\S+)/);
+  if (!match) return null;
+  const mentionName = match[1].toLowerCase();
+  const agent = agents.find((a) => a.config.name.toLowerCase() === mentionName);
+  return agent?.id || null;
 }
 
 // Queue messages with natural delays: read → typing → message
@@ -235,9 +246,13 @@ export function IntentComposer() {
       return;
     }
 
+    // Detect @mention and tweet request
+    const mentionAgentId = detectMention(userText, myAgents) || undefined;
+    const requestTweet = intent === "tweet";
+
     clearAgentResponses();
     processedResponseIds.current.clear();
-    postIntent(userText);
+    postIntent(userText, { mentionAgentId, requestTweet });
     setText("");
   };
 
