@@ -342,47 +342,6 @@ export default function AgentPage() {
         </div>
       </div>
 
-      {/* Activity log */}
-      <div>
-        <div className="px-4 py-2 bg-[var(--search-bg)] border-b border-[var(--card-border)]">
-          <span className="text-[13px] font-bold">{t("agent.activityLog")}</span>
-        </div>
-        {agent.stats.activityLog.length === 0 ? (
-          <div className="px-4 py-6 text-center text-[var(--muted)] text-[13px]">{t("agent.noActivity")}</div>
-        ) : (
-          agent.stats.activityLog.slice(0, 10).map((log, i) => {
-            const entry: ActivityLogEntry | null = typeof log === "object" && log !== null ? log as ActivityLogEntry : null;
-            const message = entry ? entry.message : (log as string);
-            const hasLink = entry?.targetId && (entry.type === "reaction" || entry.type === "spoke" || entry.type === "tweet" || entry.type === "chat");
-            const href = entry?.targetId
-              ? entry.type === "chat" ? `/chat/${entry.targetId}` : `/thread/${entry.targetId}`
-              : undefined;
-
-            const LOG_ICON: Record<string, string> = {
-              reaction: "💬", tweet: "𝕏", spoke: "📢", chat: "🤝", rest: "😴", encourage: "👋", revert: "↩️",
-            };
-            const icon = entry ? (LOG_ICON[entry.type] || "•") : "•";
-
-            return hasLink && href ? (
-              <button
-                key={i}
-                onClick={() => router.push(href)}
-                className="w-full px-4 py-2.5 border-b border-[var(--card-border)] flex items-center gap-2 text-[13px] text-[var(--foreground)] hover:bg-[var(--hover-bg)] transition-colors text-left"
-              >
-                <span className="flex-shrink-0 text-[12px]">{icon}</span>
-                <span className="flex-1 truncate">{message}</span>
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--muted)" strokeWidth="2" className="flex-shrink-0"><path d="M9 18l6-6-6-6" /></svg>
-              </button>
-            ) : (
-              <div key={i} className="px-4 py-2.5 border-b border-[var(--card-border)] flex items-center gap-2 text-[13px] text-[var(--muted)]">
-                <span className="flex-shrink-0 text-[12px]">{icon}</span>
-                {message}
-              </div>
-            );
-          })
-        )}
-      </div>
-
       {/* Delete - hidden at bottom */}
       <div className="px-4 py-6 text-center">
         <button
