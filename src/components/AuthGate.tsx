@@ -6,15 +6,26 @@ import { useState, useEffect } from "react";
 
 const PUBLIC_PATHS = ["/terms", "/privacy"];
 
-export function AuthGate({ children }: { children: React.ReactNode }) {
+export function AuthGate({ children, publicChildren }: { children: React.ReactNode; publicChildren: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [isPublic, setIsPublic] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     setIsPublic(PUBLIC_PATHS.some((p) => window.location.pathname.startsWith(p)));
+    setChecked(true);
   }, []);
 
-  if (isPublic) return <>{children}</>;
+  if (!checked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <div className="text-[var(--muted)]">Loading...</div>
+      </div>
+    );
+  }
+
+  // Public pages: render without sidebar/nav
+  if (isPublic) return <>{publicChildren}</>;
 
   if (loading) {
     return (
@@ -24,9 +35,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) {
-    return <AuthScreen />;
-  }
+  if (!user) return <AuthScreen />;
 
   return <>{children}</>;
 }

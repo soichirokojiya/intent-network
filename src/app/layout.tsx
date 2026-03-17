@@ -39,7 +39,15 @@ export default function RootLayout({
       >
         <AuthProvider>
         <LocaleProvider>
-        <AuthGate>
+        <AuthGate
+          publicChildren={
+            <div className="min-h-screen bg-[var(--background)]">
+              <main className="w-full max-w-[600px] mx-auto">
+                {children}
+              </main>
+            </div>
+          }
+        >
         <IntentProvider>
           <div className="min-h-screen flex justify-center">
             <Sidebar />
