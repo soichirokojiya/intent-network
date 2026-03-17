@@ -328,7 +328,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                 }`}>
                   <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                 </div>
-                {msg.text.length > 100 && (
+                {msg.text.length > 300 && (
                   <button
                     onClick={() => {
                       const content = `# ${msg.agentName} レポート\n${new Date(msg.timestamp).toLocaleString("ja-JP")}\n\n${msg.text}`;
