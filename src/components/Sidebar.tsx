@@ -13,7 +13,6 @@ function getNavItems(t: (key: string) => string) {
   return [
     { href: "/", icon: "home", label: t("nav.home") },
     { href: "/agent", icon: "agent", label: t("nav.myAgents") },
-    { href: "/contact", icon: "contact", label: t("nav.contact") },
   ];
 }
 

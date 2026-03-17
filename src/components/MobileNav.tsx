@@ -7,9 +7,8 @@ export function MobileNav() {
   const pathname = usePathname();
 
   const items = [
-    { href: "/", label: "Home", icon: "home" },
+    { href: "/", label: "Chat", icon: "home" },
     { href: "/agent", label: "Agent", icon: "agent" },
-    { href: "/contact", label: "Contact", icon: "contact" },
   ];
 
   return (

@@ -33,15 +33,18 @@ export function AuthScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
       <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-6">
           <LogoFull size={48} />
         </div>
 
+        <p className="text-center text-[15px] text-[var(--muted)] mb-2">
+          ソロプレナーのための
+        </p>
         <h1 className="text-2xl font-extrabold text-center mb-2">
-          {mode === "signin" ? "Welcome back" : "Create your account"}
+          AIエージェントチャットツール
         </h1>
-        <p className="text-[var(--muted)] text-center text-[14px] mb-6">
-          {mode === "signin" ? "Sign in to manage your agents" : "Start raising your AI agents"}
+        <p className="text-[var(--muted)] text-center text-[13px] mb-8 leading-relaxed">
+          あなたのAIチームが、マーケティング・リサーチ・SNS運用を<br />自律的にこなします。あなたは司会するだけ。
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
