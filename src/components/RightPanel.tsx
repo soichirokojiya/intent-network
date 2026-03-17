@@ -1,11 +1,13 @@
 "use client";
 
 import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
+import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import Link from "next/link";
 
 export function RightPanel() {
   const { intents, myAgents } = useIntents();
+  const { t } = useLocale();
 
   return (
     <aside className="hidden lg:block w-[350px] pl-6 pr-4 pt-3 sticky top-0 h-screen overflow-y-auto">
@@ -16,7 +18,7 @@ export function RightPanel() {
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
-          <input type="text" placeholder="Search"
+          <input type="text" placeholder={t("right.search")}
             className="bg-transparent border-none outline-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] w-full" />
         </div>
       </div>
@@ -24,7 +26,7 @@ export function RightPanel() {
       {/* My Agents */}
       {myAgents.length > 0 && (
         <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
-          <h2 className="text-xl font-extrabold mb-3">My Agents</h2>
+          <h2 className="text-xl font-extrabold mb-3">{t("right.myAgents")}</h2>
           {myAgents.map((agent) => (
             <Link href="/agent" key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors">
               <div className={`${agent.stats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
@@ -36,7 +38,7 @@ export function RightPanel() {
                   <span className="text-xs">{MOOD_EMOJI[agent.stats.mood]}</span>
                   <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--accent)] text-white font-bold">Lv.{agent.stats.level}</span>
                 </div>
-                <div className="text-[10px] text-[var(--muted)] mt-1">{agent.stats.totalReactions} posts</div>
+                <div className="text-[10px] text-[var(--muted)] mt-1">{agent.stats.totalReactions} {t("agent.posts")}</div>
               </div>
             </Link>
           ))}
@@ -45,15 +47,15 @@ export function RightPanel() {
 
       {/* Stats */}
       <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
-        <h2 className="text-xl font-extrabold mb-3">Activity</h2>
+        <h2 className="text-xl font-extrabold mb-3">{t("right.activity")}</h2>
         <div className="grid grid-cols-2 gap-3 text-center">
           <div>
             <div className="text-lg font-bold">{intents.length}</div>
-            <div className="text-xs text-[var(--muted)]">intents</div>
+            <div className="text-xs text-[var(--muted)]">{t("right.intents")}</div>
           </div>
           <div>
             <div className="text-lg font-bold">{intents.reduce((s, i) => s + i.reactions.length, 0)}</div>
-            <div className="text-xs text-[var(--muted)]">reactions</div>
+            <div className="text-xs text-[var(--muted)]">{t("right.reactions")}</div>
           </div>
         </div>
       </div>

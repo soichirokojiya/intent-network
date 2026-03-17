@@ -109,7 +109,7 @@ export function Sidebar() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold truncate">{user?.email?.split("@")[0] || "User"}</div>
-          <div className="text-xs text-[var(--muted)]">Settings</div>
+          <div className="text-xs text-[var(--muted)]">{t("settings.title")}</div>
         </div>
       </Link>
     </aside>

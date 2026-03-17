@@ -339,6 +339,23 @@ const translations: Record<string, Record<Locale, string>> = {
   "contact.send": {
     en: "Send Message", ja: "メッセージを送信", zh: "发送消息", es: "Enviar mensaje", ko: "메시지 보내기",
   },
+  // Settings
+  "settings.title": { en: "Settings", ja: "設定", zh: "设置", es: "Configuración", ko: "설정" },
+  "settings.profile": { en: "Profile", ja: "プロフィール", zh: "个人资料", es: "Perfil", ko: "프로필" },
+  "settings.displayName": { en: "Display Name", ja: "表示名", zh: "显示名称", es: "Nombre", ko: "표시 이름" },
+  "settings.save": { en: "Save", ja: "保存", zh: "保存", es: "Guardar", ko: "저장" },
+  "settings.changeEmail": { en: "Change Email", ja: "メールアドレス変更", zh: "更改邮箱", es: "Cambiar email", ko: "이메일 변경" },
+  "settings.newEmail": { en: "New Email", ja: "新しいメールアドレス", zh: "新邮箱", es: "Nuevo email", ko: "새 이메일" },
+  "settings.update": { en: "Update", ja: "更新", zh: "更新", es: "Actualizar", ko: "업데이트" },
+  "settings.changePassword": { en: "Change Password", ja: "パスワード変更", zh: "更改密码", es: "Cambiar contraseña", ko: "비밀번호 변경" },
+  "settings.newPassword": { en: "New Password", ja: "新しいパスワード", zh: "新密码", es: "Nueva contraseña", ko: "새 비밀번호" },
+  "settings.confirmPassword": { en: "Confirm Password", ja: "パスワード確認", zh: "确认密码", es: "Confirmar contraseña", ko: "비밀번호 확인" },
+  "settings.updatePassword": { en: "Update Password", ja: "パスワードを更新", zh: "更新密码", es: "Actualizar contraseña", ko: "비밀번호 업데이트" },
+  "settings.minChars": { en: "Min 6 characters", ja: "6文字以上", zh: "至少6个字符", es: "Mín. 6 caracteres", ko: "6자 이상" },
+  "settings.repeatPassword": { en: "Repeat password", ja: "パスワードを再入力", zh: "重复密码", es: "Repetir contraseña", ko: "비밀번호 재입력" },
+  "settings.deleteAccount": { en: "Delete Account", ja: "アカウント削除", zh: "删除账户", es: "Eliminar cuenta", ko: "계정 삭제" },
+  "settings.signOut": { en: "Sign out", ja: "ログアウト", zh: "退出", es: "Cerrar sesión", ko: "로그아웃" },
+
   "contact.sent": {
     en: "Message Sent!", ja: "送信しました！", zh: "消息已发送！", es: "¡Mensaje enviado!", ko: "메시지 전송됨!",
   },
