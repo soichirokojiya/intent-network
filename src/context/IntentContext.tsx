@@ -254,24 +254,20 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             if (savedActive) try { setActiveAgentIds(new Set(JSON.parse(savedActive))); } catch {}
           } catch {}
         } else {
-          // No agents anywhere → create default 3 agents
-          const defaults: MyAgent[] = [
-            {
-              id: `agent-default-orchestrator-${Date.now()}`,
-              config: { ...EMPTY_CONFIG, isConfigured: true, name: "司令塔", avatar: "px-agent-0", role: "オーケストレーター", expertise: "オーケストレーター", character: "論理的", personality: "論理的", speakingStyle: "丁寧", tone: "丁寧", coreValue: "効率", beliefs: "効率", isOrchestrator: true },
-              stats: defaultStats(),
+          // No agents anywhere → create default 3 agents from presets
+          const defaults: MyAgent[] = DEFAULT_AGENT_PRESETS.slice(0, 3).map((preset, i) => ({
+            id: `agent-default-${i}-${Date.now()}`,
+            config: {
+              ...EMPTY_CONFIG,
+              isConfigured: true,
+              name: preset.name,
+              avatar: `px-agent-${i}`,
+              role: preset.role,
+              expertise: preset.role,
+              isOrchestrator: preset.isOrchestrator || false,
             },
-            {
-              id: `agent-default-pr-${Date.now()}`,
-              config: { ...EMPTY_CONFIG, isConfigured: true, name: "広報", avatar: "px-agent-1", role: "マーケティング", expertise: "マーケティング", character: "クリエイティブ", personality: "クリエイティブ", speakingStyle: "カジュアル", tone: "カジュアル", coreValue: "人を大切に", beliefs: "人を大切に", twitterEnabled: true },
-              stats: defaultStats(),
-            },
-            {
-              id: `agent-default-research-${Date.now()}`,
-              config: { ...EMPTY_CONFIG, isConfigured: true, name: "リサーチ", avatar: "px-agent-2", role: "リサーチ", expertise: "リサーチ", character: "分析的", personality: "分析的", speakingStyle: "丁寧", tone: "丁寧", coreValue: "データ重視", beliefs: "データ重視" },
-              stats: defaultStats(),
-            },
-          ];
+            stats: defaultStats(),
+          }));
           setMyAgents(defaults);
           setActiveAgentIds(new Set(defaults.map((a) => a.id)));
           defaults.forEach((a) => saveAgent(a, true));
