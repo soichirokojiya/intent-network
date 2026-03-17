@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const { data } = await supabase
     .from("user_credits")
-    .select("balance_yen, total_used_yen")
+    .select("balance_yen, total_used_yen, total_charged_yen")
     .eq("device_id", deviceId)
     .single();
 
@@ -21,10 +21,25 @@ export async function GET(req: NextRequest) {
       device_id: deviceId,
       balance_yen: 1000,
     });
-    return NextResponse.json({ balance: 1000, totalUsed: 0 });
+    return NextResponse.json({ balance: 1000, totalUsed: 0, totalCharged: 0, totalInputTokens: 0, totalOutputTokens: 0 });
   }
 
-  return NextResponse.json({ balance: Number(data.balance_yen), totalUsed: Number(data.total_used_yen) });
+  // Get total tokens used
+  const { data: usageData } = await supabase
+    .from("usage_log")
+    .select("input_tokens, output_tokens")
+    .eq("device_id", deviceId);
+
+  const totalInputTokens = usageData?.reduce((sum, r) => sum + (r.input_tokens || 0), 0) || 0;
+  const totalOutputTokens = usageData?.reduce((sum, r) => sum + (r.output_tokens || 0), 0) || 0;
+
+  return NextResponse.json({
+    balance: Number(data.balance_yen),
+    totalUsed: Number(data.total_used_yen),
+    totalCharged: Number(data.total_charged_yen),
+    totalInputTokens,
+    totalOutputTokens,
+  });
 }
 
 export async function POST(req: NextRequest) {

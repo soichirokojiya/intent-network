@@ -13,7 +13,6 @@ export default function SettingsPage() {
 
   const [displayName, setDisplayName] = useState(savedName || user?.email?.split("@")[0] || "");
   const [balance, setBalance] = useState<number | null>(null);
-  const [totalUsed, setTotalUsed] = useState<number | null>(null);
 
   useEffect(() => {
     if (savedName) setDisplayName(savedName);
@@ -24,7 +23,6 @@ export default function SettingsPage() {
     if (deviceId) {
       fetch(`/api/credits?deviceId=${deviceId}`).then((r) => r.json()).then((d) => {
         setBalance(d.balance);
-        setTotalUsed(d.totalUsed);
       });
     }
   }, []);
@@ -172,23 +170,27 @@ export default function SettingsPage() {
 
         <hr className="border-[var(--card-border)]" />
 
-        {/* Credit & Usage */}
+        {/* Credit & Billing */}
         <div>
           <h2 className="text-[15px] font-bold mb-3">クレジット</h2>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-4">
             <span className="text-[14px] text-[var(--muted)]">残高</span>
             <span className="text-[18px] font-bold">¥{balance !== null ? balance.toLocaleString() : "..."}</span>
           </div>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[14px] text-[var(--muted)]">累計利用額</span>
-            <span className="text-[14px]">¥{totalUsed !== null ? totalUsed.toLocaleString() : "..."}</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push("/billing")}
+              className="flex-1 py-2.5 border border-[var(--card-border)] text-sm font-bold rounded-xl hover:bg-[var(--hover-bg)]"
+            >
+              料金明細
+            </button>
+            <button
+              onClick={() => router.push("/charge")}
+              className="flex-1 py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-xl hover:bg-[var(--accent-hover)]"
+            >
+              チャージ
+            </button>
           </div>
-          <button
-            onClick={() => router.push("/charge")}
-            className="w-full py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-xl hover:bg-[var(--accent-hover)]"
-          >
-            チャージする
-          </button>
         </div>
 
         <hr className="border-[var(--card-border)]" />
