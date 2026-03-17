@@ -43,15 +43,26 @@ export function AuthScreen() {
     }
 
     if (mode === "signup") {
-      const { error, isExisting } = await signUp(email, password);
-      if (isExisting) {
-        setError("このメールアドレスは既に登録されています。サインインしてください。");
-        setMode("signin");
-      } else if (error) {
-        setError(error);
-      } else {
-        setSuccess("確認メールを送信しました。メールを確認してください。");
+      try {
+        const res = await fetch("/api/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (res.status === 409) {
+          setError("このメールアドレスは既に登録されています。サインインしてください。");
+          setMode("signin");
+        } else if (!res.ok) {
+          setError(data.error || "登録に失敗しました。");
+        } else {
+          setSuccess("確認メールを送信しました。メールのリンクをクリックしてください。");
+        }
+      } catch {
+        setError("登録に失敗しました。");
       }
+      setLoading(false);
+      return;
     } else {
       const { error } = await signIn(email, password);
       if (error) setError("メールアドレスまたはパスワードが正しくありません。");
