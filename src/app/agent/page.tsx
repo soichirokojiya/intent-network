@@ -5,6 +5,7 @@ import { SEED_AGENTS } from "@/lib/agents";
 import { AgentAvatarDisplay } from "@/components/AgentAvatarDisplay";
 import { PixelAvatarGrid } from "@/components/PixelAvatar";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 const TONE_OPTIONS = ["Polite", "Casual", "Sarcastic", "Kansai dialect", "Deadpan", "Passionate", "Philosophical"];
 
@@ -103,21 +104,27 @@ export default function AgentPage() {
                 <div className="px-4 py-3 bg-[var(--search-bg)] border-b border-[var(--card-border)]">
                   <span className="text-[13px] font-bold">Agent Conversations</span>
                 </div>
-                {internalChats.slice(0, 3).map((chat) => (
-                  <div key={chat.id} className="px-4 py-3 border-b border-[var(--card-border)]">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AgentAvatarDisplay avatar={chat.agentA.avatar} size={20} />
-                      <span className="text-[12px] text-[var(--muted)]">×</span>
-                      <AgentAvatarDisplay avatar={chat.agentB.avatar} size={20} />
-                      <span className="text-[12px] text-[var(--muted)]">{chat.agentA.name} & {chat.agentB.name}</span>
-                    </div>
-                    {chat.messages.slice(0, 2).map((msg, i) => (
-                      <div key={i} className="text-[13px] text-[var(--muted)] ml-2 mb-1">
-                        <span className="font-medium text-[var(--foreground)]">{msg.name}:</span> {msg.content.slice(0, 50)}...
+                {internalChats.slice(0, 5).map((chat) => {
+                  const lastMsg = chat.messages[chat.messages.length - 1];
+                  return (
+                    <Link key={chat.id} href={`/chat/${chat.id}`}
+                      className="block px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="flex -space-x-1">
+                          <AgentAvatarDisplay avatar={chat.agentA.avatar} size={24} />
+                          <AgentAvatarDisplay avatar={chat.agentB.avatar} size={24} />
+                        </div>
+                        <span className="text-[13px] font-bold">{chat.agentA.name} & {chat.agentB.name}</span>
+                        <span className="text-[11px] text-[var(--muted)] ml-auto">{chat.messages.length} msgs</span>
                       </div>
-                    ))}
-                  </div>
-                ))}
+                      {lastMsg && (
+                        <p className="text-[13px] text-[var(--muted)] truncate ml-1">
+                          {lastMsg.isHuman ? "You" : lastMsg.name}: {lastMsg.content}
+                        </p>
+                      )}
+                    </Link>
+                  );
+                })}
               </>
             )}
           </div>

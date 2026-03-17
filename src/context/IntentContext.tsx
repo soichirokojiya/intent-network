@@ -59,7 +59,7 @@ export interface InternalChat {
   id: string;
   agentA: { id: string; name: string; avatar: string };
   agentB: { id: string; name: string; avatar: string };
-  messages: { agentId: string; name: string; avatar: string; content: string }[];
+  messages: { agentId: string; name: string; avatar: string; content: string; isHuman?: boolean }[];
   timestamp: number;
 }
 
@@ -142,6 +142,7 @@ interface IntentContextType {
   reviveAgent: (agentId: string) => void;
   revertDrift: (driftId: string) => void;
   internalChats: InternalChat[];
+  sendChatMessage: (chatId: string, text: string) => void;
   // Backward compat shortcuts
   myAgentConfig: MyAgentConfig;
   myAgentStats: MyAgentStats;
@@ -370,6 +371,58 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   const clearAgentResponses = useCallback(() => setAgentResponses([]), []);
 
+  // Send message to a chat thread (human joins conversation)
+  const sendChatMessage = useCallback((chatId: string, text: string) => {
+    // Add human message
+    setInternalChats((prev) => prev.map((chat) =>
+      chat.id === chatId ? {
+        ...chat,
+        messages: [...chat.messages, { agentId: "human", name: "You", avatar: "", content: text, isHuman: true }],
+      } : chat
+    ));
+
+    // Get the chat and its agents
+    const chat = internalChats.find((c) => c.id === chatId);
+    if (!chat) return;
+
+    // Each agent in the chat responds
+    const agents = [chat.agentA, chat.agentB]
+      .map((a) => myAgents.find((ma) => ma.id === a.id))
+      .filter(Boolean) as MyAgent[];
+
+    // Pick 1-2 agents to respond
+    const responders = agents.sort(() => Math.random() - 0.5).slice(0, Math.random() > 0.5 ? 2 : 1);
+
+    responders.forEach((agent, i) => {
+      fetch("/api/my-agent-react", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intentText: `チャットでオーナーが言いました: 「${text}」\nこれまでの会話の文脈を踏まえて、チャットの返信として自然に応答してください。`,
+          agentName: agent.config.name,
+          agentPersonality: agent.config.personality,
+          agentExpertise: agent.config.expertise,
+          agentTone: agent.config.tone,
+          agentBeliefs: agent.config.beliefs,
+          agentMood: agent.stats.mood,
+        }),
+      }).then((r) => r.json()).then((data) => {
+        if (data.message) {
+          setTimeout(() => {
+            setInternalChats((prev) => prev.map((c) =>
+              c.id === chatId ? {
+                ...c,
+                messages: [...c.messages, {
+                  agentId: agent.id, name: agent.config.name, avatar: agent.config.avatar,
+                  content: data.message,
+                }],
+              } : c
+            ));
+          }, (i + 1) * 1000);
+        }
+      }).catch(() => {});
+    });
+  }, [internalChats, myAgents]);
+
   // --- Post intent: 2-step flow ---
   // Step 1: Agent responds to owner (toOwner) + prepares TL post (toTimeline)
   // Step 2: After delay, TL post goes live and other agents react
@@ -486,7 +539,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       intents, conversations,
       myAgents, activeAgentId, activeAgent, setActiveAgentId,
       addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, revertDrift,
-      internalChats,
+      internalChats, sendChatMessage,
       myAgentConfig, myAgentStats,
       agentResponses, clearAgentResponses,
       postIntent, postReply,
