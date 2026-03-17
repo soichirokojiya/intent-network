@@ -25,8 +25,8 @@ export async function loadRooms(): Promise<Room[]> {
     .order("created_at", { ascending: true });
 
   if (error || !data || data.length === 0) {
-    // Create default room on first load
-    const defaultRoom = await createRoom("General");
+    // Create default room on first load (only once)
+    const defaultRoom = await createRoom("ワークスペース");
     return [defaultRoom];
   }
   return data.map((row) => ({

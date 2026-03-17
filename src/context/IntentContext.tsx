@@ -161,9 +161,9 @@ function calcLevel(xp: number): number {
 
 // Default agent presets (name + role)
 export const DEFAULT_AGENT_PRESETS = [
-  { name: "Ren", role: "オーケストレーター", isOrchestrator: true, character: "論理的", speakingStyle: "丁寧", coreValue: "効率" },
-  { name: "Kai", role: "マーケティング", character: "クリエイティブ", speakingStyle: "カジュアル", coreValue: "人を大切に" },
-  { name: "Sora", role: "リサーチ", character: "分析的", speakingStyle: "丁寧", coreValue: "データ重視" },
+  { name: "Ren", role: "オーケストレーター", isOrchestrator: true, character: "論理的", speakingStyle: "丁寧語", coreValue: "効率第一" },
+  { name: "Kai", role: "マーケティング", character: "創造的", speakingStyle: "タメ口", coreValue: "人が第一" },
+  { name: "Sora", role: "リサーチ", character: "分析的", speakingStyle: "丁寧語", coreValue: "データドリブン" },
   { name: "Hana", role: "クリエイティブ" },
   { name: "Leo", role: "ファイナンス" },
   { name: "Mio", role: "オペレーション" },
