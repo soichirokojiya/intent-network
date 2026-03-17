@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useIntents } from "@/context/IntentContext";
+import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 
 export function IntentComposer() {
   const [text, setText] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const { postIntent, myAgents, agentResponses, clearAgentResponses } = useIntents();
+  const { t } = useLocale();
 
   const configured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
   const hasAgent = configured.length > 0;
@@ -25,7 +27,7 @@ export function IntentComposer() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onFocus={() => { setIsFocused(true); clearAgentResponses(); }}
-          placeholder="What's on your mind?"
+          placeholder={t("home.placeholder")}
           className="w-full bg-transparent border-none outline-none resize-none text-xl text-[var(--foreground)] placeholder:text-[var(--muted)] leading-relaxed"
           rows={isFocused ? 3 : 1}
           onKeyDown={(e) => {
@@ -39,7 +41,7 @@ export function IntentComposer() {
               disabled={!text.trim() || !hasAgent}
               className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold text-sm px-5 py-2 rounded-full transition-colors"
             >
-              Send
+              {t("home.send")}
             </button>
           </div>
         )}
@@ -56,17 +58,17 @@ export function IntentComposer() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="font-bold text-[13px]">{resp.agentName}</span>
-                    <span className="text-[11px] text-[var(--muted)]">→ to you</span>
+                    <span className="text-[11px] text-[var(--muted)]">{t("home.toYou")}</span>
                   </div>
                   <p className="text-[14px] leading-relaxed">{resp.toOwner}</p>
                   <div className="flex gap-3 mt-1">
                     {resp.posted ? (
-                      <span className="text-[11px] text-[var(--green)]">Posted</span>
+                      <span className="text-[11px] text-[var(--green)]">{t("home.posted")}</span>
                     ) : (
-                      <span className="text-[11px] text-[var(--muted)]">Preparing...</span>
+                      <span className="text-[11px] text-[var(--muted)]">{t("home.preparing")}</span>
                     )}
                     {resp.tweeted && (
-                      <span className="text-[11px] text-[var(--accent)]">Posted to X</span>
+                      <span className="text-[11px] text-[var(--accent)]">{t("home.postedToX")}</span>
                     )}
                   </div>
                 </div>

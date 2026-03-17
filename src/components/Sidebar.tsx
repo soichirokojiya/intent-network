@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
+import { useLocale } from "@/context/LocaleContext";
+import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { LogoMark } from "./Logo";
 
-const NAV_ITEMS = [
-  { href: "/", icon: "home", label: "Home" },
-  { href: "/agent", icon: "agent", label: "My Agents" },
-];
+function getNavItems(t: (key: string) => string) {
+  return [
+    { href: "/", icon: "home", label: t("nav.home") },
+    { href: "/agent", icon: "agent", label: t("nav.myAgents") },
+  ];
+}
 
 function NavIcon({ type, active }: { type: string; active: boolean }) {
   if (type === "home") {
@@ -29,6 +33,7 @@ function NavIcon({ type, active }: { type: string; active: boolean }) {
 export function Sidebar() {
   const pathname = usePathname();
   const { myAgents, activeAgent, myAgentConfig, myAgentStats } = useIntents();
+  const { locale, setLocale, t } = useLocale();
 
   return (
     <aside className="hidden md:flex flex-col items-end w-[275px] pr-3 pt-3 sticky top-0 h-screen">
@@ -37,7 +42,7 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex flex-col w-full max-w-[230px] gap-0.5">
-        {NAV_ITEMS.map((item) => {
+        {getNavItems(t).map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href}
@@ -56,7 +61,7 @@ export function Sidebar() {
 
       <Link href="/"
         className="mt-4 w-full max-w-[230px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold text-base py-3 rounded-full text-center transition-colors">
-        Send
+        {t("nav.send")}
       </Link>
 
       {/* Agent mini status */}
@@ -75,6 +80,19 @@ export function Sidebar() {
           {/* Mood shown by emoji only */}
         </Link>
       )}
+
+      {/* Language selector */}
+      <div className="mt-4 w-full max-w-[230px]">
+        <select
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as Locale)}
+          className="w-full bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2 text-sm outline-none cursor-pointer"
+        >
+          {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Profile */}
       <div className="mt-auto mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors cursor-pointer w-full max-w-[230px]">

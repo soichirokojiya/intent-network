@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { RightPanel } from "@/components/RightPanel";
 import { IntentProvider } from "@/context/IntentContext";
+import { LocaleProvider } from "@/context/LocaleContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <LocaleProvider>
         <IntentProvider>
           <div className="min-h-screen flex justify-center">
             {/* Desktop sidebar */}
@@ -51,6 +53,7 @@ export default function RootLayout({
           {/* Mobile bottom nav */}
           <MobileNav />
         </IntentProvider>
+        </LocaleProvider>
       </body>
     </html>
   );
