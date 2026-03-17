@@ -5,6 +5,7 @@ import { SEED_AGENTS } from "@/lib/agents";
 import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "@/components/AgentAvatarDisplay";
 import { PixelAvatarGrid } from "@/components/PixelAvatar";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
@@ -140,6 +141,9 @@ export default function AgentPage() {
           <div className="mb-4">
             <label className="text-[13px] text-[var(--muted)] block mb-2">{t("agent.avatar")}</label>
             <PixelAvatarGrid baseSeed={`px-${draft.name || "new"}`} selected={draft.avatar} onSelect={(s) => setDraft((d) => ({ ...d, avatar: s }))} />
+            <div className="mt-3 pt-3 border-t border-[var(--card-border)]">
+              <AvatarUpload currentAvatar={draft.avatar} onAvatarChange={(url) => setDraft((d) => ({ ...d, avatar: url }))} />
+            </div>
           </div>
           <div className="mb-4">
             <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.role")}</label>

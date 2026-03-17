@@ -2,7 +2,6 @@
 
 import { PixelAvatar } from "./PixelAvatar";
 
-// Renders either a pixel avatar (seed starts with "px-") or emoji avatar
 export function AgentAvatarDisplay({
   avatar,
   size = 40,
@@ -12,11 +11,24 @@ export function AgentAvatarDisplay({
   size?: number;
   className?: string;
 }) {
+  // URL (uploaded photo)
+  if (avatar.startsWith("http")) {
+    return (
+      <img
+        src={avatar}
+        alt="avatar"
+        className={className}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover" }}
+      />
+    );
+  }
+
+  // Pixel avatar
   if (avatar.startsWith("px-")) {
     return <PixelAvatar seed={avatar} size={size} className={className} />;
   }
 
-  // Emoji avatar fallback
+  // Emoji fallback
   return (
     <span
       className={className}
