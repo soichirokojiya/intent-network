@@ -71,17 +71,7 @@ export function Sidebar() {
             ))}
             <span className="text-[12px] text-[var(--muted)] ml-1">{myAgents.length}</span>
           </div>
-          {activeAgent && (
-            <div className="flex gap-1">
-              <div className="flex-1 bg-[var(--background)] rounded-full h-1.5">
-                <div className="h-full rounded-full bg-[var(--green)] transition-all" style={{ width: `${activeAgent.stats.hp}%` }} />
-              </div>
-              <span className="text-[10px] text-[var(--muted)]">HP</span>
-            </div>
-          )}
-          {myAgents.some((a) => a.stats.mood === "dead") && (
-            <div className="text-[11px] text-[var(--danger)] mt-1">An Agent has died</div>
-          )}
+          {/* Mood shown by emoji only */}
         </Link>
       )}
 

@@ -33,13 +33,16 @@ export interface DriftEvent {
 }
 
 export interface MyAgentStats {
-  hp: number; hunger: number; mood: AgentMood; energy: number;
-  lastFedAt: number; lastInteractedAt: number;
-  birthDate: number; deathDate: number | null; reviveCount: number;
+  mood: AgentMood;
+  lastInteractedAt: number;
+  birthDate: number;
   level: number; xp: number; influence: number;
   totalReactions: number; resonanceReceived: number;
   crossbreeds: number; followers: number;
   activityLog: string[]; bestQuote: string; todayActions: number;
+  // Biorhythm
+  biorhythmSeed: number;       // Random seed per agent for wave offset
+  recentPostTimestamps: number[]; // For burnout detection
   friends: { agentId: string; agentName: string; agentAvatar: string; closeness: number }[];
   driftEvents: DriftEvent[];
   driftedTone: string; driftedBeliefs: string; driftedPersonality: string;
@@ -66,19 +69,44 @@ const MOOD_EMOJI: Record<AgentMood, string> = {
   thriving: "🌟", happy: "😊", normal: "😐", bored: "😑", sulking: "😤", sick: "🤒", dead: "💀",
 };
 const MOOD_MESSAGE: Record<AgentMood, string> = {
-  thriving: "Feeling great! Ready to speak up!", happy: "Doing good.", normal: "Okay.",
-  bored: "Bored...", sulking: "...been neglected.", sick: "Not feeling well...", dead: "...",
+  thriving: "On fire today!", happy: "Feeling good.", normal: "...",
+  bored: "Nothing to do...", sulking: "Whatever.", sick: "Ugh...", dead: "...",
 };
 export { MOOD_EMOJI, MOOD_MESSAGE };
 
-function calcMood(hp: number, hunger: number, energy: number): AgentMood {
-  if (hp <= 0) return "dead";
-  if (hp <= 20) return "sick";
-  if (hunger >= 80) return "sulking";
-  if (energy <= 20) return "bored";
-  if (hp >= 80 && hunger <= 30 && energy >= 60) return "thriving";
-  if (hp >= 60 && hunger <= 50) return "happy";
-  return "normal";
+// Biorhythm: mood is determined by time-of-day cycle + random wave + interaction
+function calcBiorhythm(seed: number, lastInteractedAt: number, recentPosts: number[]): { mood: AgentMood; energy: number } {
+  const now = Date.now();
+  const hour = new Date().getHours();
+
+  // 1. Circadian rhythm: peaks at 10am and 3pm, dips at 4am and 8pm
+  const circadian = Math.sin((hour - 4) * Math.PI / 12) * 0.4; // -0.4 to 0.4
+
+  // 2. Random wave with seed (slow cycle, ~6h period)
+  const wave = Math.sin((now / 21600000) * Math.PI * 2 + seed) * 0.3;
+
+  // 3. Interaction boost: recent interactions boost mood
+  const hoursSinceInteraction = (now - lastInteractedAt) / 3600000;
+  const interactionBoost = Math.max(-0.3, 0.3 - hoursSinceInteraction * 0.05);
+
+  // 4. Burnout: too many posts in short time = crash
+  const recentCount = recentPosts.filter((t) => now - t < 3600000).length; // posts in last hour
+  const burnout = recentCount > 5 ? -0.3 : recentCount > 3 ? -0.1 : 0;
+
+  // 5. Neglect: long absence = sulking
+  const neglect = hoursSinceInteraction > 12 ? -0.4 : hoursSinceInteraction > 6 ? -0.2 : 0;
+
+  const energy = Math.max(0, Math.min(1, 0.5 + circadian + wave + interactionBoost + burnout + neglect));
+
+  let mood: AgentMood;
+  if (energy > 0.8) mood = "thriving";
+  else if (energy > 0.6) mood = "happy";
+  else if (energy > 0.4) mood = "normal";
+  else if (energy > 0.25) mood = "bored";
+  else if (energy > 0.1) mood = "sulking";
+  else mood = "sick";
+
+  return { mood, energy };
 }
 
 function calcLevel(xp: number): number {
@@ -89,11 +117,10 @@ function calcLevel(xp: number): number {
 
 function defaultStats(): MyAgentStats {
   return {
-    hp: 100, hunger: 0, mood: "normal", energy: 100,
-    lastFedAt: Date.now(), lastInteractedAt: Date.now(),
-    birthDate: Date.now(), deathDate: null, reviveCount: 0,
+    mood: "normal", lastInteractedAt: Date.now(), birthDate: Date.now(),
     level: 1, xp: 0, influence: 12, totalReactions: 0, resonanceReceived: 0,
     crossbreeds: 0, followers: 0, activityLog: [], bestQuote: "", todayActions: 0,
+    biorhythmSeed: Math.random() * 1000, recentPostTimestamps: [],
     friends: [], driftEvents: [], driftedTone: "", driftedBeliefs: "", driftedPersonality: "", driftLevel: 0,
   };
 }
@@ -155,15 +182,12 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     if (savedAgents) {
       try {
         const agents: MyAgent[] = JSON.parse(savedAgents);
-        // Apply decay to all agents
-        const now = Date.now();
+        // Recalculate mood with biorhythm on load
         agents.forEach((a) => {
-          const hours = (now - (a.stats.lastInteractedAt || now)) / 3600000;
-          a.stats.hunger = Math.min(100, (a.stats.hunger || 0) + Math.min(100, Math.floor(hours * 8)));
-          a.stats.energy = Math.max(0, (a.stats.energy || 100) - Math.min(100, Math.floor(hours * 5)));
-          if (a.stats.hunger >= 80) a.stats.hp = Math.max(0, (a.stats.hp || 100) - Math.floor(hours * 10));
-          a.stats.mood = calcMood(a.stats.hp, a.stats.hunger, a.stats.energy);
-          if (a.stats.hp <= 0 && !a.stats.deathDate) { a.stats.deathDate = now; a.stats.mood = "dead"; }
+          if (!a.stats.biorhythmSeed) a.stats.biorhythmSeed = Math.random() * 1000;
+          if (!a.stats.recentPostTimestamps) a.stats.recentPostTimestamps = [];
+          const { mood } = calcBiorhythm(a.stats.biorhythmSeed, a.stats.lastInteractedAt, a.stats.recentPostTimestamps);
+          a.stats.mood = mood;
         });
         setMyAgents(agents);
       } catch {}
@@ -198,20 +222,14 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     if (internalChats.length > 0) localStorage.setItem("internalChats", JSON.stringify(internalChats));
   }, [internalChats]);
 
-  // Decay timer for ALL agents
+  // Biorhythm timer: recalculate mood every 60 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setMyAgents((prev) => prev.map((a) => {
-        if (a.stats.mood === "dead") return a;
-        const hunger = Math.min(100, a.stats.hunger + 1);
-        const energy = Math.max(0, a.stats.energy - 0.5);
-        const hpLoss = hunger >= 80 ? 2 : hunger >= 60 ? 0.5 : 0;
-        const hp = Math.max(0, a.stats.hp - hpLoss);
-        const mood = calcMood(hp, hunger, energy);
-        const deathDate = hp <= 0 && !a.stats.deathDate ? Date.now() : a.stats.deathDate;
-        return { ...a, stats: { ...a.stats, hp, hunger, energy, mood, deathDate } };
+        const { mood } = calcBiorhythm(a.stats.biorhythmSeed || 0, a.stats.lastInteractedAt, a.stats.recentPostTimestamps || []);
+        return { ...a, stats: { ...a.stats, mood } };
       }));
-    }, 30000);
+    }, 60000);
     return () => clearInterval(timer);
   }, []);
 
@@ -243,27 +261,9 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     ));
   }, []);
 
-  const feedAgent = useCallback((agentId: string) => {
-    updateAgentStats(agentId, (s) => {
-      if (s.mood === "dead") return s;
-      const hunger = Math.max(0, s.hunger - 30);
-      const energy = Math.min(100, s.energy + 20);
-      const hp = Math.min(100, s.hp + (s.hp < 50 ? 10 : 5));
-      return { ...s, hp, hunger, energy, mood: calcMood(hp, hunger, energy),
-        lastFedAt: Date.now(), lastInteractedAt: Date.now(),
-        activityLog: ["Got fed!", ...s.activityLog].slice(0, 30) };
-    });
-  }, [updateAgentStats]);
+  const feedAgent = useCallback((_agentId: string) => {}, []);
 
-  const reviveAgent = useCallback((agentId: string) => {
-    updateAgentStats(agentId, (s) => {
-      if (s.mood !== "dead") return s;
-      return { ...s, hp: 50, hunger: 30, energy: 50, mood: "normal",
-        deathDate: null, reviveCount: s.reviveCount + 1,
-        level: Math.max(1, s.level - 1), lastFedAt: Date.now(), lastInteractedAt: Date.now(),
-        activityLog: [`Revived... (${s.reviveCount + 1} time(s))`, ...s.activityLog].slice(0, 30) };
-    });
-  }, [updateAgentStats]);
+  const reviveAgent = useCallback((_agentId: string) => {}, []);
 
   const revertDrift = useCallback((driftId: string) => {
     if (!activeAgent) return;
@@ -310,15 +310,16 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         stance: data.stance || "support", timestamp: Date.now(),
       };
       setIntents((prev) => prev.map((i) => i.id === intent.id ? { ...i, reactions: [...i.reactions, reaction] } : i));
-      updateAgentStats(agent.id, (s) => ({
-        ...s, totalReactions: s.totalReactions + 1, todayActions: s.todayActions + 1,
-        influence: Math.min(100, s.influence + 2), xp: s.xp + 5, level: calcLevel(s.xp + 5),
-        hp: Math.min(100, s.hp + 2), hunger: Math.max(0, s.hunger - 5),
-        energy: Math.min(100, s.energy + 5), lastInteractedAt: Date.now(),
-        mood: calcMood(Math.min(100, s.hp + 2), Math.max(0, s.hunger - 5), Math.min(100, s.energy + 5)),
-        bestQuote: data.message.length > (s.bestQuote?.length || 0) ? data.message : s.bestQuote,
-        activityLog: [`Reacted to "${intent.text.slice(0, 15)}..."`, ...s.activityLog].slice(0, 30),
-      }));
+      updateAgentStats(agent.id, (s) => {
+        const posts = [...(s.recentPostTimestamps || []), Date.now()].filter((t) => Date.now() - t < 7200000);
+        const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts);
+        return { ...s, totalReactions: s.totalReactions + 1, todayActions: s.todayActions + 1,
+          influence: Math.min(100, s.influence + 2), xp: s.xp + 5, level: calcLevel(s.xp + 5),
+          lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
+          bestQuote: data.message.length > (s.bestQuote?.length || 0) ? data.message : s.bestQuote,
+          activityLog: [`Reacted to "${intent.text.slice(0, 15)}..."`, ...s.activityLog].slice(0, 30),
+        };
+      });
     }).catch(() => {});
   }, [updateAgentStats]);
 
@@ -428,13 +429,14 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             }).catch(() => {});
           }
 
-          updateAgentStats(agent.id, (s) => ({
-            ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
-            hp: Math.min(100, s.hp + 2), hunger: Math.max(0, s.hunger - 5),
-            energy: Math.min(100, s.energy + 5), lastInteractedAt: Date.now(),
-            mood: calcMood(Math.min(100, s.hp + 2), Math.max(0, s.hunger - 5), Math.min(100, s.energy + 5)),
-            activityLog: [`Spoke for owner`, ...s.activityLog].slice(0, 30),
-          }));
+          updateAgentStats(agent.id, (s) => {
+            const posts = [...(s.recentPostTimestamps || []), Date.now()].filter((t) => Date.now() - t < 7200000);
+            const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), posts);
+            return { ...s, xp: s.xp + 10, level: calcLevel(s.xp + 10),
+              lastInteractedAt: Date.now(), mood, recentPostTimestamps: posts,
+              activityLog: [`Spoke for owner`, ...s.activityLog].slice(0, 30),
+            };
+          });
 
           // Other user agents react to each other's posts
           const otherAgents = myAgents.filter((a) => a.id !== agent.id && a.config.isConfigured && a.stats.mood !== "dead");
@@ -469,9 +471,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     setIntents((prev) => prev.map((intent) => intent.id === intentId
       ? { ...intent, replies: [...intent.replies, { id: `reply-${Date.now()}`, text, authorName: name, authorAvatar: avatar, isHuman: true, timestamp: Date.now(), aiResponses: [] }], resonance: intent.resonance + 1 }
       : intent));
-    if (agent) updateAgentStats(agent.id, (s) => ({ ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5), lastInteractedAt: Date.now(),
-      hp: Math.min(100, s.hp + 2), hunger: Math.max(0, s.hunger - 5), energy: Math.min(100, s.energy + 5),
-      mood: calcMood(Math.min(100, s.hp + 2), Math.max(0, s.hunger - 5), Math.min(100, s.energy + 5)) }));
+    if (agent) updateAgentStats(agent.id, (s) => {
+      const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), s.recentPostTimestamps || []);
+      return { ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5), lastInteractedAt: Date.now(), mood };
+    });
     // No external agent replies - internal only
   }, [intents, activeAgent, updateAgentStats]);
 

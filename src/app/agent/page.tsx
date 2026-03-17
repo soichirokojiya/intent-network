@@ -8,17 +8,7 @@ import { useState, useEffect } from "react";
 
 const TONE_OPTIONS = ["Polite", "Casual", "Sarcastic", "Kansai dialect", "Deadpan", "Passionate", "Philosophical"];
 
-function StatusBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[12px] text-[var(--muted)] w-10">{label}</span>
-      <div className="flex-1 bg-[var(--search-bg)] rounded-full h-2.5 overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${Math.max(0, Math.min(100, (value / max) * 100))}%`, backgroundColor: color }} />
-      </div>
-      <span className="text-[12px] text-[var(--muted)] w-8 text-right">{Math.round(value)}</span>
-    </div>
-  );
-}
+// No HP/energy bars - mood is expressed through behavior and emoji
 
 export default function AgentPage() {
   const { myAgents, activeAgentId, setActiveAgentId, addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, revertDrift, internalChats, intents } = useIntents();
@@ -100,11 +90,7 @@ export default function AgentPage() {
                       {isActive && <span className="text-[11px] text-[var(--green)]">Active</span>}
                     </div>
                     <div className="text-[13px] text-[var(--muted)] truncate">{agent.config.expertise || agent.config.personality || "Agent"}</div>
-                    <div className="flex gap-3 mt-1">
-                      <div className="flex-1 bg-[var(--search-bg)] rounded-full h-1.5">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${agent.stats.hp}%`, backgroundColor: agent.stats.hp > 50 ? "#00ba7c" : "#f4212e" }} />
-                      </div>
-                    </div>
+                    {/* Mood expressed through emoji */}
                   </div>
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
@@ -245,10 +231,7 @@ export default function AgentPage() {
           </div>
         </div>
 
-        <div className="px-6 pb-4 space-y-2">
-          <StatusBar label="HP" value={agent.stats.hp} max={100} color={agent.stats.hp > 50 ? "#00ba7c" : "#f4212e"} />
-          <StatusBar label="Energy" value={agent.stats.energy} max={100} color={agent.stats.energy > 50 ? "#1d9bf0" : "#ffd700"} />
-        </div>
+        {/* Mood shown through emoji and message only */}
 
         <div className="px-4 pb-4 flex gap-2">
           {isDead ? (

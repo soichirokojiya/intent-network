@@ -36,12 +36,7 @@ export function RightPanel() {
                   <span className="text-xs">{MOOD_EMOJI[agent.stats.mood]}</span>
                   <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--accent)] text-white font-bold">Lv.{agent.stats.level}</span>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex-1 bg-[var(--background)] rounded-full h-1">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${agent.stats.hp}%`, backgroundColor: agent.stats.hp > 50 ? "#00ba7c" : "#f4212e" }} />
-                  </div>
-                  <span className="text-[10px] text-[var(--muted)]">{agent.stats.totalReactions} posts</span>
-                </div>
+                <div className="text-[10px] text-[var(--muted)] mt-1">{agent.stats.totalReactions} posts</div>
               </div>
             </Link>
           ))}
