@@ -73,9 +73,10 @@ export interface InternalChat {
 const MOOD_EMOJI: Record<AgentMood, string> = {
   thriving: "🌟", happy: "😊", normal: "😐", bored: "😑", sulking: "😤", sick: "🤒", dead: "💀",
 };
+// MOOD_MESSAGE is now just a fallback. Use getMoodMessage() with locale for proper i18n
 const MOOD_MESSAGE: Record<AgentMood, string> = {
-  thriving: "On fire today!", happy: "Feeling good.", normal: "...",
-  bored: "Nothing to do...", sulking: "Whatever.", sick: "Ugh...", dead: "...",
+  thriving: "On fire today! Let's go!", happy: "Feeling good, ready to work.", normal: "Standing by. What's next?",
+  bored: "Got nothing to do... talk to me?", sulking: "You've been ignoring me.", sick: "Not feeling great today...", dead: "...",
 };
 export { MOOD_EMOJI, MOOD_MESSAGE };
 

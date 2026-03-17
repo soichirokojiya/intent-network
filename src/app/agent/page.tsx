@@ -20,20 +20,30 @@ export default function AgentPage() {
   const { t } = useLocale();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
-  useEffect(() => { const t = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(t); }, []);
+  useEffect(() => { const ti = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(ti); }, []);
 
-  const [draft, setDraft] = useState({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", twitterEnabled: false, twitterUsername: "" });
+  const emptyDraft = { name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", twitterEnabled: false, twitterUsername: "" };
+  const [draft, setDraft] = useState(emptyDraft);
 
   const selectedAgent = myAgents.find((a) => a.id === selectedAgentId);
 
   const handleCreate = () => {
     if (!draft.name.trim()) return;
-    const id = addAgent(draft);
-    setCreating(false);
-    setSelectedAgentId(id);
-    setDraft({ name: "", avatar: "px-new-0", tone: "", beliefs: "", expertise: "", personality: "", role: "", character: "", speakingStyle: "", coreValue: "", twitterEnabled: false, twitterUsername: "" });
+    if (editingAgentId) {
+      // Update existing agent
+      updateAgentConfig(editingAgentId, draft);
+      setCreating(false);
+      setEditingAgentId(null);
+      setSelectedAgentId(editingAgentId);
+    } else {
+      const id = addAgent(draft);
+      setCreating(false);
+      setSelectedAgentId(id);
+    }
+    setDraft(emptyDraft);
   };
 
   // Agent list view
@@ -116,10 +126,10 @@ export default function AgentPage() {
     return (
       <>
         <header className="sticky top-0 z-40 bg-[var(--background)] bg-opacity-80 backdrop-blur-md border-b border-[var(--card-border)] px-4 py-3 flex items-center gap-4">
-          <button onClick={() => setCreating(false)} className="p-1.5 rounded-full hover:bg-[var(--hover-bg)]">
+          <button onClick={() => { setCreating(false); setEditingAgentId(null); setDraft(emptyDraft); }} className="p-1.5 rounded-full hover:bg-[var(--hover-bg)]">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--foreground)" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
-          <span className="text-lg font-bold">{t("agent.createNew")}</span>
+          <span className="text-lg font-bold">{editingAgentId ? "Edit Agent" : t("agent.createNew")}</span>
         </header>
         <div className="px-4 pt-4 pb-4">
           <div className="mb-4">
@@ -210,7 +220,7 @@ export default function AgentPage() {
           </div>
           <button onClick={handleCreate} disabled={!draft.name.trim()}
             className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold py-3 rounded-full">
-            {t("agent.create")}
+            {editingAgentId ? "Save" : t("agent.create")}
           </button>
         </div>
         <div className="h-20" />
@@ -243,7 +253,7 @@ export default function AgentPage() {
           </div>
           <h2 className="text-xl font-extrabold mt-2">{agent.config.name}</h2>
           <p className={`text-[13px] mt-1 ${isDead ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>
-            {isDead ? "Dead..." : `"${MOOD_MESSAGE[agent.stats.mood]}"`}
+            {isDead ? t("agent.dead") : `"${t(`mood.${agent.stats.mood}`)}"`}
           </p>
           <div className="flex items-center gap-3 mt-2">
             <span className="text-[13px] px-2.5 py-0.5 rounded-full bg-[var(--accent)] text-white font-bold">Lv.{agent.stats.level}</span>
@@ -251,15 +261,28 @@ export default function AgentPage() {
           </div>
         </div>
 
-        {/* Mood shown through emoji and message only */}
-
         <div className="px-4 pb-4 flex gap-2">
           {isDead ? (
-            <button onClick={() => reviveAgent(agent.id)} className="flex-1 bg-[var(--danger)] text-white font-bold py-2.5 rounded-full text-sm">Revive</button>
+            <button onClick={() => reviveAgent(agent.id)} className="flex-1 bg-[var(--danger)] text-white font-bold py-2.5 rounded-full text-sm">{t("agent.revive")}</button>
           ) : (
             <>
+              <button onClick={() => {
+                setDraft({
+                  name: agent.config.name, avatar: agent.config.avatar,
+                  tone: agent.config.speakingStyle || agent.config.tone, beliefs: agent.config.coreValue || agent.config.beliefs,
+                  expertise: agent.config.role || agent.config.expertise, personality: agent.config.character || agent.config.personality,
+                  role: agent.config.role || "", character: agent.config.character || "",
+                  speakingStyle: agent.config.speakingStyle || "", coreValue: agent.config.coreValue || "",
+                  twitterEnabled: agent.config.twitterEnabled || false, twitterUsername: agent.config.twitterUsername || "",
+                });
+                setEditingAgentId(agent.id);
+                setSelectedAgentId(null);
+                setCreating(true);
+              }} className="flex-1 bg-[var(--search-bg)] border border-[var(--card-border)] text-[var(--foreground)] font-bold py-2.5 rounded-full text-sm hover:bg-[var(--hover-bg)]">
+                Edit
+              </button>
               {!isActive && (
-                <button onClick={() => setActiveAgentId(agent.id)} className="flex-1 bg-[var(--accent)] text-white font-bold py-2.5 rounded-full text-sm">Set Active</button>
+                <button onClick={() => setActiveAgentId(agent.id)} className="flex-1 bg-[var(--accent)] text-white font-bold py-2.5 rounded-full text-sm">{t("agent.setActive")}</button>
               )}
             </>
           )}
