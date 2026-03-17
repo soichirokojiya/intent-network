@@ -96,16 +96,16 @@ export function Sidebar() {
         </select>
       </div>
 
-      {/* Profile */}
-      <button onClick={signOut} className="mt-auto mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors cursor-pointer w-full max-w-[230px] text-left">
+      {/* Profile → Settings */}
+      <Link href="/settings" className="mt-auto mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors w-full max-w-[230px]">
         <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm">
           {user?.email?.charAt(0).toUpperCase() || "U"}
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold truncate">{user?.email?.split("@")[0] || "User"}</div>
-          <div className="text-xs text-[var(--muted)]">Sign out</div>
+          <div className="text-xs text-[var(--muted)]">Settings</div>
         </div>
-      </button>
+      </Link>
     </aside>
   );
 }

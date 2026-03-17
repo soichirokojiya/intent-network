@@ -226,6 +226,29 @@ const translations: Record<string, Record<Locale, string>> = {
   "label.official": {
     en: "Official", ja: "公式", zh: "官方", es: "Oficial", ko: "공식",
   },
+
+  // Placeholders
+  "placeholder.agentName": {
+    en: "e.g. Sharp Consultant", ja: "例：辛口コンサルタント", zh: "例：犀利顾问", es: "ej. Consultor agudo", ko: "예: 날카로운 컨설턴트",
+  },
+  "placeholder.personality": {
+    en: "e.g. Curious", ja: "例：好奇心旺盛", zh: "例：好奇心强", es: "ej. Curioso", ko: "예: 호기심 많은",
+  },
+  "placeholder.expertise": {
+    en: "e.g. Marketing", ja: "例：マーケティング", zh: "例：市场营销", es: "ej. Marketing", ko: "예: 마케팅",
+  },
+  "placeholder.beliefs": {
+    en: "e.g. Action is everything", ja: "例：行動が全て", zh: "例：行动就是一切", es: "ej. La acción es todo", ko: "예: 행동이 전부다",
+  },
+
+  // Tones
+  "tone.polite": { en: "Polite", ja: "丁寧語", zh: "礼貌", es: "Educado", ko: "존댓말" },
+  "tone.casual": { en: "Casual", ja: "タメ口", zh: "随意", es: "Informal", ko: "반말" },
+  "tone.sarcastic": { en: "Sarcastic", ja: "毒舌", zh: "毒舌", es: "Sarcástico", ko: "독설" },
+  "tone.kansai": { en: "Kansai dialect", ja: "関西弁", zh: "关西方言", es: "Dialecto Kansai", ko: "간사이 사투리" },
+  "tone.deadpan": { en: "Deadpan", ja: "淡々と", zh: "冷淡", es: "Impasible", ko: "무표정" },
+  "tone.passionate": { en: "Passionate", ja: "熱血", zh: "热血", es: "Apasionado", ko: "열정적" },
+  "tone.philosophical": { en: "Philosophical", ja: "哲学的", zh: "哲学性", es: "Filosófico", ko: "철학적" },
 };
 
 export function t(key: string, locale: Locale): string {
