@@ -132,20 +132,17 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   // Convert agent responses to chat messages (with natural delay queue)
   useEffect(() => {
     agentResponses.forEach((resp) => {
-      // Use agentId + content hash as key to prevent duplicates
-      const contentKey = `${resp.agentId}-${resp.toOwner.slice(0, 30)}`;
-      const key = `${resp.agentId}-${resp.timestamp}`;
-      if (processedResponseIds.current.has(key)) return;
+      // Deduplicate: use full content hash
+      const contentKey = `${resp.agentId}-${resp.toOwner}`;
       if (processedResponseIds.current.has(contentKey)) return;
-      // Check if same content already in chat
+      // Also check existing chat history
       if (chatHistory.some((m) => m.agentId === resp.agentId && m.text === resp.toOwner)) {
-        processedResponseIds.current.add(key);
         processedResponseIds.current.add(contentKey);
         return;
       }
-      processedResponseIds.current.add(key);
       processedResponseIds.current.add(contentKey);
 
+      const key = `${resp.agentId}-${resp.timestamp}`;
       // Agent's response to owner
       enqueueMessage({
         id: `agent-${key}`,
@@ -255,7 +252,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
 
     clearAgentResponses();
     processedResponseIds.current.clear();
-    postIntent(userText, { mentionAgentId, requestTweet });
+    postIntent(userText, { mentionAgentId, requestTweet, roomId });
     setText("");
   };
 

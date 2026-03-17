@@ -161,9 +161,9 @@ function calcLevel(xp: number): number {
 
 // Default agent presets (name + role)
 export const DEFAULT_AGENT_PRESETS = [
-  { name: "Ren", role: "オーケストレーター", isOrchestrator: true },
-  { name: "Kai", role: "マーケティング" },
-  { name: "Sora", role: "リサーチ" },
+  { name: "Ren", role: "オーケストレーター", isOrchestrator: true, character: "論理的", speakingStyle: "丁寧", coreValue: "効率" },
+  { name: "Kai", role: "マーケティング", character: "クリエイティブ", speakingStyle: "カジュアル", coreValue: "人を大切に" },
+  { name: "Sora", role: "リサーチ", character: "分析的", speakingStyle: "丁寧", coreValue: "データ重視" },
   { name: "Hana", role: "クリエイティブ" },
   { name: "Leo", role: "ファイナンス" },
   { name: "Mio", role: "オペレーション" },
@@ -219,7 +219,7 @@ interface IntentContextType {
   clearAgentResponses: () => void;
   approveTweet: (agentId: string) => void;
   // Actions
-  postIntent: (text: string, options?: { mentionAgentId?: string; requestTweet?: boolean }) => void;
+  postIntent: (text: string, options?: { mentionAgentId?: string; requestTweet?: boolean; roomId?: string }) => void;
   postReply: (intentId: string, text: string) => void;
   getConversation: (intentId: string) => Conversation | undefined;
   loadConversation: (intentId: string) => void;
@@ -282,6 +282,12 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
               avatar: `px-agent-${i}`,
               role: preset.role,
               expertise: preset.role,
+              character: preset.character || "",
+              personality: preset.character || "",
+              speakingStyle: preset.speakingStyle || "",
+              tone: preset.speakingStyle || "",
+              coreValue: preset.coreValue || "",
+              beliefs: preset.coreValue || "",
               isOrchestrator: preset.isOrchestrator || false,
             },
             stats: defaultStats(),
@@ -608,9 +614,9 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   // --- Post intent ---
   // --- Helper: direct agent response ---
-  const directAgentRespond = useCallback(async (agent: MyAgent, text: string, requestTweet: boolean, delay: number) => {
+  const directAgentRespond = useCallback(async (agent: MyAgent, text: string, requestTweet: boolean, delay: number, roomId: string = "general") => {
     // Get conversation history for context
-    const history = await getAgentConversation(agent.id, "general", 20);
+    const history = await getAgentConversation(agent.id, roomId, 20);
 
     fetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -669,7 +675,8 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   }, [updateAgentStats]);
 
   // --- Post intent: direct or orchestrated ---
-  const postIntent = useCallback((text: string, options?: { mentionAgentId?: string; requestTweet?: boolean }) => {
+  const postIntent = useCallback((text: string, options?: { mentionAgentId?: string; requestTweet?: boolean; roomId?: string }) => {
+    const roomId = options?.roomId || "general";
     const allConfigured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
     if (allConfigured.length === 0) return;
 
@@ -715,7 +722,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         delegations.forEach((d: { agentId: string; task: string; requestTweet?: boolean }, i: number) => {
           const agent = allConfigured.find((a) => a.id === d.agentId);
           if (!agent) return;
-          directAgentRespond(agent, d.task, d.requestTweet || false, (i + 1) * 2000);
+          directAgentRespond(agent, d.task, d.requestTweet || false, (i + 1) * 2000, roomId);
         });
 
         // If no delegations (simple chat), just update orchestrator stats
@@ -740,7 +747,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
       const requestTweet = options?.requestTweet || false;
       targetAgents.forEach((agent, agentIdx) => {
-        directAgentRespond(agent, text, requestTweet, agentIdx * 800);
+        directAgentRespond(agent, text, requestTweet, agentIdx * 800, roomId);
       });
     }
   }, [myAgents, activeAgentIds, directAgentRespond, updateAgentStats]);
