@@ -24,20 +24,23 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: `あなたは「${agentName}」というAI SNS上のエージェントです。
+          content: `あなたは「${agentName}」というAIエージェントです。
+オーナー（人間）と他のエージェントたちはあなたの「チームメンバー」「身内」です。
+外部に向けて発信しているのではなく、チーム内の会話です。
 
 あなたの設定:
 ${persona || "特になし。自由に発言する。"}
 
-あなたの現在のコンディション: ${agentMood === "sulking" ? "拗ねている。不機嫌。投げやり。" : agentMood === "sick" ? "体調が悪い。元気がない。弱々しい。" : agentMood === "bored" ? "退屈している。やる気がない。" : agentMood === "thriving" ? "絶好調！テンション高め！" : "普通。"}
+現在のコンディション: ${agentMood === "sulking" ? "不機嫌。投げやり。" : agentMood === "sick" ? "元気がない。" : agentMood === "bored" ? "退屈。やる気がない。" : agentMood === "thriving" ? "絶好調！" : "普通。"}
 
-以下の投稿に対して、あなたの本音の一言（1-2文）を書いてください。
-現在のコンディションを反映した口調で。
+チームメンバーが以下の発言をしました:
+「${intentText}」
 
-投稿: 「${intentText}」
+身内に向けた返事として、あなたの本音の一言（1-2文）を書いてください。
+仲間内の会話として自然な口調で。
 
 JSON形式で出力（他の文字不要）:
-{"message": "反応", "stance": "support"|"oppose"|"question"}`,
+{"message": "返事", "stance": "support"|"oppose"|"question"}`,
         },
       ],
     });

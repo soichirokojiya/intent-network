@@ -98,35 +98,7 @@ export default function AgentPage() {
               );
             })}
 
-            {/* Internal chats */}
-            {internalChats.length > 0 && (
-              <>
-                <div className="px-4 py-3 bg-[var(--search-bg)] border-b border-[var(--card-border)]">
-                  <span className="text-[13px] font-bold">Agent Conversations</span>
-                </div>
-                {internalChats.slice(0, 5).map((chat) => {
-                  const lastMsg = chat.messages[chat.messages.length - 1];
-                  return (
-                    <Link key={chat.id} href={`/chat/${chat.id}`}
-                      className="block px-4 py-3 border-b border-[var(--card-border)] hover:bg-[var(--hover-bg)] transition-colors">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div className="flex -space-x-1">
-                          <AgentAvatarDisplay avatar={chat.agentA.avatar} size={24} />
-                          <AgentAvatarDisplay avatar={chat.agentB.avatar} size={24} />
-                        </div>
-                        <span className="text-[13px] font-bold">{chat.agentA.name} & {chat.agentB.name}</span>
-                        <span className="text-[11px] text-[var(--muted)] ml-auto">{chat.messages.length} msgs</span>
-                      </div>
-                      {lastMsg && (
-                        <p className="text-[13px] text-[var(--muted)] truncate ml-1">
-                          {lastMsg.isHuman ? "You" : lastMsg.name}: {lastMsg.content}
-                        </p>
-                      )}
-                    </Link>
-                  );
-                })}
-              </>
-            )}
+            {/* Agent conversations moved to Home TL */}
           </div>
         )}
         <div className="h-20" />
