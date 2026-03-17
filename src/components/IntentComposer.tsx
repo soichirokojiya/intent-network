@@ -26,7 +26,7 @@ export function IntentComposer() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onFocus={() => { setIsFocused(true); clearAgentResponses(); }}
-          placeholder="意図を伝える..."
+          placeholder="Agentに意図を託す..."
           className="w-full bg-transparent border-none outline-none resize-none text-xl text-[var(--foreground)] placeholder:text-[var(--muted)] leading-relaxed"
           rows={isFocused ? 3 : 1}
           onKeyDown={(e) => {
@@ -40,7 +40,7 @@ export function IntentComposer() {
               disabled={!text.trim() || !hasAgent}
               className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold text-sm px-5 py-2 rounded-full transition-colors"
             >
-              伝える
+              託す
             </button>
           </div>
         )}

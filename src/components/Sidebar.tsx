@@ -55,7 +55,7 @@ export function Sidebar() {
 
       <Link href="/"
         className="mt-4 w-full max-w-[230px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold text-base py-3 rounded-full text-center transition-colors">
-        放流する
+        意図を託す
       </Link>
 
       {/* Agent mini status */}
