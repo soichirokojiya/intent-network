@@ -166,9 +166,11 @@ interface IntentContextType {
   // Multi-agent
   myAgents: MyAgent[];
   maxAgents: number;
-  activeAgentId: string | null;
-  activeAgent: MyAgent | null;
+  activeAgentIds: Set<string>;
+  activeAgentId: string | null; // backward compat: first active agent
+  activeAgent: MyAgent | null;  // backward compat: first active agent
   setActiveAgentId: (id: string) => void;
+  toggleActiveAgent: (id: string) => void;
   addAgent: (config: Omit<MyAgentConfig, "isConfigured">) => string;
   removeAgent: (id: string) => void;
   updateAgentConfig: (agentId: string, config: Partial<MyAgentConfig>) => void;
@@ -200,12 +202,14 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   const [intents, setIntents] = useState<Intent[]>([]);
   const [conversations, setConversations] = useState<Map<string, Conversation>>(new Map());
   const [myAgents, setMyAgents] = useState<MyAgent[]>([]);
-  const [activeAgentId, setActiveAgentIdState] = useState<string | null>(null);
+  const [activeAgentIds, setActiveAgentIds] = useState<Set<string>>(new Set());
   const [internalChats, setInternalChats] = useState<InternalChat[]>([]);
   const [agentResponses, setAgentResponses] = useState<AgentResponse[]>([]);
   const initDone = useRef(false);
 
-  const activeAgent = myAgents.find((a) => a.id === activeAgentId) || myAgents[0] || null;
+  // Backward compat
+  const activeAgentId = activeAgentIds.size > 0 ? [...activeAgentIds][0] : null;
+  const activeAgent = myAgents.find((a) => activeAgentIds.has(a.id)) || myAgents[0] || null;
   const myAgentConfig = activeAgent?.config || EMPTY_CONFIG;
   const myAgentStats = activeAgent?.stats || defaultStats();
 
@@ -228,8 +232,14 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         });
         setMyAgents(agents);
       } catch {}
-      const savedActive = localStorage.getItem("activeAgentId");
-      if (savedActive) setActiveAgentIdState(savedActive);
+      const savedActive = localStorage.getItem("activeAgentIds");
+      if (savedActive) {
+        try { setActiveAgentIds(new Set(JSON.parse(savedActive))); } catch {}
+      } else {
+        // Migration from single activeAgentId
+        const oldActive = localStorage.getItem("activeAgentId");
+        if (oldActive) setActiveAgentIds(new Set([oldActive]));
+      }
     } else if (oldConfig) {
       try {
         const config = JSON.parse(oldConfig);
@@ -237,7 +247,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         if (config.isConfigured) {
           const migrated: MyAgent = { id: "my-agent", config, stats };
           setMyAgents([migrated]);
-          setActiveAgentIdState("my-agent");
+          setActiveAgentIds(new Set(["my-agent"]));
           localStorage.removeItem("myAgentConfig");
           localStorage.removeItem("myAgentStats");
         }
@@ -248,13 +258,22 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     if (savedChats) try { setInternalChats(JSON.parse(savedChats)); } catch {}
   }, []);
 
+  // Load intents
+  useEffect(() => {
+    const savedIntents = localStorage.getItem("intents");
+    if (savedIntents) try { setIntents(JSON.parse(savedIntents)); } catch {}
+  }, []);
+
   // Save
+  useEffect(() => {
+    if (intents.length > 0) localStorage.setItem("intents", JSON.stringify(intents));
+  }, [intents]);
   useEffect(() => {
     if (myAgents.length > 0) localStorage.setItem("myAgents", JSON.stringify(myAgents));
   }, [myAgents]);
   useEffect(() => {
-    if (activeAgentId) localStorage.setItem("activeAgentId", activeAgentId);
-  }, [activeAgentId]);
+    localStorage.setItem("activeAgentIds", JSON.stringify([...activeAgentIds]));
+  }, [activeAgentIds]);
   useEffect(() => {
     if (internalChats.length > 0) localStorage.setItem("internalChats", JSON.stringify(internalChats));
   }, [internalChats]);
@@ -271,20 +290,32 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // --- Agent CRUD ---
-  const setActiveAgentId = useCallback((id: string) => setActiveAgentIdState(id), []);
+  const setActiveAgentId = useCallback((id: string) => {
+    setActiveAgentIds(new Set([id]));
+  }, []);
+
+  const toggleActiveAgent = useCallback((id: string) => {
+    setActiveAgentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const addAgent = useCallback((config: Omit<MyAgentConfig, "isConfigured">): string => {
     const id = `agent-${Date.now()}`;
     const newAgent: MyAgent = { id, config: { ...config, isConfigured: true }, stats: defaultStats() };
     setMyAgents((prev) => [...prev, newAgent]);
-    if (!activeAgentId) setActiveAgentIdState(id);
+    // Auto-activate new agent
+    setActiveAgentIds((prev) => new Set([...prev, id]));
     return id;
-  }, [activeAgentId]);
+  }, []);
 
   const removeAgent = useCallback((id: string) => {
     setMyAgents((prev) => prev.filter((a) => a.id !== id));
-    if (activeAgentId === id) setActiveAgentIdState(null);
-  }, [activeAgentId]);
+    setActiveAgentIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+  }, []);
 
   const updateAgentConfig = useCallback((agentId: string, update: Partial<MyAgentConfig>) => {
     setMyAgents((prev) => prev.map((a) =>
@@ -302,7 +333,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   // Rest agent: deactivate and start 1-hour rest period
   const restAgent = useCallback((agentId: string) => {
-    setActiveAgentIdState((prev) => prev === agentId ? null : prev);
+    setActiveAgentIds((prev) => { const next = new Set(prev); next.delete(agentId); return next; });
     updateAgentStats(agentId, (s) => ({
       ...s,
       restingUntil: Date.now() + 3600000, // 1 hour rest
@@ -600,7 +631,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   return (
     <IntentContext.Provider value={{
       intents, conversations,
-      myAgents, maxAgents: getMaxAgents(myAgents), activeAgentId, activeAgent, setActiveAgentId,
+      myAgents, maxAgents: getMaxAgents(myAgents), activeAgentIds, activeAgentId, activeAgent, setActiveAgentId, toggleActiveAgent,
       addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, restAgent, encourageAgent, revertDrift,
       internalChats, sendChatMessage,
       myAgentConfig, myAgentStats,
