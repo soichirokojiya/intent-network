@@ -69,22 +69,7 @@ export function Sidebar() {
 
       {/* Send button removed */}
 
-      {/* Agent mini status */}
-      {myAgents.length > 0 && (
-        <Link href="/agent"
-          className="mt-4 w-full max-w-[230px] bg-[var(--search-bg)] rounded-2xl p-3 hover:bg-[var(--hover-bg)] transition-colors">
-          <div className="flex items-center gap-1 mb-2">
-            {myAgents.slice(0, 3).map((a) => (
-              <div key={a.id} className="relative">
-                <AgentAvatarDisplay avatar={a.config.avatar} size={24} />
-                <span className="absolute -top-1 -right-1 text-[8px]">{MOOD_EMOJI[a.stats.mood]}</span>
-              </div>
-            ))}
-            <span className="text-[12px] text-[var(--muted)] ml-1">{myAgents.length}</span>
-          </div>
-          {/* Mood shown by emoji only */}
-        </Link>
-      )}
+      {/* Agent mini status removed - shown in RightPanel */}
 
       {/* Language selector */}
       <div className="mt-4 w-full max-w-[230px]">
