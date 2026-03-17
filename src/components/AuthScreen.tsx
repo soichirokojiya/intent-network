@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
+
 import { LogoFull } from "./Logo";
 
 export function AuthScreen() {
@@ -23,11 +23,21 @@ export function AuthScreen() {
     setLoading(true);
 
     if (mode === "reset") {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/settings`,
-      });
-      if (error) setError(error.message);
-      else setSuccess("パスワードリセットメールを送信しました。メールを確認してください。");
+      try {
+        const res = await fetch("/api/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          setError(data.error || "送信に失敗しました");
+        } else {
+          setSuccess("パスワードリセットメールを送信しました。メールを確認してください。");
+        }
+      } catch {
+        setError("送信に失敗しました");
+      }
       setLoading(false);
       return;
     }
