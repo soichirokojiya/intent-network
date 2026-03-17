@@ -341,22 +341,24 @@ export default function AgentPage() {
         </div>
       </div>
 
-      {/* Delete - hidden at bottom */}
-      <div className="px-4 py-6 text-center">
-        <button
-          onClick={() => {
-            if (confirm(`Delete ${agent.config.name}?`)) {
-              if (confirm("This cannot be undone. Are you sure?")) {
-                removeAgent(agent.id);
-                setSelectedAgentId(null);
+      {/* Delete - hidden at bottom (orchestrator cannot be deleted) */}
+      {!agent.config.isOrchestrator && (
+        <div className="px-4 py-6 text-center">
+          <button
+            onClick={() => {
+              if (confirm(`${agent.config.name}を削除しますか？`)) {
+                if (confirm("この操作は取り消せません。本当によろしいですか？")) {
+                  removeAgent(agent.id);
+                  setSelectedAgentId(null);
+                }
               }
-            }
-          }}
-          className="text-[11px] text-[var(--muted)] hover:text-[var(--danger)] transition-colors"
-        >
-          Delete this Agent
-        </button>
-      </div>
+            }}
+            className="text-[11px] text-[var(--muted)] hover:text-[var(--danger)] transition-colors"
+          >
+            このエージェントを削除
+          </button>
+        </div>
+      )}
 
       <div className="h-20" />
     </>

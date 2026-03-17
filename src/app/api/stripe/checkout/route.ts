@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         quantity: 1,
       }],
       mode: "payment",
-      success_url: `${req.nextUrl.origin}/charge?success=1&amount=${amount}`,
+      success_url: `${req.nextUrl.origin}/charge?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.nextUrl.origin}/charge?canceled=1`,
       metadata: { deviceId, amount: String(amount) },
     });

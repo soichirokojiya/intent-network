@@ -10,8 +10,8 @@ export default function ChargePage() {
   const router = useRouter();
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
-  const success = searchParams.get("success");
-  const amount = searchParams.get("amount");
+  const sessionId = searchParams.get("session_id");
+  const [charged, setCharged] = useState(false);
 
   useEffect(() => {
     const deviceId = localStorage.getItem("musu_device_id");
@@ -20,19 +20,19 @@ export default function ChargePage() {
     }
   }, []);
 
-  // After successful payment, add credit
+  // After successful payment, verify with Stripe and add credit
   useEffect(() => {
-    if (success && amount) {
-      const deviceId = localStorage.getItem("musu_device_id");
-      if (deviceId) {
-        fetch("/api/credits/add", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deviceId, amount: Number(amount) }),
-        }).then((r) => r.json()).then((d) => setBalance(d.balance));
-      }
+    if (sessionId && !charged) {
+      setCharged(true);
+      fetch("/api/credits/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      }).then((r) => r.json()).then((d) => {
+        if (d.balance !== undefined) setBalance(d.balance);
+      });
     }
-  }, [success, amount]);
+  }, [sessionId, charged]);
 
   const handleCharge = async (chargeAmount: number) => {
     setLoading(String(chargeAmount));
@@ -60,9 +60,9 @@ export default function ChargePage() {
       </header>
 
       <div className="px-4 py-6 max-w-md mx-auto">
-        {success && (
+        {sessionId && (
           <div className="p-4 rounded-xl bg-[rgba(0,186,124,0.1)] text-[var(--green)] text-[14px] mb-6">
-            ¥{Number(amount).toLocaleString()}のチャージが完了しました！
+            チャージが完了しました！
           </div>
         )}
 

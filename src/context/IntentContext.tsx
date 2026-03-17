@@ -694,11 +694,9 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     const orchestrator = allConfigured.find((a) => a.config.isOrchestrator);
     const mentionedAgent = options?.mentionAgentId ? allConfigured.find((a) => a.id === options.mentionAgentId) : null;
 
-    // Determine if orchestration flow
-    const shouldOrchestrate = orchestrator && (
-      (mentionedAgent?.config.isOrchestrator) || // @mentioned the orchestrator
-      (!options?.mentionAgentId && !options?.requestTweet) // no specific mention, no tweet request → let orchestrator decide
-    );
+    // メンション指定あり（オーケストレーター以外）→ そのエージェントだけ応答
+    // それ以外 → オーケストレーターが応答・振り分け
+    const shouldOrchestrate = orchestrator && (!mentionedAgent || mentionedAgent.config.isOrchestrator);
 
     setAgentResponses([]);
 
@@ -749,17 +747,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           toOwner: "すみません、うまく振り分けできませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
         }]);
       });
-    } else {
-      // --- DIRECT FLOW (existing behavior) ---
-      const targetAgents = mentionedAgent
-        ? [mentionedAgent]
-        : allConfigured.filter((a) => activeAgentIds.has(a.id) && !a.config.isOrchestrator);
-      if (targetAgents.length === 0) return;
-
+    } else if (mentionedAgent) {
+      // --- DIRECT FLOW: @メンション指定のエージェントだけ応答 ---
       const requestTweet = options?.requestTweet || false;
-      targetAgents.forEach((agent, agentIdx) => {
-        directAgentRespond(agent, text, requestTweet, agentIdx * 800, roomId);
-      });
+      directAgentRespond(mentionedAgent, text, requestTweet, 0, roomId);
     }
   }, [myAgents, activeAgentIds, directAgentRespond, updateAgentStats]);
 
