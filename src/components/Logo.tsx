@@ -1,28 +1,53 @@
 "use client";
 
-// Musu logo: stylized "m" mark + wordmark
-// The mark represents two entities (AI agents) connected/born together
+// Musu Logo
+// Concept: Abstract "seed sprouting" — an AI being born and reaching outward
+// The shape suggests: growth, connection, and two paths diverging from one origin
+// Works as both mark and with wordmark
 
-export function LogoMark({ size = 32 }: { size?: number }) {
+export function LogoMark({ size = 40, className = "" }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Two connected circles - representing "musubi" (結び) / connection */}
-      <circle cx="14" cy="20" r="10" fill="var(--accent)" opacity="0.9" />
-      <circle cx="26" cy="20" r="10" fill="#6366f1" opacity="0.9" />
-      {/* Overlap area creates the connection */}
-      <path d="M20 12.68C17.64 14.54 16 17.1 16 20s1.64 5.46 4 7.32C22.36 25.46 24 22.9 24 20s-1.64-5.46-4-7.32z" fill="white" opacity="0.3" />
-      {/* Eyes - the agents are alive */}
-      <circle cx="12" cy="19" r="1.5" fill="white" />
-      <circle cx="28" cy="19" r="1.5" fill="white" />
+    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      {/* Background circle */}
+      <circle cx="60" cy="60" r="56" fill="#1d9bf0" />
+
+      {/* Two growing stems from center — representing agents being born */}
+      <path
+        d="M52 85 C52 65, 38 55, 28 38"
+        stroke="white" strokeWidth="7" strokeLinecap="round" fill="none"
+      />
+      <path
+        d="M68 85 C68 65, 82 55, 92 38"
+        stroke="white" strokeWidth="7" strokeLinecap="round" fill="none"
+      />
+
+      {/* Nodes at tips — the agents */}
+      <circle cx="28" cy="38" r="10" fill="white" />
+      <circle cx="92" cy="38" r="10" fill="white" />
+
+      {/* Connection arc between the two agents */}
+      <path
+        d="M38 38 C48 22, 72 22, 82 38"
+        stroke="white" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.5"
+      />
+
+      {/* Root/seed at bottom — the human/origin */}
+      <circle cx="60" cy="90" r="6" fill="white" opacity="0.7" />
     </svg>
   );
 }
 
-export function LogoFull({ size = 28 }: { size?: number }) {
+export function LogoFull({ size = 36, className = "" }: { size?: number; className?: string }) {
+  const fontSize = Math.max(16, size * 0.6);
   return (
-    <div className="flex items-center gap-2">
+    <div className={`flex items-center gap-2.5 ${className}`}>
       <LogoMark size={size} />
-      <span className="font-extrabold tracking-tight" style={{ fontSize: size * 0.7 }}>musu</span>
+      <span
+        className="font-extrabold tracking-tight"
+        style={{ fontSize, lineHeight: 1 }}
+      >
+        musu
+      </span>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <>
       <header className="sticky top-0 z-40 bg-[var(--background)] bg-opacity-80 backdrop-blur-md border-b border-[var(--card-border)] px-4 py-3">
-        <LogoFull size={28} />
+        <LogoFull size={36} />
       </header>
 
       <IntentComposer />
