@@ -40,10 +40,11 @@ export default function ChargePage() {
     setError("");
     setLoading(String(chargeAmount));
 
-    let deviceId = localStorage.getItem("musu_device_id");
+    const deviceId = localStorage.getItem("musu_device_id");
     if (!deviceId) {
-      deviceId = crypto.randomUUID();
-      localStorage.setItem("musu_device_id", deviceId);
+      setError("デバイスIDが見つかりません。ホーム画面に戻ってからやり直してください。");
+      setLoading(null);
+      return;
     }
 
     try {

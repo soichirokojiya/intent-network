@@ -5,10 +5,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { AvatarUpload } from "@/components/AvatarUpload";
+import { useRef } from "react";
 
 export default function SettingsPage() {
   const { user, signOut, displayName: savedName, avatarUrl, updateDisplayName, updateAvatarUrl } = useAuth();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const { t } = useLocale();
   const router = useRouter();
 
@@ -27,6 +28,34 @@ export default function SettingsPage() {
       });
     }
   }, []);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 2 * 1024 * 1024) { alert("2MB以下の画像を選択してください"); return; }
+
+    setAvatarUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("userId", user.id);
+
+    try {
+      const res = await fetch("/api/upload-avatar", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        await updateAvatarUrl(data.url);
+      } else {
+        alert(data.error || "アップロードに失敗しました");
+      }
+    } catch {
+      alert("アップロードに失敗しました");
+    }
+    setAvatarUploading(false);
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+  };
+
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -107,25 +136,40 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-[15px] font-bold mb-3">{t("settings.profile")}</h2>
           <div className="flex items-center gap-4 mb-4">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="avatar" className="w-16 h-16 rounded-full object-cover" />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-2xl font-bold">
-                {displayName.charAt(0).toUpperCase()}
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              className="relative w-16 h-16 rounded-full overflow-hidden group cursor-pointer flex-shrink-0"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-[var(--accent)] flex items-center justify-center text-white text-2xl font-bold">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="white" strokeWidth="2">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
               </div>
-            )}
+              {avatarUploading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="text-white text-xs">...</span>
+                </div>
+              )}
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
             <div>
               <div className="font-bold text-[15px]">{displayName}</div>
               <div className="text-[13px] text-[var(--muted)]">{user?.email}</div>
             </div>
-          </div>
-          <div className="mb-4">
-            <AvatarUpload
-              currentAvatar={avatarUrl || `px-${displayName}-0`}
-              onAvatarChange={async (url) => {
-                await updateAvatarUrl(url);
-              }}
-            />
           </div>
 
           <label className="text-[13px] text-[var(--muted)] block mb-1">{t("settings.displayName")}</label>
