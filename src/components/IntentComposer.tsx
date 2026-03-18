@@ -7,6 +7,37 @@ import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { AgentResponse } from "@/lib/types";
 import { loadChatHistory, saveChatMessage } from "@/lib/chatStorage";
 
+const COLLAPSE_LINES = 4;
+
+function CollapsibleText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const lines = text.split("\n");
+  const shouldCollapse = lines.length > COLLAPSE_LINES || text.length > 200;
+
+  if (!shouldCollapse || expanded) {
+    return (
+      <>
+        <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{text}</p>
+        {shouldCollapse && (
+          <button onClick={() => setExpanded(false)} className="text-[12px] text-[var(--accent)] mt-1 hover:underline">
+            閉じる
+          </button>
+        )}
+      </>
+    );
+  }
+
+  const preview = lines.slice(0, COLLAPSE_LINES).join("\n");
+  return (
+    <>
+      <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{preview}...</p>
+      <button onClick={() => setExpanded(true)} className="text-[12px] text-[var(--accent)] mt-1 hover:underline">
+        続きを読む
+      </button>
+    </>
+  );
+}
+
 interface ChatMessage {
   id: string;
   type: "user" | "agent" | "read" | "typing";
@@ -327,7 +358,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
                     : "bg-[var(--search-bg)]"
                 }`}>
-                  <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text.replace(/\\n/g, "\n")}</p>
+                  <CollapsibleText text={msg.text.replace(/\\n/g, "\n")} />
                 </div>
                 {msg.text.length > 300 && (
                   <button
