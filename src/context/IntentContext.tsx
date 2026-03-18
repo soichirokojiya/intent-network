@@ -626,8 +626,12 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   // --- Post intent ---
   // --- Helper: direct agent response ---
   const directAgentRespond = useCallback(async (agent: MyAgent, text: string, requestTweet: boolean, delay: number, roomId: string = "general") => {
-    // Get conversation history for context
-    const history = await getAgentConversation(agent.id, roomId, 20);
+    let history: { role: string; text: string }[] = [];
+    try {
+      history = await getAgentConversation(agent.id, roomId, 20);
+    } catch (e) {
+      console.error(`Failed to load conversation for ${agent.config.name}:`, e);
+    }
 
     fetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
