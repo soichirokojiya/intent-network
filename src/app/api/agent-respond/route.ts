@@ -105,7 +105,7 @@ JSON形式で出力してください（他の文字不要）:
       : [];
 
     const message = await client.messages.create({
-      model: "claude-opus-4-6-20250514",
+      model: "claude-opus-4-6",
       max_tokens: 2000,
       system: systemPrompt,
       ...(tools.length > 0 ? { tools } : {}),
@@ -135,7 +135,7 @@ JSON形式で出力してください（他の文字不要）:
         }));
 
       const continuation = await client.messages.create({
-        model: "claude-opus-4-6-20250514",
+        model: "claude-opus-4-6",
         max_tokens: 2000,
         system: systemPrompt,
         ...(tools.length > 0 ? { tools } : {}),
@@ -167,7 +167,7 @@ JSON形式で出力してください（他の文字不要）:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           deviceId, inputTokens: totalInputTokens, outputTokens: totalOutputTokens,
-          costYen, model: "claude-opus-4-6-20250514", apiRoute: "agent-respond",
+          costYen, model: "claude-opus-4-6", apiRoute: "agent-respond",
         }),
       });
     }

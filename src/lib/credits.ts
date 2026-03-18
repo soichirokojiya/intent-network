@@ -4,7 +4,7 @@ const MARGIN = 1.5; // 50% margin
 
 // Pricing per token (USD)
 const PRICING: Record<string, { input: number; output: number }> = {
-  "claude-opus-4-6-20250514": { input: 5 / 1_000_000, output: 25 / 1_000_000 },
+  "claude-opus-4-6": { input: 5 / 1_000_000, output: 25 / 1_000_000 },
   "claude-haiku-4-5-20251001": { input: 1 / 1_000_000, output: 5 / 1_000_000 },
 };
 
@@ -21,7 +21,7 @@ function getDeviceId(): string {
 }
 
 export function calcCostYen(inputTokens: number, outputTokens: number, model: string): number {
-  const pricing = PRICING[model] || PRICING["claude-opus-4-6-20250514"];
+  const pricing = PRICING[model] || PRICING["claude-opus-4-6"];
   const costUsd = inputTokens * pricing.input + outputTokens * pricing.output;
   return Math.round(costUsd * USD_TO_JPY * MARGIN * 1000) / 1000; // round to 3 decimals
 }
