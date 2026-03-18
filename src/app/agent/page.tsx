@@ -157,7 +157,20 @@ export default function AgentPage() {
                     <div className="text-[13px] text-[var(--muted)] truncate">{agent.config.role || agent.config.expertise || agent.config.character || agent.config.personality || "Agent"}</div>
                     {/* Mood expressed through emoji */}
                   </div>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`${agent.config.name}を削除しますか？`)) {
+                          removeAgent(agent.id);
+                        }
+                      }}
+                      className="p-1.5 rounded-full hover:bg-[rgba(244,33,46,0.1)] text-[var(--muted)] hover:text-[var(--danger)] transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                    </button>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+                  </div>
                 </button>
               );
             })}
