@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http"];
     const needsSearch = searchKeywords.some((kw) => intentText.includes(kw));
     const model = selectModel(complexity || "moderate", needsSearch);
-    const maxTokens = requestTweet ? 500 : 800;
+    const maxTokens = requestTweet ? 500 : 1200;
 
     const tools = needsSearch
       ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }]
@@ -179,7 +179,11 @@ export async function POST(req: NextRequest) {
     }
 
     const jsonMatch = finalText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return NextResponse.json({ error: "Parse failed" }, { status: 500 });
+    if (!jsonMatch) {
+      // No JSON found - extract text directly
+      const clean = finalText.replace(/```json\s*/g, "").replace(/```/g, "").trim();
+      return NextResponse.json({ toOwner: clean.slice(0, 500), toTimeline: "" });
+    }
 
     let jsonStr = jsonMatch[0];
     jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
@@ -187,7 +191,13 @@ export async function POST(req: NextRequest) {
     try {
       return NextResponse.json(JSON.parse(jsonStr));
     } catch {
-      return NextResponse.json({ toOwner: finalText.slice(0, 500), toTimeline: "" });
+      // JSON parse failed - extract toOwner value with regex
+      const toOwnerMatch = jsonStr.match(/"toOwner"\s*:\s*"([\s\S]*?)(?:"|$)/);
+      if (toOwnerMatch) {
+        return NextResponse.json({ toOwner: toOwnerMatch[1], toTimeline: "" });
+      }
+      const clean = finalText.replace(/[{}"]/g, "").replace(/toOwner\s*:/g, "").trim();
+      return NextResponse.json({ toOwner: clean.slice(0, 500), toTimeline: "" });
     }
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
