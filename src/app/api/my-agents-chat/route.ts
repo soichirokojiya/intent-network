@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { agentA, agentB, topic } = await req.json();
 
     const message = await client.messages.create({
-      model: "claude-opus-4-6",
+      model: "claude-sonnet-4-6",
       max_tokens: 600,
       messages: [{
         role: "user",
