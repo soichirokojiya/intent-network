@@ -733,6 +733,8 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       // --- ORCHESTRATION FLOW ---
       const otherAgents = allConfigured.filter((a) => !a.config.isOrchestrator);
 
+      // Get recent conversation for context
+      getAgentConversation(orchestrator.id, roomId, 10).catch(() => []).then((history) => {
       fetch("/api/orchestrator-plan", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -740,6 +742,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           orchestratorName: orchestrator.config.name,
           orchestratorPersonality: orchestrator.config.character || orchestrator.config.personality,
           orchestratorTone: orchestrator.config.speakingStyle || orchestrator.config.tone,
+          conversationHistory: history,
           agents: otherAgents.map((a) => ({
             id: a.id, name: a.config.name,
             role: a.config.role || a.config.expertise || "",
@@ -795,6 +798,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           toOwner: "すみません、うまく振り分けできませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
         }]);
       });
+      }); // end getAgentConversation.then
     } else if (mentionedAgent) {
       // --- DIRECT FLOW: @メンション指定のエージェントだけ応答 ---
       const requestTweet = options?.requestTweet || false;

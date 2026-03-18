@@ -5,7 +5,7 @@ const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
   try {
-    const { ownerMessage, orchestratorName, orchestratorPersonality, orchestratorTone, agents } = await req.json();
+    const { ownerMessage, orchestratorName, orchestratorPersonality, orchestratorTone, agents, conversationHistory } = await req.json();
 
     if (!ownerMessage || !orchestratorName) {
       return NextResponse.json({ error: "required" }, { status: 400 });
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
         content: `あなたは「${orchestratorName}」というオーケストレーター（チームリーダー）AIエージェントです。
 現在の日付: ${new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
 ${orchestratorPersonality ? `性格: ${orchestratorPersonality}` : ""}
+${conversationHistory && conversationHistory.length > 0 ? `\n直近の会話:\n${conversationHistory.map((m: { role: string; text: string }) => `${m.role}: ${m.text}`).join("\n")}\n` : ""}
 ${orchestratorTone ? `口調: ${orchestratorTone}` : ""}
 
 あなたの役割は、オーナー（ソロプレナー）の指示を解釈し、チームメンバーに適切なタスクを振り分けることです。
