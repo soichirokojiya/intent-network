@@ -131,10 +131,11 @@ export default function AgentPage() {
                   onClick={() => {
                     setDraft({
                       name: agent.config.name, avatar: agent.config.avatar,
-                      tone: agent.config.speakingStyle || agent.config.tone, beliefs: agent.config.coreValue || agent.config.beliefs,
-                      expertise: agent.config.role || agent.config.expertise, personality: agent.config.character || agent.config.personality,
-                      role: agent.config.role || "", character: agent.config.character || "",
-                      speakingStyle: agent.config.speakingStyle || "", coreValue: agent.config.coreValue || "",
+                      tone: "", beliefs: "",
+                      expertise: agent.config.role || agent.config.expertise || "",
+                      personality: agent.config.personality || agent.config.character || "",
+                      role: agent.config.role || "", character: agent.config.personality || agent.config.character || "",
+                      speakingStyle: "", coreValue: "",
                       twitterEnabled: agent.config.twitterEnabled || false, twitterUsername: agent.config.twitterUsername || "",
                       isOrchestrator: agent.config.isOrchestrator || false,
                     });

@@ -161,26 +161,11 @@ function calcLevel(xp: number): number {
 
 // Default agent presets (name + role)
 export const DEFAULT_AGENT_PRESETS = [
-  { name: "Ren", role: "オーケストレーター", isOrchestrator: true, character: "論理的", speakingStyle: "丁寧語", coreValue: "効率第一" },
-  { name: "Kai", role: "マーケティング", character: "創造的", speakingStyle: "タメ口", coreValue: "人が第一" },
-  { name: "Sora", role: "リサーチ", character: "分析的", speakingStyle: "丁寧語", coreValue: "データドリブン" },
-  { name: "Hana", role: "クリエイティブ", character: "創造的", speakingStyle: "熱血", coreValue: "革新こそ全て" },
-  { name: "Leo", role: "ファイナンス", character: "慎重", speakingStyle: "丁寧語", coreValue: "効率第一" },
-  { name: "Mio", role: "オペレーション", character: "論理的", speakingStyle: "丁寧語", coreValue: "効率第一" },
-  { name: "Shin", role: "ストラテジー", character: "大胆", speakingStyle: "哲学的", coreValue: "計画より行動" },
-  { name: "Aya", role: "デベロッパー", character: "論理的", speakingStyle: "タメ口", coreValue: "速度より品質" },
-  { name: "Noa", role: "デザイナー", character: "創造的", speakingStyle: "カジュアル", coreValue: "人が第一" },
-  { name: "Rui", role: "データサイエンス", character: "分析的", speakingStyle: "淡々と", coreValue: "データドリブン" },
-  { name: "Yuki", role: "カスタマーサポート", character: "共感的", speakingStyle: "丁寧語", coreValue: "人が第一" },
-  { name: "Tao", role: "法務", character: "慎重", speakingStyle: "丁寧語", coreValue: "速度より品質" },
-  { name: "Jun", role: "人事", character: "共感的", speakingStyle: "カジュアル", coreValue: "人が第一" },
-  { name: "Mei", role: "広報", character: "楽観的", speakingStyle: "熱血", coreValue: "革新こそ全て" },
-  { name: "Rio", role: "営業", character: "大胆", speakingStyle: "タメ口", coreValue: "計画より行動" },
-  { name: "Aki", role: "企画", character: "創造的", speakingStyle: "哲学的", coreValue: "革新こそ全て" },
-  { name: "Zen", role: "品質管理", character: "懐疑的", speakingStyle: "淡々と", coreValue: "速度より品質" },
-  { name: "Kei", role: "物流", character: "論理的", speakingStyle: "丁寧語", coreValue: "効率第一" },
-  { name: "Emi", role: "教育", character: "共感的", speakingStyle: "丁寧語", coreValue: "人が第一" },
-  { name: "Dan", role: "セキュリティ", character: "慎重", speakingStyle: "淡々と", coreValue: "速度より品質" },
+  { name: "Ren", role: "オーケストレーター", isOrchestrator: true, character: "冷静で本質を突く。無駄な議論をさせない。結論を出す。", speakingStyle: "", coreValue: "" },
+  { name: "Kai", role: "マーケティング", character: "トレンドに敏感でエネルギッシュ。数字で語る。攻めの姿勢。", speakingStyle: "", coreValue: "" },
+  { name: "Sora", role: "リサーチ", character: "好奇心旺盛で分析的。曖昧な情報は許さない。データで証明する。", speakingStyle: "", coreValue: "" },
+  { name: "Hana", role: "クリエイティブ", character: "直感的で常識にとらわれない。人の心に響くものを追求。", speakingStyle: "", coreValue: "" },
+  { name: "Leo", role: "ファイナンス", character: "慎重で数字に強い。リスクを見逃さない。ROIで判断。", speakingStyle: "", coreValue: "" },
 ];
 
 // Max agents based on highest agent level
