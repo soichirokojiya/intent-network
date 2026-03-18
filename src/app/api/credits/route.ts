@@ -24,20 +24,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ balance: 1000, totalUsed: 0, totalCharged: 0, totalInputTokens: 0, totalOutputTokens: 0 });
   }
 
-  // Get total tokens used
+  // Get total tokens used (exclude charge entries)
   const { data: usageData } = await supabase
     .from("usage_log")
     .select("input_tokens, output_tokens")
-    .eq("device_id", deviceId);
+    .eq("device_id", deviceId)
+    .neq("model", "charge");
 
   const totalInputTokens = usageData?.reduce((sum, r) => sum + (r.input_tokens || 0), 0) || 0;
   const totalOutputTokens = usageData?.reduce((sum, r) => sum + (r.output_tokens || 0), 0) || 0;
 
-  // Monthly breakdown
+  // Monthly breakdown (exclude charge entries)
   const { data: monthlyData } = await supabase
     .from("usage_log")
     .select("cost_yen, input_tokens, output_tokens, created_at")
     .eq("device_id", deviceId)
+    .neq("model", "charge")
     .order("created_at", { ascending: false });
 
   const monthlyMap: Record<string, { cost: number; input: number; output: number; count: number }> = {};
