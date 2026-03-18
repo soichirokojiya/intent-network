@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
 
     const userPrompt = requestTweet
       ? `オーナーがツイートの作成を依頼しました:\n「${intentText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "オーナーへの返事（1-2文）", "toTimeline": "ツイート文（140文字以内）"}`
-      : `オーナーのメッセージ:\n「${intentText}」\n\n友達や同僚にLINEで送るような自然な日本語で返して。論文調・レポート調は禁止。「〜である」「〜と考えられる」ではなく「〜だと思う」「〜じゃないかな」のような話し言葉で。3〜5文で簡潔に。「詳しく」と言われたら詳細を出す。Markdown禁止。改行は\\nを使う。\nJSON形式で出力（コードブロックで囲まない。他の文字不要）:\n{"toOwner": "ここに返事を書く"}`;
+      : `オーナーのメッセージ:\n「${intentText}」\n\nSlackやLINEで同僚に送る短いメッセージとして返して。200文字以内。毎回違う言い回しで自然に。時には質問で返したり、ツッコミ入れたり、提案したり、人間の同僚みたいに。長文・箇条書きの羅列・レポート形式は禁止。聞かれたら詳しく話す。Markdown禁止。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "短い返事"}`;
 
     // Smart model routing - check task + conversation history for search triggers
     const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http", "https", ".com", ".jp", ".world", ".io"];
