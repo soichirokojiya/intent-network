@@ -54,29 +54,15 @@ export function Sidebar() {
           </span>
         </Link>
 
-        <Link href="/contact"
-          className="flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors">
-          <NavIcon type="contact" active={pathname.startsWith("/contact")} />
-          <span className={`text-[15px] ${pathname.startsWith("/contact") ? "font-bold" : ""}`}>
-            {t("nav.contact")}
-          </span>
-        </Link>
       </nav>
 
-      {/* Language selector */}
-      <div className="mt-4 w-full max-w-[230px]">
-        <select
-          value={locale}
-          onChange={(e) => setLocale(e.target.value as Locale)}
-          className="w-full bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2 text-sm outline-none cursor-pointer"
-        >
-          {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([key, label]) => (
-            <option key={key} value={key}>{label}</option>
-          ))}
-        </select>
-      </div>
-
       <div className="mt-auto" />
+
+      {/* Contact link - small, bottom */}
+      <Link href="/contact"
+        className="mb-2 px-3 py-1.5 text-[12px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors w-full max-w-[230px]">
+        {t("nav.contact")}
+      </Link>
 
       {/* Profile → Settings */}
       <Link href="/settings" className="mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors w-full max-w-[230px]">
