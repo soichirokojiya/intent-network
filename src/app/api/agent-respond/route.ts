@@ -105,7 +105,7 @@ JSON形式で出力してください（他の文字不要）:
       : [];
 
     const message = await client.messages.create({
-      model: "claude-opus-4-20250514",
+      model: "claude-opus-4-6-20250616",
       max_tokens: 2000,
       system: systemPrompt,
       ...(tools.length > 0 ? { tools } : {}),
@@ -135,7 +135,7 @@ JSON形式で出力してください（他の文字不要）:
         }));
 
       const continuation = await client.messages.create({
-        model: "claude-opus-4-20250514",
+        model: "claude-opus-4-6-20250616",
         max_tokens: 2000,
         system: systemPrompt,
         ...(tools.length > 0 ? { tools } : {}),
@@ -160,14 +160,14 @@ JSON形式で出力してください（他の文字不要）:
     // Bill the user
     if (deviceId) {
       const MARGIN = 1.5;
-      const costUsd = totalInputTokens * (15 / 1_000_000) + totalOutputTokens * (75 / 1_000_000);
+      const costUsd = totalInputTokens * (5 / 1_000_000) + totalOutputTokens * (25 / 1_000_000);
       const costYen = Math.ceil(costUsd * 150 * MARGIN);
       await fetch(new URL("/api/credits", req.url).toString(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           deviceId, inputTokens: totalInputTokens, outputTokens: totalOutputTokens,
-          costYen, model: "claude-opus-4-20250514", apiRoute: "agent-respond",
+          costYen, model: "claude-opus-4-6-20250616", apiRoute: "agent-respond",
         }),
       });
     }
