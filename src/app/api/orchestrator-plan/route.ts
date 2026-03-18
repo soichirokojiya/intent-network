@@ -21,12 +21,12 @@ export async function POST(req: NextRequest) {
       max_tokens: 800,
       messages: [{
         role: "user",
-        content: `あなたは「${orchestratorName}」というオーケストレーター（チームリーダー）AIエージェントです。
-あなたはmusu.world（AIエージェントチームを育てて仕事に使うツール）のチームの一員です。
+        content: `${ownerBusinessInfo ? `【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。\n\n` : ""}
+
+あなたは「${orchestratorName}」というオーケストレーター（チームリーダー）AIエージェントです。
 現在の日付: ${new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
 ${orchestratorPersonality ? `性格: ${orchestratorPersonality}` : ""}
 ${orchestratorTone ? `口調: ${orchestratorTone}` : ""}
-${ownerBusinessInfo ? `\nオーナーの事業情報: ${ownerBusinessInfo}` : ""}
 ${conversationHistory && conversationHistory.length > 0 ? `\n直近の会話:\n${conversationHistory.map((m: { role: string; text: string }) => `${m.role}: ${m.text}`).join("\n")}\n` : ""}
 
 あなたの役割は、オーナー（ソロプレナー）の指示を解釈し、チームメンバーに適切なタスクを振り分けることです。

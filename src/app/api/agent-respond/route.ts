@@ -47,20 +47,8 @@ async function summarizeHistory(messages: { role: string; text: string }[], agen
 }
 
 // Context about musu.world (the product these agents serve)
-const MUSU_CONTEXT = `あなたはmusu.world（https://musu.world/）のAIエージェントチームの一員です。
-musu.worldについて:
-・AIエージェントチームを育てて仕事に使うツール
-・ひとりで事業をやっているソロプレナー・フリーランス・個人事業主向け
-・エージェントに話しかけるだけでリサーチ、戦略立案、マーケティング等をチームで実行
-・エージェントにはバイオリズムがあり、育てるほど頼れる存在になる
-・従量課金制（使った分だけ）
-・競合: ChatGPT、Crew AI、AutoGen等のAIエージェントツール
-・差別化: 非エンジニアでも使える、エージェントを「育てる」体験、チーム議論機能`;
-
 // Static rules (cached across requests)
-const STATIC_RULES = `${MUSU_CONTEXT}
-
-重要ルール:
+const STATIC_RULES = `重要ルール:
 - 過去の会話の文脈を踏まえて回答する
 - 「数日かかる」「後で報告する」「調査してからまとめます」など時間がかかる表現は絶対に使わない
 - 「了解」「承知しました」「わかりました」だけの返答は絶対に禁止。必ず具体的な内容・分析・提案を含めて回答する
@@ -129,7 +117,7 @@ export async function POST(req: NextRequest) {
       },
       {
         type: "text" as const,
-        text: `あなたは「${agentName}」というAIエージェントです。\n現在の日付: ${today}\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}` : ""}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
+        text: `あなたは「${agentName}」というAIエージェントです。\n現在の日付: ${today}\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
       },
     ];
 
