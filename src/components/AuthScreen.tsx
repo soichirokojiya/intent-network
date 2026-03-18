@@ -6,10 +6,10 @@ import { useAuth } from "@/context/AuthContext";
 
 import { LogoFull } from "./Logo";
 
-export function AuthScreen() {
+export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" | "reset" } = {}) {
   const { signUp, signIn } = useAuth();
   const searchParams = useSearchParams();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">(searchParams.get("signup") ? "signup" : "signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">(defaultMode || (searchParams.get("signup") ? "signup" : "signin"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

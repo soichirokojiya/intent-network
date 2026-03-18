@@ -8,7 +8,7 @@ export function LandingContent() {
   const [showAuth, setShowAuth] = useState(false);
 
   if (showAuth) {
-    return <AuthScreen />;
+    return <AuthScreen defaultMode="signup" />;
   }
 
   return (
