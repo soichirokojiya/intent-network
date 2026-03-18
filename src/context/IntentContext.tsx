@@ -628,7 +628,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   const directAgentRespond = useCallback(async (agent: MyAgent, text: string, requestTweet: boolean, delay: number, roomId: string = "general", complexity: string = "moderate") => {
     let history: { role: string; text: string }[] = [];
     try {
-      history = await getAgentConversation(agent.id, roomId, 20);
+      history = await getRoomConversation(roomId, 15);
     } catch (e) {
       console.error(`Failed to load conversation for ${agent.config.name}:`, e);
     }
