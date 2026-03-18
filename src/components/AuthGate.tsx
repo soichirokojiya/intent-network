@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AuthScreen } from "./AuthScreen";
 import { useState, useEffect } from "react";
 
-const PUBLIC_PATHS = ["/terms", "/privacy"];
+const PUBLIC_PATHS = ["/terms", "/privacy", "/lp"];
 
 export function AuthGate({ children, publicChildren }: { children: React.ReactNode; publicChildren: React.ReactNode }) {
   const { user, loading } = useAuth();
