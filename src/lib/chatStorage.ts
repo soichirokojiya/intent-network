@@ -46,7 +46,7 @@ export async function loadChatHistory(roomId: string = "general"): Promise<ChatM
 }
 
 // Get recent conversation for an agent (for context injection)
-export async function getAgentConversation(agentId: string, roomId: string = "general", limit: number = 20): Promise<{ role: string; text: string }[]> {
+export async function getAgentConversation(agentId: string, roomId: string = "general", limit: number = 10): Promise<{ role: string; text: string }[]> {
   const deviceId = getDeviceId();
   const { data } = await supabase
     .from("owner_chats")

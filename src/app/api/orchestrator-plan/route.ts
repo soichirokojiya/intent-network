@@ -43,7 +43,8 @@ ${agentList}
       "agentId": "エージェントのID",
       "agentName": "エージェント名",
       "task": "そのエージェントへの具体的な指示内容",
-      "requestTweet": true/false
+      "complexity": "simple or moderate or complex",
+      "requestTweet": false
     }
   ]
 }
@@ -63,6 +64,7 @@ directResponseのフォーマット（雑談・簡単な質問の場合）:
 ルール:
 - 通常は1〜2人に振り分ける。本当に必要な専門領域のメンバーだけ選ぶ
 - 「全員で」「みんなで」と言われた時のみ3人以上に振り分ける
+- complexityの判断基準: simple=雑談・挨拶・一言回答, moderate=一般的な業務タスク, complex=深い分析・戦略立案・リサーチが必要
 - requestTweetは常にfalse
 - taskは具体的に。エージェントが即座に行動できる指示にする。ツイートの作成は指示に含めないこと
 - 自分（オーケストレーター）にタスクを振らないこと

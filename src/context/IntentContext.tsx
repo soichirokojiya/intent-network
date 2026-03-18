@@ -625,7 +625,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   // --- Post intent ---
   // --- Helper: direct agent response ---
-  const directAgentRespond = useCallback(async (agent: MyAgent, text: string, requestTweet: boolean, delay: number, roomId: string = "general") => {
+  const directAgentRespond = useCallback(async (agent: MyAgent, text: string, requestTweet: boolean, delay: number, roomId: string = "general", complexity: string = "moderate") => {
     let history: { role: string; text: string }[] = [];
     try {
       history = await getAgentConversation(agent.id, roomId, 20);
@@ -645,6 +645,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         requestTweet,
         conversationHistory: history,
         deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
+        complexity,
       }),
     }).then(async (r) => {
       const data = await r.json();
@@ -773,7 +774,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         (async () => {
           for (const d of resolved) {
             if (!d.agent) continue;
-            await directAgentRespond(d.agent, d.task, d.requestTweet || false, 0, roomId);
+            await directAgentRespond(d.agent, d.task, d.requestTweet || false, 0, roomId, d.complexity || "moderate");
           }
         })();
 
