@@ -137,6 +137,17 @@ export default function SettingsPage() {
         {message && <div className="p-3 rounded-xl bg-[rgba(0,186,124,0.1)] text-[var(--green)] text-[14px]">{message}</div>}
         {error && <div className="p-3 rounded-xl bg-[rgba(244,33,46,0.1)] text-[var(--danger)] text-[14px]">{error}</div>}
 
+        {/* Credit balance + charge */}
+        <div className="flex items-center justify-between p-4 bg-[var(--search-bg)] rounded-2xl">
+          <div>
+            <p className="text-[12px] text-[var(--muted)]">クレジット残高</p>
+            <p className="text-2xl font-extrabold">¥{balance !== null ? Math.round(balance).toLocaleString() : "..."}</p>
+          </div>
+          <button onClick={() => router.push("/charge")} className="px-5 py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-full hover:bg-[var(--accent-hover)]">
+            チャージ
+          </button>
+        </div>
+
         {/* Profile */}
         <div>
           <h2 className="text-[15px] font-bold mb-3">{t("settings.profile")}</h2>

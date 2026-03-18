@@ -688,9 +688,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       return toOwner;
     }).catch((err) => {
       console.error(`Agent ${agent.config.name} respond error:`, err);
+      const isBalanceError = err.message?.includes("insufficient_balance") || err.message?.includes("credit balance");
+      const errorMsg2 = isBalanceError ? "クレジット残高が不足しています。プロフィール画面からチャージしてください。" : `エラー: ${err.message || "応答できませんでした"}`;
       setAgentResponses((prev) => {
         const existing = prev.findIndex((r) => r.agentId === agent.id && r.toOwner === "...");
-        const errorMsg = `エラー: ${err.message || "応答できませんでした"}`;
+        const errorMsg = errorMsg2;
         if (existing >= 0) {
           const updated = [...prev];
           updated[existing] = { ...updated[existing], toOwner: errorMsg };
