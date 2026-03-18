@@ -42,6 +42,13 @@ export function RightPanel() {
               </div>
             </Link>
           ))}
+          <Link href="/agent" className="flex items-center justify-center gap-1.5 pt-3 mt-1 text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v8M8 12h8" />
+            </svg>
+            <span className="text-[12px] font-bold">エージェントを追加</span>
+          </Link>
         </div>
       )}
 
