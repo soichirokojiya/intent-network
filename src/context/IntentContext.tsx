@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { Intent, Conversation, AgentReaction, AgentResponse } from "@/lib/types";
 import { SEED_AGENTS } from "@/lib/agents";
 import { loadAgents, saveAgent, deleteAgent as deleteAgentFromDb } from "@/lib/agentStorage";
-import { getAgentConversation } from "@/lib/chatStorage";
+import { getAgentConversation, getRoomConversation } from "@/lib/chatStorage";
 
 // --- Types ---
 
@@ -736,8 +736,8 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       // --- ORCHESTRATION FLOW ---
       const otherAgents = allConfigured.filter((a) => !a.config.isOrchestrator);
 
-      // Get recent conversation for context
-      getAgentConversation(orchestrator.id, roomId, 10).catch(() => []).then((history) => {
+      // Get full room conversation for orchestrator context
+      getRoomConversation(roomId, 15).catch(() => []).then((history) => {
       fetch("/api/orchestrator-plan", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

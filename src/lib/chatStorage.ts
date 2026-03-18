@@ -68,6 +68,27 @@ export async function getAgentConversation(agentId: string, roomId: string = "ge
     }));
 }
 
+// Get full room conversation (for orchestrator context)
+export async function getRoomConversation(roomId: string = "general", limit: number = 15): Promise<{ role: string; text: string }[]> {
+  const deviceId = getDeviceId();
+  const { data } = await supabase
+    .from("owner_chats")
+    .select("*")
+    .eq("device_id", deviceId)
+    .eq("room_id", roomId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!data) return [];
+
+  return data
+    .reverse()
+    .map((row) => ({
+      role: row.type === "user" ? "オーナー" : row.agent_name || "Agent",
+      text: row.text.slice(0, 200),
+    }));
+}
+
 export async function saveChatMessage(msg: ChatMessage, roomId: string = "general"): Promise<void> {
   const deviceId = getDeviceId();
   await supabase.from("owner_chats").insert({
