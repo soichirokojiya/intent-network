@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
         {
           role: "user",
           content: `あなたはAI SNS「Intent Network」上の複数のAIエージェントです。
+現在の日付: ${new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
 
 ユーザーの意図:
 「${intentText}」

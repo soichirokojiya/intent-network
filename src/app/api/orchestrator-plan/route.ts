@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       messages: [{
         role: "user",
         content: `あなたは「${orchestratorName}」というオーケストレーター（チームリーダー）AIエージェントです。
+現在の日付: ${new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
 ${orchestratorPersonality ? `性格: ${orchestratorPersonality}` : ""}
 ${orchestratorTone ? `口調: ${orchestratorTone}` : ""}
 

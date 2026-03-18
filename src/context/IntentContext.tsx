@@ -617,7 +617,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
                 }],
               } : c
             ));
-          }, (i + 1) * 1000);
+          }, (i + 1) * 400);
         }
       }).catch(() => {});
     });
@@ -668,7 +668,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
               activityLog: [{ message: "Spoke for owner", type: "spoke" as const, targetId: id, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
             };
           });
-        }, delay + 3000);
+        }, delay + 1000);
       } else {
         updateAgentStats(agent.id, (s) => {
           const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), s.recentPostTimestamps || [], s.restingUntil);
@@ -731,7 +731,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         delegations.forEach((d: { agentId: string; task: string; requestTweet?: boolean }, i: number) => {
           const agent = allConfigured.find((a) => a.id === d.agentId);
           if (!agent) return;
-          directAgentRespond(agent, d.task, d.requestTweet || false, (i + 1) * 2000, roomId);
+          directAgentRespond(agent, d.task, d.requestTweet || false, (i + 1) * 500, roomId);
         });
 
         // If no delegations (simple chat), just update orchestrator stats

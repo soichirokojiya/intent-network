@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { getMoodModifier } from "@/lib/moodPrompt";
 
 const client = new Anthropic();
 
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
       agentBeliefs && `信条: ${agentBeliefs}`,
     ].filter(Boolean).join("\n");
 
-    const moodContext = agentMood === "sulking" ? "不機嫌。" : agentMood === "sick" ? "体調が悪い。" : agentMood === "thriving" ? "絶好調！" : "";
+    const moodContext = getMoodModifier(agentMood || "normal");
 
     // Build conversation context: summarize old + keep recent 5
     let contextBlock = "";
@@ -58,9 +59,12 @@ export async function POST(req: NextRequest) {
       contextBlock = `【直近の会話】\n${history.map((m) => `${m.role}: ${m.text}`).join("\n")}`;
     }
 
+    const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+
     const systemPrompt = `あなたは「${agentName}」というAIエージェントです。
+現在の日付: ${today}
 ${persona}
-${moodContext ? `現在の状態: ${moodContext}` : ""}
+${moodContext}
 
 あなたはオーナー（あなたを育てている人間）のチームメンバーです。
 ${contextBlock ? `\n${contextBlock}\n` : ""}

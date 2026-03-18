@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { getMoodModifier } from "@/lib/moodPrompt";
 
 const client = new Anthropic();
 
@@ -25,13 +26,14 @@ export async function POST(req: NextRequest) {
         {
           role: "user",
           content: `あなたは「${agentName}」というAIエージェントです。
+現在の日付: ${new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
 オーナー（人間）と他のエージェントたちはあなたの「チームメンバー」「身内」です。
 外部に向けて発信しているのではなく、チーム内の会話です。
 
 あなたの設定:
 ${persona || "特になし。自由に発言する。"}
 
-現在のコンディション: ${agentMood === "sulking" ? "不機嫌。投げやり。" : agentMood === "sick" ? "元気がない。" : agentMood === "bored" ? "退屈。やる気がない。" : agentMood === "thriving" ? "絶好調！" : "普通。"}
+${getMoodModifier(agentMood || "normal")}
 
 チームメンバーが以下の発言をしました:
 「${intentText}」
