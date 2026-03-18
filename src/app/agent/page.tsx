@@ -233,23 +233,7 @@ export default function AgentPage() {
               rows={4}
               className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)] resize-none" />
           </div>
-          {/* Twitter連携 */}
-          <div className="mb-6 p-3 bg-[var(--search-bg)] rounded-xl border border-[var(--card-border)]">
-            <label className="flex items-center gap-2 cursor-pointer mb-2">
-              <input type="checkbox" checked={draft.twitterEnabled}
-                onChange={(e) => setDraft((d) => ({ ...d, twitterEnabled: e.target.checked }))}
-                className="w-4 h-4 accent-[var(--accent)]" />
-              <span className="text-[14px] font-bold">X (Twitter) Integration</span>
-            </label>
-            {draft.twitterEnabled && (
-              <div>
-                <p className="text-[12px] text-[var(--muted)] mb-2">Posts will be automatically shared on X</p>
-                <input value={draft.twitterUsername} onChange={(e) => setDraft((d) => ({ ...d, twitterUsername: e.target.value }))}
-                  placeholder="@username"
-                  className="w-full bg-[var(--background)] rounded-lg px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
-              </div>
-            )}
-          </div>
+          {/* Twitter連携削除済み */}
           <button onClick={handleCreate} disabled={!draft.name.trim()}
             className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold py-3 rounded-full">
             {editingAgentId ? "Save" : t("agent.create")}
@@ -326,12 +310,7 @@ export default function AgentPage() {
         <div className="px-4 pb-3 space-y-2">
           {(agent.config.role || agent.config.expertise) && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.role")}:</span> {agent.config.role || agent.config.expertise}</div>}
           {(agent.config.personality || agent.config.character) && <div className="text-[13px]"><span className="text-[var(--muted)]">性格:</span> {agent.config.personality || agent.config.character}</div>}
-          {agent.config.twitterEnabled && (
-            <div className="text-[13px] flex items-center gap-1">
-              <span className="text-[var(--accent)]">𝕏</span>
-              <span className="text-[var(--muted)]">@{agent.config.twitterUsername || "not set"}</span>
-            </div>
-          )}
+          {/* Twitter表示削除済み */}
         </div>
 
         {/* 投稿数・ステータス非表示 */}
