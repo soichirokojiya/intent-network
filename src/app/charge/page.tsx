@@ -34,18 +34,33 @@ export default function ChargePage() {
     }
   }, [sessionId, charged]);
 
+  const [error, setError] = useState("");
+
   const handleCharge = async (chargeAmount: number) => {
+    setError("");
     setLoading(String(chargeAmount));
-    const deviceId = localStorage.getItem("musu_device_id");
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: chargeAmount, deviceId }),
-    });
-    const data = await res.json();
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
+
+    let deviceId = localStorage.getItem("musu_device_id");
+    if (!deviceId) {
+      deviceId = crypto.randomUUID();
+      localStorage.setItem("musu_device_id", deviceId);
+    }
+
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: chargeAmount, deviceId }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error || "チャージの開始に失敗しました");
+        setLoading(null);
+      }
+    } catch {
+      setError("通信エラーが発生しました");
       setLoading(null);
     }
   };
@@ -65,12 +80,17 @@ export default function ChargePage() {
             チャージが完了しました！
           </div>
         )}
+        {error && (
+          <div className="p-4 rounded-xl bg-[rgba(244,33,46,0.1)] text-[var(--danger)] text-[14px] mb-6">
+            {error}
+          </div>
+        )}
 
         {/* Current balance */}
         <div className="text-center mb-8">
           <p className="text-[var(--muted)] text-[13px] mb-1">現在の残高</p>
           <p className="text-4xl font-extrabold">
-            ¥{balance !== null ? balance.toLocaleString() : "..."}
+            ¥{balance !== null ? Math.round(balance).toLocaleString() : "..."}
           </p>
         </div>
 
