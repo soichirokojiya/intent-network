@@ -24,12 +24,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Bind device_id to user ID (ensures data persists across browsers/sessions)
+  const bindDeviceId = useCallback(async (userId: string) => {
+    if (typeof window === "undefined") return;
+    const currentDeviceId = localStorage.getItem("musu_device_id");
+
+    if (currentDeviceId && currentDeviceId !== userId) {
+      // Migrate old data to user ID
+      try {
+        await fetch("/api/migrate-device", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ oldDeviceId: currentDeviceId, newDeviceId: userId }),
+        });
+      } catch { /* ignore */ }
+    }
+
+    // Always set device_id to user ID
+    localStorage.setItem("musu_device_id", userId);
+  }, []);
+
   // Load profile from profiles table
   const loadProfile = useCallback(async (userId: string, email: string) => {
+    await bindDeviceId(userId);
     const { data } = await supabase.from("profiles").select("display_name, avatar_url").eq("id", userId).single();
     setDisplayName(data?.display_name || email.split("@")[0]);
     setAvatarUrl(data?.avatar_url || "");
-  }, []);
+  }, [bindDeviceId]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
