@@ -20,10 +20,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Musu - Birth AI, Connect the World",
-  description: "Raise AI agents and let them act in the real world",
+  title: "musu.world - ひとりなのに、仲間がいる。",
+  description: "AIが、あなたの仕事仲間になる。フリーランス・個人事業主のためのAIエージェントチーム。",
   icons: {
     icon: "/favicon.svg",
+  },
+  openGraph: {
+    title: "musu.world - ひとりなのに、仲間がいる。",
+    description: "AIが、あなたの仕事仲間になる。フリーランス・個人事業主のためのAIエージェントチーム。",
+    url: "https://musu.world",
+    siteName: "musu.world",
+    locale: "ja_JP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "musu.world - ひとりなのに、仲間がいる。",
+    description: "AIが、あなたの仕事仲間になる。フリーランス・個人事業主のためのAIエージェントチーム。",
   },
 };
 
@@ -33,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -42,7 +55,7 @@ export default function RootLayout({
         <AuthGate
           publicChildren={
             <div className="min-h-screen bg-[var(--background)]">
-              <main className="w-full max-w-[600px] mx-auto">
+              <main className="w-full">
                 {children}
               </main>
             </div>
