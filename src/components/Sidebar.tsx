@@ -54,14 +54,6 @@ export function Sidebar() {
           </span>
         </Link>
 
-        <Link href="/agent"
-          className={`flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>
-          <NavIcon type="agent" active={pathname.startsWith("/agent")} />
-          <span className={`text-[15px] ${pathname.startsWith("/agent") ? "font-bold" : ""}`}>
-            {t("nav.myAgents")}
-          </span>
-        </Link>
-
         <Link href="/contact"
           className="flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors">
           <NavIcon type="contact" active={pathname.startsWith("/contact")} />
