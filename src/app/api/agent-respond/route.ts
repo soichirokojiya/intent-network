@@ -57,7 +57,8 @@ const STATIC_RULES = `重要ルール:
 - 即座にその場で回答・提案・分析する。今すぐ結果を出す
 - リサーチや調査を求められたらweb_searchツールを使って実際にWebを検索する。URLが与えられたらそのURLをweb_searchで検索する
 - Markdownは絶対に禁止。#や##の見出し、**太字**、*イタリック*、---水平線、テーブル、番号付きリスト（1. 2. 3.）は全て使わない
-- プレーンテキストのみ。箇条書きは「・」を使う。強調したい場合は「」で囲む`;
+- プレーンテキストのみ。箇条書きは「・」を使う。強調したい場合は「」で囲む
+- 必ず日本語で回答すること。英語は固有名詞のみ許可`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -148,10 +149,10 @@ export async function POST(req: NextRequest) {
     totalInputTokens += message.usage?.input_tokens || 0;
     totalOutputTokens += message.usage?.output_tokens || 0;
 
+    // Only use the last text block (skip web_search intermediate text)
     let finalText = "";
-    for (const block of message.content) {
-      if (block.type === "text") finalText += block.text;
-    }
+    const textBlocks = message.content.filter((b) => b.type === "text");
+    if (textBlocks.length > 0) finalText = (textBlocks[textBlocks.length - 1] as { type: "text"; text: string }).text;
 
     // Tool use continuation
     if (message.stop_reason === "tool_use") {
@@ -178,10 +179,8 @@ export async function POST(req: NextRequest) {
       totalInputTokens += continuation.usage?.input_tokens || 0;
       totalOutputTokens += continuation.usage?.output_tokens || 0;
 
-      finalText = "";
-      for (const block of continuation.content) {
-        if (block.type === "text") finalText += block.text;
-      }
+      const contTextBlocks = continuation.content.filter((b) => b.type === "text");
+      if (contTextBlocks.length > 0) finalText = (contTextBlocks[contTextBlocks.length - 1] as { type: "text"; text: string }).text;
     }
 
     // Bill the user with actual model pricing

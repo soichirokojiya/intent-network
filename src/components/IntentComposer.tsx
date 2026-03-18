@@ -337,7 +337,8 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           // User message (right side)
           if (msg.type === "user") {
             return (
-              <div key={msg.id} className="flex justify-end animate-fade-in">
+              <div key={msg.id} className="flex justify-end items-end gap-1 animate-fade-in">
+                <span className="text-[10px] text-[var(--muted)] opacity-50 mb-1">{new Date(msg.timestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}</span>
                 <div className="max-w-[75%] bg-[var(--accent)] text-white px-4 py-2.5 rounded-2xl rounded-br-sm">
                   <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                 </div>
@@ -352,7 +353,10 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                 <AgentAvatarDisplay avatar={msg.agentAvatar || ""} size={32} />
               </div>
               <div className="max-w-[75%]">
-                <span className="text-[11px] text-[var(--muted)] ml-1">{msg.agentName}</span>
+                <div className="flex items-center gap-2 ml-1">
+                  <span className="text-[11px] text-[var(--muted)]">{msg.agentName}</span>
+                  <span className="text-[10px] text-[var(--muted)] opacity-50">{new Date(msg.timestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
                 <div className={`mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm ${
                   msg.tweetPreview
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
