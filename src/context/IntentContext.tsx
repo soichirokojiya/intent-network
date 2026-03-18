@@ -761,26 +761,27 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         }]);
 
         // Execute delegations sequentially to avoid rate limits
-        const resolvedAgents = delegations.map((d: { agentId: string; agentName?: string; task: string; requestTweet?: boolean }) => {
-          const agent = allConfigured.find((a) => a.id === d.agentId)
+        type Delegation = { agentId: string; agentName?: string; task: string; requestTweet?: boolean };
+        const resolved = delegations.map((d: Delegation) => ({
+          ...d,
+          agent: allConfigured.find((a) => a.id === d.agentId)
             || allConfigured.find((a) => a.config.name === d.agentName)
-            || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase());
-          return { ...d, agent };
-        });
+            || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase()),
+        }));
 
-        // Show "..." for all agents immediately
-        resolvedAgents.forEach((d, i) => {
-          if (!d.agent) return;
+        // Show "..." for all matched agents
+        for (const d of resolved) {
+          if (!d.agent) continue;
           setAgentResponses((prev) => [...prev, {
-            agentId: d.agent!.id, agentName: d.agent!.config.name, agentAvatar: d.agent!.config.avatar,
-            toOwner: "...", toTimeline: "", timestamp: Date.now() + i,
+            agentId: d.agent.id, agentName: d.agent.config.name, agentAvatar: d.agent.config.avatar,
+            toOwner: "...", toTimeline: "", timestamp: Date.now(),
             posted: false, tweeted: false, tweetPending: false, roomId,
           }]);
-        });
+        }
 
-        // Call agents one by one (sequential, not parallel)
+        // Call agents one by one
         (async () => {
-          for (const d of resolvedAgents) {
+          for (const d of resolved) {
             if (!d.agent) continue;
             await directAgentRespond(d.agent, d.task, d.requestTweet || false, 0, roomId);
           }
