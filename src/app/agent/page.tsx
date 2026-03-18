@@ -10,10 +10,21 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-const TONE_KEYS = ["tone.polite", "tone.casual", "tone.sarcastic", "tone.kansai", "tone.deadpan", "tone.passionate", "tone.philosophical"];
-const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.operations", "role.strategy", "role.developer", "role.designer", "role.dataScientist", "role.orchestrator"];
-const CHARACTER_KEYS = ["character.logical", "character.creative", "character.cautious", "character.bold", "character.empathetic", "character.analytical", "character.optimistic", "character.skeptical"];
-const CORE_VALUE_KEYS = ["coreValue.efficiency", "coreValue.people", "coreValue.innovation", "coreValue.dataDriven", "coreValue.action", "coreValue.quality"];
+const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.operations", "role.strategy", "role.developer", "role.designer", "role.dataScientist", "role.orchestrator", "role.philosopher"];
+
+const DEFAULT_PERSONALITY_BY_ROLE: Record<string, string> = {
+  "オーケストレーター": "冷静で本質を突く。無駄な議論をさせない。結論を出す。",
+  "マーケティング": "トレンドに敏感でエネルギッシュ。数字で語る。攻めの姿勢。",
+  "リサーチ": "好奇心旺盛で分析的。曖昧な情報は許さない。データで証明する。",
+  "クリエイティブ": "直感的で常識にとらわれない。人の心に響くものを追求。",
+  "ファイナンス": "慎重で数字に強い。リスクを見逃さない。ROIで判断。",
+  "戦略": "大局を見る。競争優位を追求。実行可能性と市場タイミングを重視。",
+  "哲学者": "前提を疑う。本質的な問いを投げかける。短期的な利益より長期的な意味を問う。",
+  "開発者": "技術的に正確。実装の現実性を重視。シンプルな解決策を好む。",
+  "デザイナー": "ユーザー視点で考える。美しさと使いやすさの両立。",
+  "データサイエンティスト": "数値とデータで判断。仮説検証を重視。バイアスに敏感。",
+  "オペレーション": "効率と仕組み化を追求。ボトルネックを見つける。",
+};
 
 // No HP/energy bars - mood is expressed through behavior and emoji
 
@@ -181,7 +192,11 @@ export default function AgentPage() {
               {ROLE_KEYS.map((key) => {
                 const label = t(key);
                 return (
-                  <button key={key} onClick={() => setDraft((d) => ({ ...d, role: label, expertise: label, isOrchestrator: key === "role.orchestrator" }))}
+                  <button key={key} onClick={() => setDraft((d) => {
+                    const defaultPersonality = DEFAULT_PERSONALITY_BY_ROLE[label] || "";
+                    const shouldPrefill = !d.personality || Object.values(DEFAULT_PERSONALITY_BY_ROLE).includes(d.personality);
+                    return { ...d, role: label, expertise: label, isOrchestrator: key === "role.orchestrator", ...(shouldPrefill ? { personality: defaultPersonality, character: defaultPersonality } : {}) };
+                  })}
                     className={`px-3 py-1.5 rounded-full text-[13px] ${draft.role === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
                 );
               })}
@@ -191,49 +206,11 @@ export default function AgentPage() {
               className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
           </div>
           <div className="mb-4">
-            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.character")}</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {CHARACTER_KEYS.map((key) => {
-                const label = t(key);
-                return (
-                  <button key={key} onClick={() => setDraft((d) => ({ ...d, character: label, personality: label }))}
-                    className={`px-3 py-1.5 rounded-full text-[13px] ${draft.character === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
-                );
-              })}
-            </div>
-            <input value={draft.character} onChange={(e) => setDraft((d) => ({ ...d, character: e.target.value, personality: e.target.value }))}
-              placeholder={t("placeholder.character")}
-              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
-          </div>
-          <div className="mb-4">
-            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.speakingStyle")}</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {TONE_KEYS.map((key) => {
-                const label = t(key);
-                return (
-                  <button key={key} onClick={() => setDraft((d) => ({ ...d, speakingStyle: label, tone: label }))}
-                    className={`px-3 py-1.5 rounded-full text-[13px] ${draft.speakingStyle === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
-                );
-              })}
-            </div>
-            <input value={draft.speakingStyle} onChange={(e) => setDraft((d) => ({ ...d, speakingStyle: e.target.value, tone: e.target.value }))}
-              placeholder={t("agent.speakingStyle")}
-              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
-          </div>
-          <div className="mb-4">
-            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.coreValue")}</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {CORE_VALUE_KEYS.map((key) => {
-                const label = t(key);
-                return (
-                  <button key={key} onClick={() => setDraft((d) => ({ ...d, coreValue: label, beliefs: label }))}
-                    className={`px-3 py-1.5 rounded-full text-[13px] ${draft.coreValue === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>
-                );
-              })}
-            </div>
-            <input value={draft.coreValue} onChange={(e) => setDraft((d) => ({ ...d, coreValue: e.target.value, beliefs: e.target.value }))}
-              placeholder={t("placeholder.coreValue")}
-              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
+            <label className="text-[13px] text-[var(--muted)] block mb-1">性格プロンプト</label>
+            <textarea value={draft.personality} onChange={(e) => setDraft((d) => ({ ...d, personality: e.target.value, character: e.target.value, tone: "", speakingStyle: "", beliefs: "", coreValue: "" }))}
+              placeholder="エージェントの性格・話し方・価値観を自由に記述"
+              rows={4}
+              className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)] resize-none" />
           </div>
           {/* Twitter連携 */}
           <div className="mb-6 p-3 bg-[var(--search-bg)] rounded-xl border border-[var(--card-border)]">
@@ -327,9 +304,7 @@ export default function AgentPage() {
         {/* Info */}
         <div className="px-4 pb-3 space-y-2">
           {(agent.config.role || agent.config.expertise) && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.role")}:</span> {agent.config.role || agent.config.expertise}</div>}
-          {(agent.config.character || agent.config.personality) && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.character")}:</span> {agent.config.character || agent.config.personality}</div>}
-          {(agent.config.speakingStyle || agent.config.tone) && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.speakingStyle")}:</span> {agent.config.speakingStyle || agent.config.tone}</div>}
-          {(agent.config.coreValue || agent.config.beliefs) && <div className="text-[13px] italic"><span className="text-[var(--muted)]">{t("agent.coreValue")}:</span> {agent.config.coreValue || agent.config.beliefs}</div>}
+          {(agent.config.personality || agent.config.character) && <div className="text-[13px]"><span className="text-[var(--muted)]">性格:</span> {agent.config.personality || agent.config.character}</div>}
           {agent.config.twitterEnabled && (
             <div className="text-[13px] flex items-center gap-1">
               <span className="text-[var(--accent)]">𝕏</span>
