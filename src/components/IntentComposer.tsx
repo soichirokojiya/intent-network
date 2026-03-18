@@ -111,7 +111,10 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         // Mark all loaded message IDs as processed to prevent re-adding
         msgs.forEach((m) => {
           processedResponseIds.current.add(m.id);
-          // Also mark the source keys for agent responses
+          // Mark content keys to prevent duplicate agent responses
+          if (m.agentId && m.text) {
+            processedResponseIds.current.add(`${m.agentId}-${m.text}`);
+          }
           if (m.id.startsWith("agent-")) processedResponseIds.current.add(m.id.replace("agent-", ""));
           if (m.id.startsWith("tweet-preview-")) processedResponseIds.current.add(m.id.replace("tweet-preview-", ""));
           if (m.id.startsWith("tweeted-")) processedResponseIds.current.add(m.id);
