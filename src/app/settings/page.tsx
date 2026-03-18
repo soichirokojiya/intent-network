@@ -5,9 +5,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { AvatarUpload } from "@/components/AvatarUpload";
 
 export default function SettingsPage() {
-  const { user, signOut, displayName: savedName, updateDisplayName } = useAuth();
+  const { user, signOut, displayName: savedName, avatarUrl, updateDisplayName, updateAvatarUrl } = useAuth();
   const { t } = useLocale();
   const router = useRouter();
 
@@ -106,13 +107,25 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-[15px] font-bold mb-3">{t("settings.profile")}</h2>
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-2xl font-bold">
-              {displayName.charAt(0).toUpperCase()}
-            </div>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="avatar" className="w-16 h-16 rounded-full object-cover" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-2xl font-bold">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
               <div className="font-bold text-[15px]">{displayName}</div>
               <div className="text-[13px] text-[var(--muted)]">{user?.email}</div>
             </div>
+          </div>
+          <div className="mb-4">
+            <AvatarUpload
+              currentAvatar={avatarUrl || `px-${displayName}-0`}
+              onAvatarChange={async (url) => {
+                await updateAvatarUrl(url);
+              }}
+            />
           </div>
 
           <label className="text-[13px] text-[var(--muted)] block mb-1">{t("settings.displayName")}</label>

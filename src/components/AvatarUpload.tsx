@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 
@@ -19,35 +18,36 @@ export function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUploadProp
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate
     if (!file.type.startsWith("image/")) return;
-    if (file.size > 2 * 1024 * 1024) { alert("Max 2MB"); return; } // 2MB limit
+    if (file.size > 2 * 1024 * 1024) { alert("2MB以下の画像を選択してください"); return; }
 
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const fileName = `${user.id}/${Date.now()}.${ext}`;
 
-    const { error } = await supabase.storage.from("avatars").upload(fileName, file, {
-      cacheControl: "3600",
-      upsert: true,
-    });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("userId", user.id);
 
-    if (error) {
-      console.error("Upload error:", error);
-      setUploading(false);
-      return;
+    try {
+      const res = await fetch("/api/upload-avatar", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        onAvatarChange(data.url);
+      } else {
+        alert(data.error || "アップロードに失敗しました");
+      }
+    } catch {
+      alert("アップロードに失敗しました");
     }
 
-    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(fileName);
-    onAvatarChange(publicUrl);
     setUploading(false);
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const isUrl = currentAvatar.startsWith("http");
 
   return (
     <div className="flex items-center gap-4">
-      {/* Current avatar preview */}
       <div className="relative">
         {isUrl ? (
           <img src={currentAvatar} alt="avatar" className="w-16 h-16 rounded-full object-cover" />
@@ -61,13 +61,12 @@ export function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUploadProp
         )}
       </div>
 
-      {/* Upload button */}
       <button
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
         className="px-4 py-2 bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl text-[13px] font-bold hover:bg-[var(--hover-bg)] disabled:opacity-50 transition-colors"
       >
-        Upload Photo
+        写真をアップロード
       </button>
 
       <input
