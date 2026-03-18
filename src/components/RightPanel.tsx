@@ -6,7 +6,7 @@ import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import Link from "next/link";
 
 export function RightPanel() {
-  const { intents, myAgents } = useIntents();
+  const { intents, myAgents, removeAgent } = useIntents();
   const { t } = useLocale();
 
   return (
@@ -26,21 +26,30 @@ export function RightPanel() {
       {/* My Agents */}
       {myAgents.length > 0 && (
         <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
-          <h2 className="text-xl font-extrabold mb-3">{t("right.myAgents")}</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xl font-extrabold">{t("right.myAgents")}</h2>
+            <Link href="/agent" className="text-[12px] text-[var(--muted)] hover:text-[var(--accent)]">管理</Link>
+          </div>
           {myAgents.map((agent) => (
-            <Link href={`/agent?id=${agent.id}`} key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors">
-              <div className={`${agent.stats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
-                <AgentAvatarDisplay avatar={agent.config.avatar} size={36} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold truncate">{agent.config.name}</span>
-                  <span className="text-base">{MOOD_EMOJI[agent.stats.mood]}</span>
-                  {(agent.config.role || agent.config.expertise) && <span className="text-[11px] text-[var(--muted)]">{agent.config.role || agent.config.expertise}</span>}
+            <div key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors group">
+              <Link href={`/agent?id=${agent.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                <div className={`${agent.stats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
+                  <AgentAvatarDisplay avatar={agent.config.avatar} size={36} />
                 </div>
-                {/* 投稿数非表示 */}
-              </div>
-            </Link>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold truncate">{agent.config.name}</span>
+                    {(agent.config.role || agent.config.expertise) && <span className="text-[11px] text-[var(--muted)]">{agent.config.role || agent.config.expertise}</span>}
+                  </div>
+                </div>
+              </Link>
+              <button
+                onClick={() => { if (confirm(`${agent.config.name}を削除しますか？`)) removeAgent(agent.id); }}
+                className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted)] hover:text-[var(--danger)] transition-all flex-shrink-0"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
           ))}
           <Link href="/agent?new=1" className="flex items-center justify-center gap-1.5 pt-3 mt-1 text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
