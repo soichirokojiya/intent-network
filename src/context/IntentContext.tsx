@@ -852,7 +852,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             const finalSummary = discussion.map((d) => `${d.name}: ${d.text.slice(0, 300)}`).join("\n");
             try {
               await Promise.race([
-                directAgentRespond(orchestrator, `チームの議論結果からオーナーへの意思決定ブリーフを作成。\n\n${finalSummary}\n\n・結論: 最終提案（1文）\n・確度: 高/中/低\n・重要な論点と結論\n・最大リスク\n・48時間以内のアクション\n・監視指標`, false, 0, roomId, "moderate"),
+                directAgentRespond(orchestrator, `チームの議論結果からオーナーへの意思決定ブリーフを作成。\n\n${finalSummary}\n\n・結論: 最終提案（1文）\n・確度: 高/中/低\n・重要な論点と結論\n・最大リスク\n・48時間以内のアクション\n・監視指標`, false, 0, roomId, "complex"),
                 new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
             } catch (e) {

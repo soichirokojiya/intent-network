@@ -13,9 +13,14 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "claude-haiku-4-5-20251001": { input: 1 / 1_000_000, output: 5 / 1_000_000 },
 };
 
-// Select model based on complexity
-function selectModel(complexity: string, needsSearch: boolean): string {
+// Roles that benefit from Opus 4.6 (deep analysis, financial, research, strategy)
+const OPUS_ROLES = ["リサーチ", "ファイナンス", "研究", "分析", "財務", "法務", "データサイエンティスト", "戦略"];
+
+// Select model based on complexity + agent role
+function selectModel(complexity: string, needsSearch: boolean, agentRole: string = ""): string {
   if (needsSearch || complexity === "complex") return "claude-opus-4-6";
+  // Role-based: research & finance agents always use Opus
+  if (OPUS_ROLES.some((r) => agentRole.includes(r))) return "claude-opus-4-6";
   if (complexity === "moderate") return "claude-sonnet-4-6";
   return "claude-haiku-4-5-20251001";
 }
@@ -108,7 +113,7 @@ export async function POST(req: NextRequest) {
     // Smart model routing
     const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http"];
     const needsSearch = searchKeywords.some((kw) => intentText.includes(kw));
-    const model = selectModel(complexity || "moderate", needsSearch);
+    const model = selectModel(complexity || "moderate", needsSearch, agentExpertise || "");
     const maxTokens = requestTweet ? 500 : 1200;
 
     const tools = needsSearch
