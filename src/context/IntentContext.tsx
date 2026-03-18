@@ -186,7 +186,7 @@ export const DEFAULT_AGENT_PRESETS = [
 // Max agents based on highest agent level
 function getMaxAgents(_agents: MyAgent[]): number {
   // TODO: 有料ユーザーは無制限、無料は3体
-  return 999;
+  return Infinity;
 }
 
 function defaultStats(): MyAgentStats {

@@ -77,8 +77,8 @@ export default function AgentPage() {
     return (
       <>
         <header className="sticky top-0 z-40 bg-[var(--background)] bg-opacity-80 backdrop-blur-md border-b border-[var(--card-border)] px-4 py-3 flex items-center justify-between">
-          <span className="text-lg font-bold">{t("agent.title")} ({myAgents.length}/{maxAgents})</span>
-          {myAgents.length < maxAgents ? (
+          <span className="text-lg font-bold">{t("agent.title")} ({myAgents.length})</span>
+          {true ? (
             <button onClick={() => { setDraft(getDefaultDraft()); setCreating(true); }}
               className="px-4 py-1.5 bg-[var(--accent)] text-white font-bold text-sm rounded-full hover:bg-[var(--accent-hover)] transition-colors">
               {t("agent.new")}
