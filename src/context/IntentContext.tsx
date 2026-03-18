@@ -655,12 +655,24 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       const toTimeline = data.toTimeline || "";
 
       setTimeout(() => {
-        setAgentResponses((prev) => [...prev, {
-          agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-          toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
-          tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
-          roomId,
-        }]);
+        setAgentResponses((prev) => {
+          // Replace "考え中..." placeholder if exists
+          const existing = prev.findIndex((r) => r.agentId === agent.id && r.toOwner === "考え中...");
+          if (existing >= 0) {
+            const updated = [...prev];
+            updated[existing] = {
+              ...updated[existing], toOwner, toTimeline, timestamp: Date.now(),
+              tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
+            };
+            return updated;
+          }
+          return [...prev, {
+            agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
+            toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
+            tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
+            roomId,
+          }];
+        });
       }, delay);
 
       if (requestTweet && toTimeline) {
@@ -686,12 +698,19 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       }
     }).catch((err) => {
       console.error(`Agent ${agent.config.name} respond error:`, err);
-      setTimeout(() => {
-        setAgentResponses((prev) => [...prev, {
+      setAgentResponses((prev) => {
+        const existing = prev.findIndex((r) => r.agentId === agent.id && r.toOwner === "考え中...");
+        const errorMsg = `エラー: ${err.message || "応答できませんでした"}`;
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = { ...updated[existing], toOwner: errorMsg };
+          return updated;
+        }
+        return [...prev, {
           agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-          toOwner: "すみません、うまく応答できませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
-        }]);
-      }, delay);
+          toOwner: errorMsg, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
+        }];
+      });
     });
   }, [updateAgentStats]);
 
@@ -744,10 +763,22 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             || allConfigured.find((a) => a.config.name === d.agentName)
             || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase());
           if (!agent) {
-            console.error(`Delegation failed: agent not found for id=${d.agentId} name=${d.agentName}`);
+            console.error(`Delegation failed: agent not found for id=${d.agentId} name=${d.agentName}. Available: ${allConfigured.map(a => `${a.id}=${a.config.name}`).join(', ')}`);
+            // Show error in chat
+            setAgentResponses((prev) => [...prev, {
+              agentId: d.agentId, agentName: d.agentName || "Unknown", agentAvatar: "px-agent-0",
+              toOwner: `（エージェント「${d.agentName}」が見つかりませんでした）`, toTimeline: "",
+              timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
+            }]);
             return;
           }
-          directAgentRespond(agent, d.task, d.requestTweet || false, i * 1000, roomId);
+          // Show "thinking" immediately
+          setAgentResponses((prev) => [...prev, {
+            agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
+            toOwner: "考え中...", toTimeline: "", timestamp: Date.now() + i,
+            posted: false, tweeted: false, tweetPending: false, roomId,
+          }]);
+          directAgentRespond(agent, d.task, d.requestTweet || false, 0, roomId);
         });
 
         // If no delegations (simple chat), just update orchestrator stats
