@@ -772,59 +772,91 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase()),
         }));
 
-        // 構造化議論: Position → Challenge → Synthesis
+        // 動的議論: オーケストレーターがOKと判断するまでループ
         (async () => {
-          // Round 1: POSITION - 各エージェントの初期分析
-          const outputs: { name: string; role: string; agent: MyAgent; response: string }[] = [];
+          const allAgents = resolved.filter((d: { agent?: MyAgent }) => d.agent).map((d: { agent?: MyAgent }) => ({
+            name: d.agent!.config.name,
+            role: d.agent!.config.role || d.agent!.config.expertise || "",
+            agent: d.agent!,
+          }));
+          const discussion: { name: string; text: string }[] = [];
+
+          // Initial: 各エージェントがタスクに回答
           for (const d of resolved) {
             if (!d.agent) continue;
-            const positionPrompt = `${d.task}\n\n以下の構造で回答してください（各1-2文）:\n・主張: あなたの核心的な提案\n・根拠: 具体的なデータや理由を2-3個\n・前提条件: この提案が成り立つ条件\n・リスク: 自分が間違っている可能性`;
             try {
               const response = await Promise.race([
-                directAgentRespond(d.agent, positionPrompt, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
+                directAgentRespond(d.agent, `${d.task}\n\n・主張: 核心的な提案（1文）\n・根拠: 具体的な理由2-3個\n・リスク: 自分が間違っている可能性`, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
                 new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
-              outputs.push({ name: d.agent.config.name, role: d.agent.config.role || d.agent.config.expertise || "", agent: d.agent, response: response || "" });
+              discussion.push({ name: d.agent.config.name, text: response || "" });
             } catch (e) {
-              console.error(`Round1 ${d.agent.config.name} skipped:`, e);
+              console.error(`Initial ${d.agent.config.name} skipped:`, e);
             }
           }
 
-          // Round 2: CHALLENGE - 相互に質問・反論・発展
-          const challengeOutputs: { name: string; response: string }[] = [];
-          if (outputs.length >= 2) {
-            for (const o of outputs) {
-              const othersText = outputs
-                .filter((x) => x.name !== o.name)
-                .map((x) => `${x.name}（${x.role}）の主張: ${x.response.slice(0, 250)}`)
-                .join("\n\n");
-              const challengePrompt = `チームメンバーの分析を読んで以下を必ず実行してください:\n\n${othersText}\n\n1. 反論: 誰かの前提条件や根拠の弱い点を名指しで指摘（「${outputs.find(x => x.name !== o.name)?.name}の○○という前提は△△の理由で危険」）\n2. 質問: 他のメンバーに具体的な質問を1つ（「${outputs.find(x => x.name !== o.name)?.name}、○○の場合はどうなる？」）\n3. 発展: 誰かのアイデアと自分の専門を組み合わせた新しい提案\n\n「同意します」は禁止。必ず建設的に反論すること。3-4文で。`;
+          // 議論ループ（最大3回）: オーケストレーターが判断
+          for (let round = 0; round < 3 && orchestrator; round++) {
+            const discussionSummary = discussion.map((d) => `${d.name}: ${d.text.slice(0, 250)}`).join("\n");
+
+            // オーケストレーターに判断を仰ぐ（Haikuで高速）
+            let judgeResult = { done: true, nextAgent: "", question: "" };
+            try {
+              const judgeRes = await fetch("/api/orchestrator-plan", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ownerMessage: `以下のチーム議論を評価してください。オーナーの元の質問:「${text}」\n\n議論内容:\n${discussionSummary}\n\n判断してJSON出力:\n{"done": true/false, "reason": "議論が十分か不十分かの理由", "nextAgent": "追加で意見を求めるエージェント名（不十分な場合）", "question": "そのエージェントへの具体的な質問（不十分な場合）"}\n\n不十分な基準: 根拠が弱い、反論がない、具体性が足りない、リスク検討が不十分`,
+                  orchestratorName: orchestrator.config.name,
+                  orchestratorPersonality: orchestrator.config.character || orchestrator.config.personality,
+                  orchestratorTone: orchestrator.config.speakingStyle || orchestrator.config.tone,
+                  agents: allAgents.map((a: { agent: MyAgent; name: string; role: string }) => ({ id: a.agent.id, name: a.name, role: a.role, twitterEnabled: false })),
+                }),
+              }).then((r) => r.json());
+
+              // Parse judge response
+              const jMatch = JSON.stringify(judgeRes).match(/\{[\s\S]*"done"[\s\S]*\}/);
+              if (jMatch) {
+                try {
+                  const parsed = JSON.parse(jMatch[0].replace(/,\s*([}\]])/g, "$1"));
+                  judgeResult = parsed;
+                } catch { /* use default done=true */ }
+              }
+              if (judgeRes.directResponse && !judgeRes.done) {
+                judgeResult = { done: false, nextAgent: judgeRes.nextAgent || "", question: judgeRes.directResponse };
+              }
+            } catch (e) {
+              console.error("Judge call failed:", e);
+              break;
+            }
+
+            if (judgeResult.done) break;
+
+            // 指名されたエージェントに追加質問
+            const targetAgent = allAgents.find((a: { name: string }) => a.name === judgeResult.nextAgent) || allAgents[round % allAgents.length];
+            if (targetAgent) {
+              const followUpPrompt = `オーケストレーターからの追加質問です:\n\n${judgeResult.question}\n\nこれまでの議論:\n${discussionSummary}\n\n名指しで他メンバーに反論・質問しつつ、3-4文で回答。`;
               try {
                 const response = await Promise.race([
-                  directAgentRespond(o.agent, challengePrompt, false, 0, roomId, "moderate"),
+                  directAgentRespond(targetAgent.agent, followUpPrompt, false, 0, roomId, "moderate"),
                   new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 60000)),
                 ]);
-                challengeOutputs.push({ name: o.name, response: response || "" });
+                discussion.push({ name: targetAgent.name, text: response || "" });
               } catch (e) {
-                console.error(`Round2 ${o.name} skipped:`, e);
+                console.error(`FollowUp ${targetAgent.name} skipped:`, e);
               }
             }
           }
 
-          // Round 3: SYNTHESIS - オーケストレーターが意思決定ブリーフ作成
-          if (outputs.length > 0 && orchestrator) {
-            const allText = [
-              ...outputs.map((o) => `【${o.name}の提案】${o.response.slice(0, 300)}`),
-              ...challengeOutputs.map((o) => `【${o.name}の反論】${o.response.slice(0, 200)}`),
-            ].join("\n");
-            const synthesisPrompt = `チームの議論結果からオーナーへの意思決定ブリーフを作成してください。\n\n${allText}\n\n以下の形式で簡潔に:\n・結論: チームの最終提案（1文）\n・確度: 高/中/低（チーム内の合意度合い）\n・重要な論点: 最も白熱した議論ポイントとその結論\n・最大リスク: 未解決の最大リスク\n・48時間以内のアクション: オーナーが今すぐやるべきこと\n・監視指標: 成否を判断する1つの数字`;
+          // 最終まとめ: オーケストレーター
+          if (discussion.length > 0 && orchestrator) {
+            const finalSummary = discussion.map((d) => `${d.name}: ${d.text.slice(0, 300)}`).join("\n");
             try {
               await Promise.race([
-                directAgentRespond(orchestrator, synthesisPrompt, false, 0, roomId, "moderate"),
+                directAgentRespond(orchestrator, `チームの議論結果からオーナーへの意思決定ブリーフを作成。\n\n${finalSummary}\n\n・結論: 最終提案（1文）\n・確度: 高/中/低\n・重要な論点と結論\n・最大リスク\n・48時間以内のアクション\n・監視指標`, false, 0, roomId, "moderate"),
                 new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
             } catch (e) {
-              console.error("Round3 synthesis skipped:", e);
+              console.error("Final synthesis skipped:", e);
             }
           }
         })();
