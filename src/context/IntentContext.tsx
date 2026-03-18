@@ -646,11 +646,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         conversationHistory: history,
         deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
       }),
-    }).then((r) => {
-      if (!r.ok) throw new Error(`API error: ${r.status}`);
-      return r.json();
+    }).then(async (r) => {
+      const data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || `API error: ${r.status}`);
+      return data;
     }).then((data) => {
-      if (data.error) throw new Error(data.error);
       const toOwner = (data.toOwner || "了解。").replace(/\\n/g, "\n");
       const toTimeline = data.toTimeline || "";
 
