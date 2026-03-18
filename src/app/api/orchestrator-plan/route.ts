@@ -94,8 +94,9 @@ directResponseのフォーマット（雑談・簡単な質問の場合）:
         delegations: [],
       });
     }
-  } catch (error) {
-    console.error("Orchestrator plan error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Orchestrator plan error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
