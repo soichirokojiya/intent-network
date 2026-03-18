@@ -25,28 +25,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Bind device_id to user ID (ensures data persists across browsers/sessions)
-  const bindDeviceId = useCallback(async (userId: string) => {
+  const bindDeviceId = useCallback((userId: string) => {
     if (typeof window === "undefined") return;
     const currentDeviceId = localStorage.getItem("musu_device_id");
 
-    if (currentDeviceId && currentDeviceId !== userId) {
-      // Migrate old data to user ID
-      try {
-        await fetch("/api/migrate-device", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ oldDeviceId: currentDeviceId, newDeviceId: userId }),
-        });
-      } catch { /* ignore */ }
-    }
-
-    // Always set device_id to user ID
+    // Set device_id to user ID IMMEDIATELY (sync) before any data loading
     localStorage.setItem("musu_device_id", userId);
+
+    // Migrate old data in background (fire and forget)
+    if (currentDeviceId && currentDeviceId !== userId) {
+      fetch("/api/migrate-device", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldDeviceId: currentDeviceId, newDeviceId: userId }),
+      }).catch(() => {});
+    }
   }, []);
 
   // Load profile from profiles table
   const loadProfile = useCallback(async (userId: string, email: string) => {
-    await bindDeviceId(userId);
+    bindDeviceId(userId);
     const { data } = await supabase.from("profiles").select("display_name, avatar_url").eq("id", userId).single();
     setDisplayName(data?.display_name || email.split("@")[0]);
     setAvatarUrl(data?.avatar_url || "");
@@ -54,9 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
       if (session?.user) {
+        // Set device_id BEFORE setting user (which triggers IntentProvider)
+        bindDeviceId(session.user.id);
+        setUser(session.user);
         loadProfile(session.user.id, session.user.email || "");
+      } else {
+        setUser(null);
       }
       setLoading(false);
     });
