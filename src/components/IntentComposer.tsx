@@ -131,7 +131,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
 
   // Convert agent responses to chat messages (with natural delay queue)
   useEffect(() => {
-    agentResponses.forEach((resp) => {
+    agentResponses.filter((r) => !r.roomId || r.roomId === roomId).forEach((resp) => {
       // Deduplicate: use full content hash
       const contentKey = `${resp.agentId}-${resp.toOwner}`;
       if (processedResponseIds.current.has(contentKey)) return;
@@ -172,7 +172,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
 
   // Watch for tweet results
   useEffect(() => {
-    agentResponses.forEach((resp) => {
+    agentResponses.filter((r) => !r.roomId || r.roomId === roomId).forEach((resp) => {
       if (resp.tweeted) {
         const tweetedKey = `tweeted-${resp.agentId}`;
         if (!processedResponseIds.current.has(tweetedKey)) {

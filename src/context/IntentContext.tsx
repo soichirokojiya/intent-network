@@ -651,6 +651,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
           toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
           tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
+          roomId,
         }]);
       }, delay);
 
@@ -679,7 +680,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       setTimeout(() => {
         setAgentResponses((prev) => [...prev, {
           agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-          toOwner: "すみません、うまく応答できませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
+          toOwner: "すみません、うまく応答できませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
         }]);
       }, delay);
     });
@@ -724,7 +725,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         // Show orchestrator's response
         setAgentResponses((prev) => [...prev, {
           agentId: orchestrator.id, agentName: orchestrator.config.name, agentAvatar: orchestrator.config.avatar,
-          toOwner: directResponse, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
+          toOwner: directResponse, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
         }]);
 
         // Execute delegations
@@ -744,7 +745,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       }).catch(() => {
         setAgentResponses((prev) => [...prev, {
           agentId: orchestrator.id, agentName: orchestrator.config.name, agentAvatar: orchestrator.config.avatar,
-          toOwner: "すみません、うまく振り分けできませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false,
+          toOwner: "すみません、うまく振り分けできませんでした。", toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
         }]);
       });
     } else if (mentionedAgent) {
