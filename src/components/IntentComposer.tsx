@@ -131,8 +131,11 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const processedResponseIds = useRef<Set<string>>(new Set());
   const enqueueMessage = useMessageQueue(setChatHistory, roomId);
+  const roomLoadTime = useRef<number>(0);
+
   // Load chat history from Supabase on mount or room change
   useEffect(() => {
+    roomLoadTime.current = Date.now();
     setChatHistory([]);
     processedResponseIds.current.clear();
     clearAgentResponses();
@@ -165,15 +168,12 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
 
   // Convert agent responses to chat messages (with natural delay queue)
   useEffect(() => {
-    agentResponses.filter((r) => !r.roomId || r.roomId === roomId).forEach((resp) => {
+    agentResponses
+      .filter((r) => (!r.roomId || r.roomId === roomId) && r.timestamp >= roomLoadTime.current)
+      .forEach((resp) => {
       // Deduplicate: use full content hash
       const contentKey = `${resp.agentId}-${resp.toOwner}`;
       if (processedResponseIds.current.has(contentKey)) return;
-      // Also check existing chat history
-      if (chatHistory.some((m) => m.agentId === resp.agentId && m.text === resp.toOwner)) {
-        processedResponseIds.current.add(contentKey);
-        return;
-      }
       processedResponseIds.current.add(contentKey);
 
       const key = `${resp.agentId}-${resp.timestamp}`;
