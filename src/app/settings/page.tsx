@@ -81,7 +81,7 @@ export default function SettingsPage() {
         return;
       }
       localStorage.removeItem("musu_device_id");
-      await signOut();
+      localStorage.clear();
       window.location.href = "/?signup=1";
     } catch {
       showErr("解約に失敗しました");
