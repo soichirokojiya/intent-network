@@ -770,11 +770,18 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase()),
         }));
 
-        // Call agents one by one (sequential)
+        // Call agents one by one - skip on error, never block
         (async () => {
           for (const d of resolved) {
             if (!d.agent) continue;
-            await directAgentRespond(d.agent, d.task, d.requestTweet || false, 0, roomId, d.complexity || "moderate");
+            try {
+              await Promise.race([
+                directAgentRespond(d.agent, d.task, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
+              ]);
+            } catch (e) {
+              console.error(`Agent ${d.agent.config.name} skipped:`, e);
+            }
           }
         })();
 
