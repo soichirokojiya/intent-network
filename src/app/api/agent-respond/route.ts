@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { getMoodModifier } from "@/lib/moodPrompt";
 
+export const maxDuration = 120; // Vercel Pro: 120秒タイムアウト
+
 const client = new Anthropic();
 
 // Summarize older messages with haiku (cheap)
