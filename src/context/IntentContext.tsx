@@ -648,7 +648,9 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         complexity,
       }),
     }).then(async (r) => {
-      const data = await r.json();
+      const text = await r.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error(`応答を解析できませんでした`); }
       if (!r.ok || data.error) throw new Error(data.error || `API error: ${r.status}`);
       return data;
     }).then((data): string => {
@@ -786,7 +788,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             if (!d.agent) continue;
             try {
               const response = await Promise.race([
-                directAgentRespond(d.agent, `${d.task}\n\n・主張: 核心的な提案（1文）\n・根拠: 具体的な理由2-3個\n・リスク: 自分が間違っている可能性`, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
+                directAgentRespond(d.agent, `${d.task}\n\nオーナーの元のメッセージ:「${text}」\n\n自然な話し言葉で回答して。ラベル（主張:、根拠:等）は使わない。提案とその理由、注意点を会話として伝えて。`, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
                 new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
               discussion.push({ name: d.agent.config.name, text: response || "" });
@@ -834,7 +836,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             // 指名されたエージェントに追加質問
             const targetAgent = allAgents.find((a: { name: string }) => a.name === judgeResult.nextAgent) || allAgents[round % allAgents.length];
             if (targetAgent) {
-              const followUpPrompt = `オーケストレーターからの追加質問です:\n\n${judgeResult.question}\n\nこれまでの議論:\n${discussionSummary}\n\n名指しで他メンバーに反論・質問しつつ、3-4文で回答。`;
+              const followUpPrompt = `${judgeResult.question}\n\nこれまでの議論:\n${discussionSummary}\n\n自然な話し言葉で回答して。他のメンバーに言及する時は「@Kai」「@Sora」のようにメンション形式で。3-4文で。`;
               try {
                 const response = await Promise.race([
                   directAgentRespond(targetAgent.agent, followUpPrompt, false, 0, roomId, "moderate"),

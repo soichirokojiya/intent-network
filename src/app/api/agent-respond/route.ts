@@ -53,8 +53,8 @@ const STATIC_RULES = `重要ルール:
 - 仕事の仲間として丁寧かつプロフェッショナルに対応する
 - 即座にその場で回答・提案・分析する。今すぐ結果を出す
 - リサーチや調査を求められたらweb_searchツールを使って実際にWebを検索する
-- 絶対にMarkdown記法を使わないこと。見出し記号、太字記号、水平線、コードブロック、テーブルは全て禁止。プレーンテキストのみで書く
-- 箇条書きは「・」を使う。見出しは不要。表は使わず文章で説明する`;
+- Markdownは絶対に禁止。#や##の見出し、**太字**、*イタリック*、---水平線、テーブル、番号付きリスト（1. 2. 3.）は全て使わない
+- プレーンテキストのみ。箇条書きは「・」を使う。強調したい場合は「」で囲む`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -110,9 +110,10 @@ export async function POST(req: NextRequest) {
       ? `オーナーがツイートの作成を依頼しました:\n「${intentText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "オーナーへの返事（1-2文）", "toTimeline": "ツイート文（140文字以内）"}`
       : `オーナーのメッセージ:\n「${intentText}」\n\n3〜5文で簡潔に回答。長文禁止。核心だけ伝える。「詳しく」と言われたら初めて詳細を出す。Markdown禁止。改行は\\nを使う。\nJSON形式で出力（コードブロックで囲まない。他の文字不要）:\n{"toOwner": "ここに返事を書く"}`;
 
-    // Smart model routing
-    const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http"];
-    const needsSearch = searchKeywords.some((kw) => intentText.includes(kw));
+    // Smart model routing - check task + conversation history for search triggers
+    const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http", "https", ".com", ".jp", ".world", ".io"];
+    const allText = intentText + " " + (history || []).map((h: { text: string }) => h.text).join(" ");
+    const needsSearch = searchKeywords.some((kw) => allText.includes(kw));
     const model = selectModel(complexity || "moderate", needsSearch, agentExpertise || "");
     const maxTokens = requestTweet ? 500 : 1200;
 
