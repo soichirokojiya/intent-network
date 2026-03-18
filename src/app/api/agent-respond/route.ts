@@ -155,7 +155,7 @@ JSON形式で出力してください（他の文字不要）:
     if (deviceId) {
       const MARGIN = 1.5;
       const costUsd = totalInputTokens * (15 / 1_000_000) + totalOutputTokens * (75 / 1_000_000);
-      const costYen = Math.round(costUsd * 150 * MARGIN * 1000) / 1000;
+      const costYen = Math.ceil(costUsd * 150 * MARGIN);
       await fetch(new URL("/api/credits", req.url).toString(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },

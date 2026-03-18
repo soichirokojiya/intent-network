@@ -188,7 +188,7 @@ export default function SettingsPage() {
           <h2 className="text-[15px] font-bold mb-3">クレジット</h2>
           <div className="flex items-center justify-between mb-4">
             <span className="text-[14px] text-[var(--muted)]">残高</span>
-            <span className="text-[18px] font-bold">¥{balance !== null ? balance.toLocaleString() : "..."}</span>
+            <span className="text-[18px] font-bold">¥{balance !== null ? Math.round(balance).toLocaleString() : "..."}</span>
           </div>
           <div className="flex gap-2">
             <button

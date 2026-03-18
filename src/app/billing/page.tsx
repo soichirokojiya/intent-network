@@ -39,7 +39,7 @@ export default function BillingPage() {
         {/* Balance */}
         <div className="p-4 bg-[var(--search-bg)] rounded-2xl">
           <p className="text-[12px] text-[var(--muted)] mb-1">現在の残高</p>
-          <p className="text-3xl font-extrabold">¥{balance !== null ? balance.toLocaleString() : "..."}</p>
+          <p className="text-3xl font-extrabold">¥{balance !== null ? Math.round(balance).toLocaleString() : "..."}</p>
         </div>
 
         {/* Summary */}
@@ -47,11 +47,11 @@ export default function BillingPage() {
           <h2 className="text-[15px] font-bold">利用サマリー</h2>
           <div className="flex justify-between py-2 border-b border-[var(--card-border)]">
             <span className="text-[14px] text-[var(--muted)]">累計チャージ額</span>
-            <span className="text-[14px]">¥{totalCharged !== null ? totalCharged.toLocaleString() : "..."}</span>
+            <span className="text-[14px]">¥{totalCharged !== null ? Math.round(totalCharged).toLocaleString() : "..."}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-[var(--card-border)]">
             <span className="text-[14px] text-[var(--muted)]">累計利用額</span>
-            <span className="text-[14px]">¥{totalUsed !== null ? totalUsed.toLocaleString() : "..."}</span>
+            <span className="text-[14px]">¥{totalUsed !== null ? Math.round(totalUsed).toLocaleString() : "..."}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-[var(--card-border)]">
             <span className="text-[14px] text-[var(--muted)]">入力トークン</span>
@@ -75,7 +75,7 @@ export default function BillingPage() {
               <div key={m.month} className="p-3 bg-[var(--search-bg)] rounded-xl">
                 <div className="flex justify-between mb-2">
                   <span className="text-[14px] font-bold">{m.month}</span>
-                  <span className="text-[14px] font-bold">¥{m.cost.toLocaleString()}</span>
+                  <span className="text-[14px] font-bold">¥{Math.round(m.cost).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-[12px] text-[var(--muted)]">
                   <span>{m.count}回のリクエスト</span>
