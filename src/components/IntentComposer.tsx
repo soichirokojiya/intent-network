@@ -173,9 +173,15 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const pendingTweetAgentId = agentResponses.find((r) => r.tweetPending)?.agentId || null;
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const justPosted = useRef(false);
 
-  // Auto-scroll to bottom on new messages (only if near bottom)
+  // Auto-scroll: always after posting, otherwise only if near bottom
   useEffect(() => {
+    if (justPosted.current) {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      justPosted.current = false;
+      return;
+    }
     const el = chatAreaRef.current;
     if (!el) return;
     const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
@@ -260,6 +266,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     };
     setChatHistory((prev) => [...prev, userMsg]);
     saveChatMessage(userMsg, roomId);
+    justPosted.current = true;
 
     const intent = detectIntent(userText);
 
