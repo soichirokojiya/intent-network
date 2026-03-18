@@ -772,51 +772,59 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase()),
         }));
 
-        // Phase 1→2→3: 各エージェント回答 → 議論 → オーケストレーターまとめ
+        // 構造化議論: Position → Challenge → Synthesis
         (async () => {
-          // Phase 1: 各エージェントがタスクに回答
-          const outputs: { name: string; agent: MyAgent; response: string }[] = [];
+          // Round 1: POSITION - 各エージェントの初期分析
+          const outputs: { name: string; role: string; agent: MyAgent; response: string }[] = [];
           for (const d of resolved) {
             if (!d.agent) continue;
+            const positionPrompt = `${d.task}\n\n以下の構造で回答してください（各1-2文）:\n・主張: あなたの核心的な提案\n・根拠: 具体的なデータや理由を2-3個\n・前提条件: この提案が成り立つ条件\n・リスク: 自分が間違っている可能性`;
             try {
               const response = await Promise.race([
-                directAgentRespond(d.agent, d.task, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
+                directAgentRespond(d.agent, positionPrompt, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
                 new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
-              outputs.push({ name: d.agent.config.name, agent: d.agent, response: response || "" });
+              outputs.push({ name: d.agent.config.name, role: d.agent.config.role || d.agent.config.expertise || "", agent: d.agent, response: response || "" });
             } catch (e) {
-              console.error(`Phase1 ${d.agent.config.name} skipped:`, e);
+              console.error(`Round1 ${d.agent.config.name} skipped:`, e);
             }
           }
 
-          // Phase 2: 議論ラウンド（2人以上いる場合のみ）
+          // Round 2: CHALLENGE - 相互に質問・反論・発展
+          const challengeOutputs: { name: string; response: string }[] = [];
           if (outputs.length >= 2) {
             for (const o of outputs) {
               const othersText = outputs
                 .filter((x) => x.name !== o.name)
-                .map((x) => `${x.name}: ${x.response.slice(0, 200)}`)
-                .join("\n");
+                .map((x) => `${x.name}（${x.role}）の主張: ${x.response.slice(0, 250)}`)
+                .join("\n\n");
+              const challengePrompt = `チームメンバーの分析を読んで以下を必ず実行してください:\n\n${othersText}\n\n1. 反論: 誰かの前提条件や根拠の弱い点を名指しで指摘（「${outputs.find(x => x.name !== o.name)?.name}の○○という前提は△△の理由で危険」）\n2. 質問: 他のメンバーに具体的な質問を1つ（「${outputs.find(x => x.name !== o.name)?.name}、○○の場合はどうなる？」）\n3. 発展: 誰かのアイデアと自分の専門を組み合わせた新しい提案\n\n「同意します」は禁止。必ず建設的に反論すること。3-4文で。`;
               try {
-                await Promise.race([
-                  directAgentRespond(o.agent, `他のメンバーの意見を踏まえて補足・反論してください。\n\n${othersText}\n\n2-3文で簡潔に。`, false, 0, roomId, "simple"),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 60000)),
+                const response = await Promise.race([
+                  directAgentRespond(o.agent, challengePrompt, false, 0, roomId, "moderate"),
+                  new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 60000)),
                 ]);
+                challengeOutputs.push({ name: o.name, response: response || "" });
               } catch (e) {
-                console.error(`Phase2 ${o.name} skipped:`, e);
+                console.error(`Round2 ${o.name} skipped:`, e);
               }
             }
           }
 
-          // Phase 3: オーケストレーターがまとめ
+          // Round 3: SYNTHESIS - オーケストレーターが意思決定ブリーフ作成
           if (outputs.length > 0 && orchestrator) {
-            const summary = outputs.map((o) => `${o.name}: ${o.response.slice(0, 300)}`).join("\n");
+            const allText = [
+              ...outputs.map((o) => `【${o.name}の提案】${o.response.slice(0, 300)}`),
+              ...challengeOutputs.map((o) => `【${o.name}の反論】${o.response.slice(0, 200)}`),
+            ].join("\n");
+            const synthesisPrompt = `チームの議論結果からオーナーへの意思決定ブリーフを作成してください。\n\n${allText}\n\n以下の形式で簡潔に:\n・結論: チームの最終提案（1文）\n・確度: 高/中/低（チーム内の合意度合い）\n・重要な論点: 最も白熱した議論ポイントとその結論\n・最大リスク: 未解決の最大リスク\n・48時間以内のアクション: オーナーが今すぐやるべきこと\n・監視指標: 成否を判断する1つの数字`;
             try {
               await Promise.race([
-                directAgentRespond(orchestrator, `全員の意見を踏まえてオーナーにまとめてください。\n\n${summary}\n\n要点を「・」で整理し、具体的な次のアクションを提案。3-5文で。`, false, 0, roomId, "moderate"),
+                directAgentRespond(orchestrator, synthesisPrompt, false, 0, roomId, "moderate"),
                 new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
             } catch (e) {
-              console.error("Phase3 summary skipped:", e);
+              console.error("Round3 synthesis skipped:", e);
             }
           }
         })();
