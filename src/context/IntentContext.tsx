@@ -651,7 +651,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       const data = await r.json();
       if (!r.ok || data.error) throw new Error(data.error || `API error: ${r.status}`);
       return data;
-    }).then((data) => {
+    }).then((data): string => {
       const toOwner = (data.toOwner || "了解。").replace(/\\n/g, "\n");
       const toTimeline = data.toTimeline || "";
 
@@ -697,6 +697,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           return { ...s, lastInteractedAt: Date.now(), mood };
         });
       }
+      return toOwner;
     }).catch((err) => {
       console.error(`Agent ${agent.config.name} respond error:`, err);
       setAgentResponses((prev) => {
@@ -712,6 +713,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           toOwner: errorMsg, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
         }];
       });
+      return "";
     });
   }, [updateAgentStats]);
 
@@ -770,17 +772,51 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase()),
         }));
 
-        // Call agents one by one - skip on error, never block
+        // Phase 1→2→3: 各エージェント回答 → 議論 → オーケストレーターまとめ
         (async () => {
+          // Phase 1: 各エージェントがタスクに回答
+          const outputs: { name: string; agent: MyAgent; response: string }[] = [];
           for (const d of resolved) {
             if (!d.agent) continue;
             try {
-              await Promise.race([
+              const response = await Promise.race([
                 directAgentRespond(d.agent, d.task, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
+                new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
+              ]);
+              outputs.push({ name: d.agent.config.name, agent: d.agent, response: response || "" });
+            } catch (e) {
+              console.error(`Phase1 ${d.agent.config.name} skipped:`, e);
+            }
+          }
+
+          // Phase 2: 議論ラウンド（2人以上いる場合のみ）
+          if (outputs.length >= 2) {
+            for (const o of outputs) {
+              const othersText = outputs
+                .filter((x) => x.name !== o.name)
+                .map((x) => `${x.name}: ${x.response.slice(0, 200)}`)
+                .join("\n");
+              try {
+                await Promise.race([
+                  directAgentRespond(o.agent, `他のメンバーの意見を踏まえて補足・反論してください。\n\n${othersText}\n\n2-3文で簡潔に。`, false, 0, roomId, "simple"),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 60000)),
+                ]);
+              } catch (e) {
+                console.error(`Phase2 ${o.name} skipped:`, e);
+              }
+            }
+          }
+
+          // Phase 3: オーケストレーターがまとめ
+          if (outputs.length > 0 && orchestrator) {
+            const summary = outputs.map((o) => `${o.name}: ${o.response.slice(0, 300)}`).join("\n");
+            try {
+              await Promise.race([
+                directAgentRespond(orchestrator, `全員の意見を踏まえてオーナーにまとめてください。\n\n${summary}\n\n要点を「・」で整理し、具体的な次のアクションを提案。3-5文で。`, false, 0, roomId, "moderate"),
                 new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
             } catch (e) {
-              console.error(`Agent ${d.agent.config.name} skipped:`, e);
+              console.error("Phase3 summary skipped:", e);
             }
           }
         })();
