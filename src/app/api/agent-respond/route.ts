@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
     const allText = intentText + " " + (history || []).map((h: { text: string }) => h.text).join(" ");
     const needsSearch = searchKeywords.some((kw) => allText.includes(kw));
     const model = selectModel(complexity || "moderate", needsSearch, agentExpertise || "");
-    const maxTokens = requestTweet ? 500 : 1200;
+    const maxTokens = requestTweet ? 500 : 2000;
 
     const tools = needsSearch
       ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }]
