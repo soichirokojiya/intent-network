@@ -69,11 +69,15 @@ export function Sidebar() {
 
       <div className="mt-auto" />
 
-      {/* Contact link - small, bottom */}
-      <Link href="/contact"
-        className="mb-2 px-3 py-1.5 text-[12px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors w-full max-w-[230px]">
-        {t("nav.contact")}
-      </Link>
+      {/* Bottom links - small */}
+      <div className="flex gap-3 px-3 mb-2 w-full max-w-[230px]">
+        <Link href="/billing" className="text-[12px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+          料金
+        </Link>
+        <Link href="/contact" className="text-[12px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+          {t("nav.contact")}
+        </Link>
+      </div>
 
       {/* Profile → Settings */}
       <Link href="/settings" className="mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors w-full max-w-[230px]">

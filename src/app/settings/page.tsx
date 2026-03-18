@@ -254,31 +254,6 @@ export default function SettingsPage() {
 
         <hr className="border-[var(--card-border)]" />
 
-        {/* Credit & Billing */}
-        <div>
-          <h2 className="text-[15px] font-bold mb-3">クレジット</h2>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[14px] text-[var(--muted)]">残高</span>
-            <span className="text-[18px] font-bold">¥{balance !== null ? Math.round(balance).toLocaleString() : "..."}</span>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push("/billing")}
-              className="flex-1 py-2.5 border border-[var(--card-border)] text-sm font-bold rounded-xl hover:bg-[var(--hover-bg)]"
-            >
-              料金明細
-            </button>
-            <button
-              onClick={() => router.push("/charge")}
-              className="flex-1 py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-xl hover:bg-[var(--accent-hover)]"
-            >
-              チャージ
-            </button>
-          </div>
-        </div>
-
-        <hr className="border-[var(--card-border)]" />
-
         {/* Sign out */}
         <div className="pt-2">
           <button onClick={signOut} className="w-full py-2.5 border border-[var(--card-border)] rounded-xl text-sm font-bold hover:bg-[var(--hover-bg)]">
