@@ -651,7 +651,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       return r.json();
     }).then((data) => {
       if (data.error) throw new Error(data.error);
-      const toOwner = data.toOwner || "了解。";
+      const toOwner = (data.toOwner || "了解。").replace(/\\n/g, "\n");
       const toTimeline = data.toTimeline || "";
 
       setTimeout(() => {
@@ -747,7 +747,8 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           })),
         }),
       }).then((r) => r.json()).then((plan) => {
-        const directResponse = plan.directResponse || "了解しました。";
+        console.log("Orchestrator plan:", JSON.stringify(plan));
+        const directResponse = (plan.directResponse || "了解しました。").replace(/\\n/g, "\n");
         const delegations = plan.delegations || [];
 
         // Show orchestrator's response
