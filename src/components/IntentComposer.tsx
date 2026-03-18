@@ -327,7 +327,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
                     : "bg-[var(--search-bg)]"
                 }`}>
-                  <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                  <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text.replace(/\\n/g, "\n")}</p>
                 </div>
                 {msg.text.length > 300 && (
                   <button
