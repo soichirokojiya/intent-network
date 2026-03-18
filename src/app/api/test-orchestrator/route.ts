@@ -34,11 +34,16 @@ JSON形式で出力:
 
     const text = msg.content[0].type === "text" ? msg.content[0].text : "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
+    let parsed = null;
+    if (jsonMatch) {
+      let jsonStr = jsonMatch[0].replace(/,\s*([}\]])/g, "$1");
+      try { parsed = JSON.parse(jsonStr); } catch (e) { parsed = { parseError: String(e), jsonStr }; }
+    }
 
     return NextResponse.json({
       ok: true,
       rawText: text,
-      parsed: jsonMatch ? JSON.parse(jsonMatch[0]) : null,
+      parsed,
     });
   } catch (error: unknown) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });

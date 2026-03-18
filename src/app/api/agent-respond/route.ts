@@ -175,7 +175,15 @@ JSON形式で出力してください（他の文字不要）:
     const jsonMatch = finalText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return NextResponse.json({ error: "Parse failed" }, { status: 500 });
 
-    return NextResponse.json(JSON.parse(jsonMatch[0]));
+    // Fix common JSON issues from LLM output
+    let jsonStr = jsonMatch[0];
+    jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
+
+    try {
+      return NextResponse.json(JSON.parse(jsonStr));
+    } catch {
+      return NextResponse.json({ toOwner: finalText.slice(0, 500), toTimeline: "" });
+    }
   } catch (error) {
     console.error("Agent respond error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

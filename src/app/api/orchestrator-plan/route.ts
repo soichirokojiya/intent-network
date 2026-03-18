@@ -70,9 +70,25 @@ directResponseのフォーマット（雑談・簡単な質問の場合）:
 
     const text = message.content[0].type === "text" ? message.content[0].text : "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return NextResponse.json({ error: "Parse failed" }, { status: 500 });
+    if (!jsonMatch) return NextResponse.json({ error: "Parse failed", raw: text }, { status: 500 });
 
-    return NextResponse.json(JSON.parse(jsonMatch[0]));
+    // Fix common JSON issues from LLM output
+    let jsonStr = jsonMatch[0];
+    // Remove trailing commas before } or ]
+    jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
+    // Fix true/false without quotes
+    jsonStr = jsonStr.replace(/:\s*true\b/g, ": true").replace(/:\s*false\b/g, ": false");
+
+    try {
+      return NextResponse.json(JSON.parse(jsonStr));
+    } catch {
+      // Last resort: try to extract directResponse and delegations manually
+      const drMatch = text.match(/"directResponse"\s*:\s*"([\s\S]*?)"/);
+      return NextResponse.json({
+        directResponse: drMatch ? drMatch[1] : "了解しました。",
+        delegations: [],
+      });
+    }
   } catch (error) {
     console.error("Orchestrator plan error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
