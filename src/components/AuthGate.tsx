@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { AuthScreen } from "./AuthScreen";
 import { usePathname } from "next/navigation";
+import { LandingContent } from "./LandingContent";
 
 const PUBLIC_PATHS = ["/terms", "/privacy", "/lp", "/contact"];
 
@@ -22,11 +23,10 @@ export function AuthGate({ children, publicChildren }: { children: React.ReactNo
     );
   }
 
-  // Unauthenticated users → redirect to LP
+  // Unauthenticated users at root → show LP
   if (!user) {
-    if (typeof window !== "undefined" && pathname === "/") {
-      window.location.replace("/lp");
-      return null;
+    if (pathname === "/") {
+      return <LandingContent />;
     }
     return <AuthScreen />;
   }
