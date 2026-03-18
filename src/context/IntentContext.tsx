@@ -748,6 +748,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           orchestratorName: orchestrator.config.name,
           orchestratorPersonality: orchestrator.config.character || orchestrator.config.personality,
           orchestratorTone: orchestrator.config.speakingStyle || orchestrator.config.tone,
+          ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
           conversationHistory: history,
           agents: otherAgents.map((a) => ({
             id: a.id, name: a.config.name,
@@ -824,6 +825,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
                   orchestratorName: orchestrator.config.name,
                   orchestratorPersonality: orchestrator.config.character || orchestrator.config.personality,
                   orchestratorTone: orchestrator.config.speakingStyle || orchestrator.config.tone,
+                  ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
                   agents: allAgents.map((a: { agent: MyAgent; name: string; role: string }) => ({ id: a.agent.id, name: a.name, role: a.role, twitterEnabled: false })),
                 }),
               }).then((r) => r.json());

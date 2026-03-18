@@ -54,6 +54,17 @@ export function Sidebar() {
           </span>
         </Link>
 
+        <Link href="/settings"
+          className={`flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={pathname === "/settings" ? 2.5 : 1.5}>
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span className={`text-[15px] ${pathname === "/settings" ? "font-bold" : ""}`}>
+            プロフィール
+          </span>
+        </Link>
+
       </nav>
 
       <div className="mt-auto" />
