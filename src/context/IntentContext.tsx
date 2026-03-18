@@ -783,19 +783,20 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           }));
           const discussion: { name: string; text: string }[] = [];
 
-          // Initial: 各エージェントがタスクに回答
-          for (const d of resolved) {
-            if (!d.agent) continue;
-            try {
-              const response = await Promise.race([
-                directAgentRespond(d.agent, `${d.task}\n\nオーナーの元のメッセージ:「${text}」\n\n自然な話し言葉で回答して。ラベル（主張:、根拠:等）は使わない。提案とその理由、注意点を会話として伝えて。`, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
-                new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
-              ]);
-              discussion.push({ name: d.agent.config.name, text: response || "" });
-            } catch (e) {
-              console.error(`Initial ${d.agent.config.name} skipped:`, e);
-            }
-          }
+          // Initial: 各エージェントが並列で回答
+          const initialPromises = resolved.filter((d: { agent?: MyAgent }) => d.agent).map((d: { agent?: MyAgent; task: string; requestTweet?: boolean; complexity?: string }) =>
+            Promise.race([
+              directAgentRespond(d.agent!, `${d.task}\n\nオーナーの元のメッセージ:「${text}」\n\n自然な話し言葉で回答して。ラベル（主張:、根拠:等）は使わない。提案とその理由、注意点を会話として伝えて。`, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
+              new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
+            ]).then((response) => {
+              discussion.push({ name: d.agent!.config.name, text: response || "" });
+              return response;
+            }).catch((e) => {
+              console.error(`Initial ${d.agent!.config.name} skipped:`, e);
+              return "";
+            })
+          );
+          await Promise.all(initialPromises);
 
           // 議論ループ（最大3回）: オーケストレーターが判断
           for (let round = 0; round < 3 && orchestrator; round++) {
