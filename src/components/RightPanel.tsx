@@ -38,7 +38,7 @@ export function RightPanel() {
                   <span className="text-base">{MOOD_EMOJI[agent.stats.mood]}</span>
                   {(agent.config.role || agent.config.expertise) && <span className="text-[11px] text-[var(--muted)]">{agent.config.role || agent.config.expertise}</span>}
                 </div>
-                <div className="text-[10px] text-[var(--muted)] mt-1">{agent.stats.totalReactions} {t("agent.posts")}</div>
+                {/* 投稿数非表示 */}
               </div>
             </Link>
           ))}
