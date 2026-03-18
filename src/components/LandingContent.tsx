@@ -5,16 +5,26 @@ import { useState } from "react";
 import { AuthScreen } from "./AuthScreen";
 
 export function LandingContent() {
-  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<"signup" | "signin" | null>(null);
 
-  if (showAuth) {
-    return <AuthScreen defaultMode="signup" />;
+  if (authMode) {
+    return <AuthScreen defaultMode={authMode} />;
   }
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      {/* Header */}
+      <header className="px-5 py-4 flex justify-end max-w-2xl mx-auto">
+        <button
+          onClick={() => setAuthMode("signin")}
+          className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+        >
+          サインイン
+        </button>
+      </header>
+
       {/* Hero */}
-      <section className="px-5 pt-16 pb-16 sm:pt-24 sm:pb-20 max-w-2xl mx-auto text-center">
+      <section className="px-5 pt-8 pb-16 sm:pt-16 sm:pb-20 max-w-2xl mx-auto text-center">
         <div className="flex items-center justify-center gap-3 mb-10 sm:mb-12">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#4A99E9] rounded-xl flex items-center justify-center">
             <svg
@@ -43,7 +53,7 @@ export function LandingContent() {
           AIが、あなたの仕事仲間になる。
         </p>
         <button
-          onClick={() => setShowAuth(true)}
+          onClick={() => setAuthMode("signup")}
           className="inline-block bg-gray-900 text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-3.5 sm:py-4 rounded-full hover:bg-gray-700 transition-colors cursor-pointer"
         >
           無料ではじめる
@@ -133,7 +143,7 @@ export function LandingContent() {
             月額固定なし。初回¥1,000クレジット付き。
           </p>
           <button
-            onClick={() => setShowAuth(true)}
+            onClick={() => setAuthMode("signup")}
             className="block w-full bg-[#4A99E9] text-white font-bold py-3.5 sm:py-4 rounded-full text-base sm:text-lg hover:bg-[#3a89d9] transition-colors cursor-pointer"
           >
             無料ではじめる
