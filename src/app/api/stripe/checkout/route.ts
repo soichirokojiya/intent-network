@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  timeout: 30000, // 30秒タイムアウト
+  maxNetworkRetries: 3,
+});
 
 const CHARGE_AMOUNTS = [1000, 3000, 5000, 10000];
 
