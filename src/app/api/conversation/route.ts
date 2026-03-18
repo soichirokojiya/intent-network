@@ -1,9 +1,8 @@
 export const maxDuration = 60;
-import Anthropic from "@anthropic-ai/sdk";
+import { anthropic as client } from "@/lib/anthropicClient";
 import { NextRequest, NextResponse } from "next/server";
 import { SEED_AGENTS } from "@/lib/agents";
 
-const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
   try {

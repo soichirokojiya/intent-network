@@ -1,7 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { anthropic as client } from "@/lib/anthropicClient";
 import { NextRequest, NextResponse } from "next/server";
 
-const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
   try {

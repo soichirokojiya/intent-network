@@ -1,11 +1,12 @@
+import { anthropic as client } from "@/lib/anthropicClient";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { getMoodModifier } from "@/lib/moodPrompt";
 import { fetchUrlContent, extractUrls } from "@/lib/fetchUrl";
+import { parseAgentJSON } from "@/lib/parseAgentJSON";
 
 export const maxDuration = 120;
 
-const client = new Anthropic();
 
 // Model pricing for billing
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
@@ -199,27 +200,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const jsonMatch = finalText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      // No JSON found - extract text directly
-      const clean = finalText.replace(/```json\s*/g, "").replace(/```/g, "").trim();
-      return NextResponse.json({ toOwner: clean.slice(0, 500), toTimeline: "" });
-    }
-
-    let jsonStr = jsonMatch[0];
-    jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
-
-    try {
-      return NextResponse.json(JSON.parse(jsonStr));
-    } catch {
-      // JSON parse failed - extract toOwner value with regex
-      const toOwnerMatch = jsonStr.match(/"toOwner"\s*:\s*"([\s\S]*?)(?:"|$)/);
-      if (toOwnerMatch) {
-        return NextResponse.json({ toOwner: toOwnerMatch[1], toTimeline: "" });
-      }
-      const clean = finalText.replace(/[{}"]/g, "").replace(/toOwner\s*:/g, "").trim();
-      return NextResponse.json({ toOwner: clean.slice(0, 500), toTimeline: "" });
-    }
+    return NextResponse.json(parseAgentJSON(finalText));
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("Agent respond error:", msg);
