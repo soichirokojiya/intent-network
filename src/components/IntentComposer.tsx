@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useIntents } from "@/context/IntentContext";
 import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
@@ -8,6 +8,17 @@ import { AgentResponse } from "@/lib/types";
 import { loadChatHistory, loadOlderMessages, saveChatMessage } from "@/lib/chatStorage";
 
 const COLLAPSE_LINES = 10;
+
+function formatDateLabel(timestamp: number): string {
+  const date = new Date(timestamp);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return "今日";
+  if (date.toDateString() === yesterday.toDateString()) return "昨日";
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
+}
 
 function CollapsibleText({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -162,11 +173,23 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const configured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
   const hasAgent = configured.length > 0;
   const pendingTweetAgentId = agentResponses.find((r) => r.tweetPending)?.agentId || null;
+  const chatAreaRef = useRef<HTMLDivElement>(null);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom on new messages (only if near bottom)
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = chatAreaRef.current;
+    if (!el) return;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+    if (isNearBottom) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
+
+  // Show/hide scroll-to-bottom button
+  const handleScroll = useCallback(() => {
+    const el = chatAreaRef.current;
+    if (!el) return;
+    setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 300);
+  }, []);
 
   // Convert agent responses to chat messages (with natural delay queue)
   useEffect(() => {
@@ -295,7 +318,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   return (
     <div className="flex flex-col h-[calc(100vh-57px)]">
       {/* Chat area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div ref={chatAreaRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 relative">
 
         {hasMore && (
           <button
@@ -318,7 +341,14 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           </button>
         )}
 
-        {chatHistory.map((msg) => {
+        {chatHistory.map((msg, idx) => {
+          const prevMsg = idx > 0 ? chatHistory[idx - 1] : null;
+          const showDate = !prevMsg || formatDateLabel(msg.timestamp) !== formatDateLabel(prevMsg.timestamp);
+          const DateSep = () => showDate ? (
+            <div className="flex items-center justify-center py-2">
+              <span className="text-[11px] text-[var(--muted)] bg-[var(--search-bg)] px-3 py-1 rounded-full">{formatDateLabel(msg.timestamp)}</span>
+            </div>
+          ) : null;
           // Read receipt
           if (msg.type === "read") {
             return (
@@ -360,18 +390,20 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           // User message (right side)
           if (msg.type === "user") {
             return (
-              <div key={msg.id} className="flex justify-end items-end gap-1 animate-fade-in">
+              <React.Fragment key={msg.id}><DateSep />
+              <div className="flex justify-end items-end gap-1 animate-fade-in">
                 <span className="text-[10px] text-[var(--muted)] opacity-50 mb-1">{new Date(msg.timestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}</span>
                 <div className="max-w-[75%] bg-[var(--accent)] text-white px-4 py-2.5 rounded-2xl rounded-br-sm">
                   <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                 </div>
-              </div>
+              </div></React.Fragment>
             );
           }
 
           // Agent message (left side)
           return (
-            <div key={msg.id} className="flex gap-2 animate-fade-in group">
+            <React.Fragment key={msg.id}><DateSep />
+            <div className="flex gap-2 animate-fade-in group">
               <div className="flex-shrink-0 mt-1">
                 <AgentAvatarDisplay avatar={msg.agentAvatar || ""} size={32} />
               </div>
@@ -418,10 +450,22 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                   </button>
                 )}
               </div>
-            </div>
+            </div></React.Fragment>
           );
         })}
         <div ref={chatEndRef} />
+
+        {/* Scroll to bottom button */}
+        {showScrollBtn && (
+          <button
+            onClick={() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" })}
+            className="fixed bottom-24 right-6 md:right-[calc(350px+2rem)] w-10 h-10 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center hover:bg-[var(--accent-hover)] transition-colors z-40"
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Input area (fixed bottom) */}
