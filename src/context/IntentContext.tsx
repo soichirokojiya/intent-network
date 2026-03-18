@@ -738,9 +738,15 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         }]);
 
         // Execute delegations
-        delegations.forEach((d: { agentId: string; task: string; requestTweet?: boolean }, i: number) => {
-          const agent = allConfigured.find((a) => a.id === d.agentId);
-          if (!agent) return;
+        delegations.forEach((d: { agentId: string; agentName?: string; task: string; requestTweet?: boolean }, i: number) => {
+          // Match by ID first, then fallback to name match
+          const agent = allConfigured.find((a) => a.id === d.agentId)
+            || allConfigured.find((a) => a.config.name === d.agentName)
+            || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase());
+          if (!agent) {
+            console.error(`Delegation failed: agent not found for id=${d.agentId} name=${d.agentName}`);
+            return;
+          }
           directAgentRespond(agent, d.task, d.requestTweet || false, i * 1000, roomId);
         });
 
