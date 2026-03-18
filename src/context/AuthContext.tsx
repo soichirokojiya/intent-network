@@ -8,12 +8,14 @@ interface AuthContextType {
   user: User | null;
   displayName: string;
   avatarUrl: string;
+  businessInfo: string;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: string | null; isExisting?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<{ error: string | null }>;
   updateAvatarUrl: (url: string) => Promise<{ error: string | null }>;
+  updateBusinessInfo: (info: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -22,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [businessInfo, setBusinessInfo] = useState("");
   const [loading, setLoading] = useState(true);
 
   // Bind device_id to user ID (ensures data persists across browsers/sessions)
@@ -45,9 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load profile from profiles table
   const loadProfile = useCallback(async (userId: string, email: string) => {
     bindDeviceId(userId);
-    const { data } = await supabase.from("profiles").select("display_name, avatar_url").eq("id", userId).single();
+    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info").eq("id", userId).single();
     setDisplayName(data?.display_name || email.split("@")[0]);
     setAvatarUrl(data?.avatar_url || "");
+    setBusinessInfo(data?.business_info || "");
+    if (data?.business_info) localStorage.setItem("musu_business_info", data.business_info);
   }, [bindDeviceId]);
 
   useEffect(() => {
@@ -92,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setDisplayName("");
     setAvatarUrl("");
+    setBusinessInfo("");
   }, []);
 
   const updateDisplayName = useCallback(async (name: string) => {
@@ -114,8 +120,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message || null };
   }, [user]);
 
+  const updateBusinessInfo = useCallback(async (info: string) => {
+    if (!user) return { error: "Not logged in" };
+    const { error } = await supabase.from("profiles").update({
+      business_info: info,
+      updated_at: new Date().toISOString(),
+    }).eq("id", user.id);
+    if (!error) {
+      setBusinessInfo(info);
+      localStorage.setItem("musu_business_info", info);
+    }
+    return { error: error?.message || null };
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, displayName, avatarUrl, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl }}>
+    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo }}>
       {children}
     </AuthContext.Provider>
   );

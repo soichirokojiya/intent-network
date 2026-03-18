@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { getMoodModifier } from "@/lib/moodPrompt";
+import { fetchUrlContent, extractUrls } from "@/lib/fetchUrl";
 
 export const maxDuration = 120;
 
@@ -71,7 +72,7 @@ const STATIC_RULES = `${MUSU_CONTEXT}
 
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity } = await req.json();
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo } = await req.json();
 
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
@@ -104,6 +105,19 @@ export async function POST(req: NextRequest) {
       contextBlock = `【直近】\n${history.map((m) => `${m.role}: ${m.text.slice(0, 200)}`).join("\n")}`;
     }
 
+    // Fetch any URLs found in the task or conversation
+    let urlContext = "";
+    const allUrls = extractUrls(intentText + " " + history.map((h: { text: string }) => h.text).join(" "));
+    if (allUrls.length > 0) {
+      const urlContents = await Promise.all(
+        allUrls.slice(0, 3).map(async (url) => {
+          const content = await fetchUrlContent(url);
+          return `【${url}の内容】\n${content}`;
+        })
+      );
+      urlContext = "\n" + urlContents.join("\n\n");
+    }
+
     const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 
     // System prompt with prompt caching: static rules are cached
@@ -115,7 +129,7 @@ export async function POST(req: NextRequest) {
       },
       {
         type: "text" as const,
-        text: `あなたは「${agentName}」というAIエージェントです。\n現在の日付: ${today}\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${contextBlock ? `\n${contextBlock}` : ""}`,
+        text: `あなたは「${agentName}」というAIエージェントです。\n現在の日付: ${today}\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}` : ""}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
       },
     ];
 

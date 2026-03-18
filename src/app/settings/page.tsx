@@ -8,13 +8,18 @@ import { useRouter } from "next/navigation";
 import { useRef } from "react";
 
 export default function SettingsPage() {
-  const { user, signOut, displayName: savedName, avatarUrl, updateDisplayName, updateAvatarUrl } = useAuth();
+  const { user, signOut, displayName: savedName, avatarUrl, businessInfo: savedBusinessInfo, updateDisplayName, updateAvatarUrl, updateBusinessInfo } = useAuth();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const { t } = useLocale();
   const router = useRouter();
 
   const [displayName, setDisplayName] = useState(savedName || user?.email?.split("@")[0] || "");
+  const [businessInfoField, setBusinessInfoField] = useState(savedBusinessInfo || "");
   const [balance, setBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (savedBusinessInfo) setBusinessInfoField(savedBusinessInfo);
+  }, [savedBusinessInfo]);
 
   useEffect(() => {
     if (savedName) setDisplayName(savedName);
@@ -181,6 +186,28 @@ export default function SettingsPage() {
               {t("settings.save")}
             </button>
           </div>
+        </div>
+
+        <hr className="border-[var(--card-border)]" />
+
+        {/* Business Info */}
+        <div>
+          <h2 className="text-[15px] font-bold mb-3">事業情報</h2>
+          <p className="text-[12px] text-[var(--muted)] mb-2">エージェントがあなたの事業を理解するための情報です。サービス名、URL、事業内容、ターゲット層などを自由に記入してください。</p>
+          <textarea value={businessInfoField} onChange={(e) => setBusinessInfoField(e.target.value)}
+            placeholder="例: musu.world - AIエージェントチームを育てて仕事に使うツール。ソロプレナー向け。従量課金制。"
+            rows={4}
+            className="w-full bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-[15px] outline-none focus:border-[var(--accent)] resize-none mb-2" />
+          <button onClick={async () => {
+            setLoading(true);
+            const { error } = await updateBusinessInfo(businessInfoField);
+            if (error) showErr(error);
+            else showMsg("保存しました");
+            setLoading(false);
+          }} disabled={loading}
+            className="px-4 py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-xl hover:bg-[var(--accent-hover)] disabled:opacity-50">
+            保存
+          </button>
         </div>
 
         <hr className="border-[var(--card-border)]" />

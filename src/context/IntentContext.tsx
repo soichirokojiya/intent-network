@@ -646,6 +646,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         conversationHistory: history,
         deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
         complexity,
+        ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
       }),
     }).then(async (r) => {
       const text = await r.text();
