@@ -146,7 +146,7 @@ export default function AgentPage() {
                 >
                   <div className={`relative ${isDead ? "grayscale" : ""}`}>
                     <AgentAvatarDisplay avatar={agent.config.avatar} size={48} />
-                    <span className="absolute -top-1 -right-1 text-sm">{MOOD_EMOJI[agent.stats.mood]}</span>
+                    {/* mood badge removed */}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -281,7 +281,7 @@ export default function AgentPage() {
             <div className={`${agent.stats.mood === "thriving" ? "animate-bounce" : ""}`}>
               <AgentAvatarDisplay avatar={agent.config.avatar} size={80} />
             </div>
-            <span className="absolute -top-1 -right-1 text-2xl">{MOOD_EMOJI[agent.stats.mood]}</span>
+            {/* mood badge removed */}
           </div>
           <h2 className="text-xl font-extrabold mt-2">{agent.config.name}</h2>
           <p className={`text-[13px] mt-1 ${isDead ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>
@@ -334,9 +334,7 @@ export default function AgentPage() {
           )}
         </div>
 
-        <div className="flex gap-5 px-4 pb-3 text-[14px]">
-          <span><strong>{agent.stats.totalReactions}</strong> <span className="text-[var(--muted)]">{t("agent.posts")}</span></span>
-        </div>
+        {/* 投稿数・ステータス非表示 */}
       </div>
 
       {/* Delete - hidden at bottom (orchestrator cannot be deleted) */}

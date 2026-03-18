@@ -26,10 +26,7 @@ export function RightPanel() {
       {/* My Agents */}
       {myAgents.length > 0 && (
         <div className="bg-[var(--search-bg)] rounded-2xl p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-extrabold">{t("right.myAgents")}</h2>
-            <Link href="/agent" className="text-[12px] text-[var(--muted)] hover:text-[var(--accent)]">管理</Link>
-          </div>
+          <h2 className="text-xl font-extrabold mb-3">{t("right.myAgents")}</h2>
           {myAgents.map((agent) => (
             <div key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors group">
               <Link href={`/agent?id=${agent.id}`} className="flex items-center gap-3 flex-1 min-w-0">
