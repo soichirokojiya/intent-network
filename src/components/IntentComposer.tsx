@@ -7,12 +7,12 @@ import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { AgentResponse } from "@/lib/types";
 import { loadChatHistory, saveChatMessage } from "@/lib/chatStorage";
 
-const COLLAPSE_LINES = 4;
+const COLLAPSE_LINES = 10;
 
 function CollapsibleText({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   const lines = text.split("\n");
-  const shouldCollapse = lines.length > COLLAPSE_LINES || text.length > 200;
+  const shouldCollapse = lines.length > COLLAPSE_LINES || text.length > 500;
 
   if (!shouldCollapse || expanded) {
     return (
