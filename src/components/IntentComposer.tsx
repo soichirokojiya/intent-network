@@ -5,7 +5,7 @@ import { useIntents } from "@/context/IntentContext";
 import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { AgentResponse } from "@/lib/types";
-import { loadChatHistory, saveChatMessage } from "@/lib/chatStorage";
+import { loadChatHistory, loadOlderMessages, saveChatMessage } from "@/lib/chatStorage";
 
 const COLLAPSE_LINES = 10;
 
@@ -125,6 +125,7 @@ function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<Cha
 export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const [text, setText] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [hasMore, setHasMore] = useState(false);
   const isComposing = useRef(false);
   const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, approveTweet, restAgent } = useIntents();
   const { t } = useLocale();
@@ -140,6 +141,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     processedResponseIds.current.clear();
     clearAgentResponses();
     loadChatHistory(roomId).then((msgs) => {
+      setHasMore(msgs.length >= 30);
       if (msgs.length > 0) {
         setChatHistory(msgs as ChatMessage[]);
         // Mark all loaded message IDs as processed to prevent re-adding
@@ -294,6 +296,27 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     <div className="flex flex-col h-[calc(100vh-57px)]">
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+
+        {hasMore && (
+          <button
+            onClick={async () => {
+              const oldest = chatHistory[0]?.timestamp;
+              if (!oldest) return;
+              const older = await loadOlderMessages(roomId, oldest, 30);
+              if (older.length < 30) setHasMore(false);
+              if (older.length > 0) {
+                setChatHistory((prev) => [...older as ChatMessage[], ...prev]);
+                older.forEach((m) => {
+                  processedResponseIds.current.add(m.id);
+                  if (m.agentId && m.text) processedResponseIds.current.add(`${m.agentId}-${m.text}`);
+                });
+              }
+            }}
+            className="w-full text-center py-2 text-[12px] text-[var(--accent)] hover:underline"
+          >
+            過去のメッセージを読み込む
+          </button>
+        )}
 
         {chatHistory.map((msg) => {
           // Read receipt

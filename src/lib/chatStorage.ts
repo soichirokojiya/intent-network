@@ -28,12 +28,39 @@ export async function loadChatHistory(roomId: string = "general"): Promise<ChatM
     .select("*")
     .eq("device_id", deviceId)
     .eq("room_id", roomId)
-    .order("created_at", { ascending: true })
-    .limit(100);
+    .order("created_at", { ascending: false })
+    .limit(30);
 
   if (error || !data) return [];
 
-  return data.map((row) => ({
+  // Reverse back to chronological order (fetched newest-first for limit)
+  return data.reverse().map((row) => ({
+    id: row.id,
+    type: row.type as "user" | "agent",
+    agentName: row.agent_name || undefined,
+    agentAvatar: row.agent_avatar || undefined,
+    agentId: row.agent_id || undefined,
+    text: row.text,
+    tweetPreview: row.tweet_preview || undefined,
+    timestamp: new Date(row.created_at).getTime(),
+  }));
+}
+
+// Load older messages before a given timestamp
+export async function loadOlderMessages(roomId: string = "general", beforeTimestamp: number, limit: number = 30): Promise<ChatMessage[]> {
+  const deviceId = getDeviceId();
+  const { data, error } = await supabase
+    .from("owner_chats")
+    .select("*")
+    .eq("device_id", deviceId)
+    .eq("room_id", roomId)
+    .lt("created_at", new Date(beforeTimestamp).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  return data.reverse().map((row) => ({
     id: row.id,
     type: row.type as "user" | "agent",
     agentName: row.agent_name || undefined,
