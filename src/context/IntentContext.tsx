@@ -769,17 +769,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase()),
         }));
 
-        // Show "..." for all matched agents
-        for (const d of resolved) {
-          if (!d.agent) continue;
-          setAgentResponses((prev) => [...prev, {
-            agentId: d.agent.id, agentName: d.agent.config.name, agentAvatar: d.agent.config.avatar,
-            toOwner: "...", toTimeline: "", timestamp: Date.now(),
-            posted: false, tweeted: false, tweetPending: false, roomId,
-          }]);
-        }
-
-        // Call agents one by one
+        // Call agents one by one (sequential)
         (async () => {
           for (const d of resolved) {
             if (!d.agent) continue;
