@@ -754,8 +754,19 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             twitterEnabled: a.config.twitterEnabled,
           })),
         }),
-      }).then((r) => r.json()).then((plan) => {
+      }).then(async (r) => {
+        const txt = await r.text();
+        let plan;
+        try { plan = JSON.parse(txt); } catch { plan = { error: "JSONパース失敗" }; }
         console.log("Orchestrator plan:", JSON.stringify(plan));
+        if (plan.error && !plan.directResponse) {
+          // エラーを表示
+          setAgentResponses((prev) => [...prev, {
+            agentId: orchestrator.id, agentName: orchestrator.config.name, agentAvatar: orchestrator.config.avatar,
+            toOwner: `エラー: ${plan.error}`, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
+          }]);
+          return;
+        }
         const directResponse = (plan.directResponse || "了解しました。").replace(/\\n/g, "\n");
         const delegations = plan.delegations || [];
 
