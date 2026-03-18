@@ -97,12 +97,18 @@ JSON形式で出力してください（他の文字不要）:
   "toOwner": "オーナーへの返事（仲間としての意見・感想・提案をあなたの口調で自然に。具体的に回答する。）"
 }`;
 
-    // Use web_search tool for research-capable responses
+    // Detect if web search is likely needed
+    const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http"];
+    const needsSearch = searchKeywords.some((kw) => intentText.includes(kw));
+    const tools = needsSearch
+      ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }]
+      : [];
+
     const message = await client.messages.create({
       model: "claude-opus-4-20250514",
-      max_tokens: 4000,
+      max_tokens: 2000,
       system: systemPrompt,
-      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
+      ...(tools.length > 0 ? { tools } : {}),
       messages: [{ role: "user", content: userPrompt }],
     });
 
@@ -130,9 +136,9 @@ JSON形式で出力してください（他の文字不要）:
 
       const continuation = await client.messages.create({
         model: "claude-opus-4-20250514",
-        max_tokens: 4000,
+        max_tokens: 2000,
         system: systemPrompt,
-        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
+        ...(tools.length > 0 ? { tools } : {}),
         messages: [
           { role: "user", content: userPrompt },
           { role: "assistant", content: message.content },
