@@ -642,7 +642,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         conversationHistory: history,
         deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
       }),
-    }).then((r) => r.json()).then((data) => {
+    }).then((r) => {
+      if (!r.ok) throw new Error(`API error: ${r.status}`);
+      return r.json();
+    }).then((data) => {
+      if (data.error) throw new Error(data.error);
       const toOwner = data.toOwner || "了解。";
       const toTimeline = data.toTimeline || "";
 
@@ -676,7 +680,8 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           return { ...s, lastInteractedAt: Date.now(), mood };
         });
       }
-    }).catch(() => {
+    }).catch((err) => {
+      console.error(`Agent ${agent.config.name} respond error:`, err);
       setTimeout(() => {
         setAgentResponses((prev) => [...prev, {
           agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
@@ -732,7 +737,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         delegations.forEach((d: { agentId: string; task: string; requestTweet?: boolean }, i: number) => {
           const agent = allConfigured.find((a) => a.id === d.agentId);
           if (!agent) return;
-          directAgentRespond(agent, d.task, d.requestTweet || false, (i + 1) * 500, roomId);
+          directAgentRespond(agent, d.task, d.requestTweet || false, i * 1000, roomId);
         });
 
         // If no delegations (simple chat), just update orchestrator stats
