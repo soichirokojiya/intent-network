@@ -69,6 +69,19 @@ export function Sidebar() {
 
       <div className="mt-auto" />
 
+      {/* Language selector */}
+      <div className="w-full max-w-[230px] mb-2">
+        <select
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as Locale)}
+          className="w-full bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2 text-sm outline-none cursor-pointer"
+        >
+          {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Bottom links - small */}
       <div className="flex gap-3 px-3 mb-2 w-full max-w-[230px]">
         <Link href="/billing" className="text-[12px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
