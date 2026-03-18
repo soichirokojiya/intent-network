@@ -633,7 +633,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       console.error(`Failed to load conversation for ${agent.config.name}:`, e);
     }
 
-    fetch("/api/agent-respond", {
+    return fetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         intentText: text, agentName: agent.config.name,
@@ -760,30 +760,31 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           toOwner: directResponse, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
         }]);
 
-        // Execute delegations
-        delegations.forEach((d: { agentId: string; agentName?: string; task: string; requestTweet?: boolean }, i: number) => {
-          // Match by ID first, then fallback to name match
+        // Execute delegations sequentially to avoid rate limits
+        const resolvedAgents = delegations.map((d: { agentId: string; agentName?: string; task: string; requestTweet?: boolean }) => {
           const agent = allConfigured.find((a) => a.id === d.agentId)
             || allConfigured.find((a) => a.config.name === d.agentName)
             || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase());
-          if (!agent) {
-            console.error(`Delegation failed: agent not found for id=${d.agentId} name=${d.agentName}. Available: ${allConfigured.map(a => `${a.id}=${a.config.name}`).join(', ')}`);
-            // Show error in chat
-            setAgentResponses((prev) => [...prev, {
-              agentId: d.agentId, agentName: d.agentName || "Unknown", agentAvatar: "px-agent-0",
-              toOwner: `（エージェント「${d.agentName}」が見つかりませんでした）`, toTimeline: "",
-              timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
-            }]);
-            return;
-          }
-          // Show "thinking" immediately
+          return { ...d, agent };
+        });
+
+        // Show "..." for all agents immediately
+        resolvedAgents.forEach((d, i) => {
+          if (!d.agent) return;
           setAgentResponses((prev) => [...prev, {
-            agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
+            agentId: d.agent!.id, agentName: d.agent!.config.name, agentAvatar: d.agent!.config.avatar,
             toOwner: "...", toTimeline: "", timestamp: Date.now() + i,
             posted: false, tweeted: false, tweetPending: false, roomId,
           }]);
-          directAgentRespond(agent, d.task, d.requestTweet || false, 0, roomId);
         });
+
+        // Call agents one by one (sequential, not parallel)
+        (async () => {
+          for (const d of resolvedAgents) {
+            if (!d.agent) continue;
+            await directAgentRespond(d.agent, d.task, d.requestTweet || false, 0, roomId);
+          }
+        })();
 
         // If no delegations (simple chat), just update orchestrator stats
         if (delegations.length === 0) {
