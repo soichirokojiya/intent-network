@@ -657,7 +657,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       setTimeout(() => {
         setAgentResponses((prev) => {
           // Replace "考え中..." placeholder if exists
-          const existing = prev.findIndex((r) => r.agentId === agent.id && r.toOwner === "考え中...");
+          const existing = prev.findIndex((r) => r.agentId === agent.id && r.toOwner === "...");
           if (existing >= 0) {
             const updated = [...prev];
             updated[existing] = {
@@ -699,7 +699,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     }).catch((err) => {
       console.error(`Agent ${agent.config.name} respond error:`, err);
       setAgentResponses((prev) => {
-        const existing = prev.findIndex((r) => r.agentId === agent.id && r.toOwner === "考え中...");
+        const existing = prev.findIndex((r) => r.agentId === agent.id && r.toOwner === "...");
         const errorMsg = `エラー: ${err.message || "応答できませんでした"}`;
         if (existing >= 0) {
           const updated = [...prev];
@@ -779,7 +779,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           // Show "thinking" immediately
           setAgentResponses((prev) => [...prev, {
             agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner: "考え中...", toTimeline: "", timestamp: Date.now() + i,
+            toOwner: "...", toTimeline: "", timestamp: Date.now() + i,
             posted: false, tweeted: false, tweetPending: false, roomId,
           }]);
           directAgentRespond(agent, d.task, d.requestTweet || false, 0, roomId);
