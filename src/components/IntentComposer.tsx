@@ -360,7 +360,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                 }`}>
                   <CollapsibleText text={msg.text.replace(/\\n/g, "\n")} />
                 </div>
-                {msg.text.length > 300 && (
+                {msg.text.length > 500 && /レポート|分析|戦略|調査|まとめ|提案|計画|施策/.test(msg.text) && (
                   <button
                     onClick={() => {
                       const date = new Date(msg.timestamp).toLocaleString("ja-JP");
