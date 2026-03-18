@@ -38,10 +38,16 @@ export default function AgentPage() {
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
-  // Auto-select agent from query param (e.g. /agent?id=xxx)
+  // Auto-select agent or open create form from query params
   useEffect(() => {
     const id = searchParams.get("id");
-    if (id && myAgents.some((a) => a.id === id)) {
+    const isNew = searchParams.get("new");
+    if (isNew) {
+      setDraft(getDefaultDraft());
+      setCreating(true);
+      setEditingAgentId(null);
+      setSelectedAgentId(null);
+    } else if (id && myAgents.some((a) => a.id === id)) {
       setSelectedAgentId(id);
       setCreating(false);
       setEditingAgentId(null);
@@ -194,7 +200,8 @@ export default function AgentPage() {
                 return (
                   <button key={key} onClick={() => setDraft((d) => {
                     const defaultPersonality = DEFAULT_PERSONALITY_BY_ROLE[label] || "";
-                    const shouldPrefill = !d.personality || Object.values(DEFAULT_PERSONALITY_BY_ROLE).includes(d.personality);
+                    const isOldValue = !d.personality || d.personality.length < 20 || Object.values(DEFAULT_PERSONALITY_BY_ROLE).includes(d.personality);
+                    const shouldPrefill = isOldValue;
                     return { ...d, role: label, expertise: label, isOrchestrator: key === "role.orchestrator", ...(shouldPrefill ? { personality: defaultPersonality, character: defaultPersonality } : {}) };
                   })}
                     className={`px-3 py-1.5 rounded-full text-[13px] ${draft.role === label ? "bg-[var(--accent)] text-white" : "bg-[var(--search-bg)] text-[var(--muted)]"}`}>{label}</button>

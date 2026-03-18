@@ -60,14 +60,12 @@ interface ChatMessage {
   agentId?: string;
 }
 
-function detectIntent(text: string): "approve" | "reject" | "rest" | "tweet" | "message" {
+function detectIntent(text: string): "approve" | "reject" | "tweet" | "message" {
   const lower = text.trim().toLowerCase();
   const approveWords = ["ok", "おk", "いいよ", "いいね", "それで", "お願い", "それでいい", "大丈夫", "問題ない", "頼む", "よろしく", "オッケー", "おけ", "ええよ", "ええで", "go", "yes", "sure", "いい感じ", "完璧", "バッチリ"];
   const rejectWords = ["やめて", "やめ", "やり直し", "修正", "変えて", "違う", "ダメ", "だめ", "no", "nope", "cancel", "キャンセル", "やっぱやめ", "なし"];
-  const restWords = ["休んで", "休憩", "少し休んで", "ちょっと休んで", "疲れた", "おやすみ", "休め", "寝て"];
   const tweetWords = ["ツイートして", "ツイート作って", "ツイートお願い", "投稿して", "投稿作って", "xに投稿", "tweetして", "ポストして", "つぶやいて"];
 
-  if (restWords.some((w) => lower.includes(w))) return "rest";
   if (tweetWords.some((w) => lower.includes(w))) return "tweet";
   if (approveWords.some((w) => lower === w || lower.includes(w))) return "approve";
   if (rejectWords.some((w) => lower === w || lower.includes(w))) return "reject";
@@ -287,22 +285,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       return;
     }
 
-    if (intent === "rest") {
-      const activeAgents = myAgents.filter((a) => activeAgentIds.has(a.id));
-      activeAgents.forEach((agent) => {
-        restAgent(agent.id);
-        enqueueMessage({
-          id: `rest-${agent.id}-${Date.now()}`,
-          type: "agent",
-          agentName: agent.config.name,
-          agentAvatar: agent.config.avatar,
-          agentId: agent.id,
-          text: "わかりました、少し休憩しますね。1時間後に戻ります 😴",
-          timestamp: Date.now(),
-        });
-      });
-      setText("");
-      return;
+    if (false) { // rest feature removed
     }
 
     // Detect @mention and tweet request
