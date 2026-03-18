@@ -52,20 +52,27 @@ function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<Cha
 
     const msg = queue.current.shift()!;
 
-    // Step 1: Show "typing..." after 300ms
-    const typingId = `typing-${msg.id}`;
+    // Step 1: Show "既読" (read receipt) after 300ms
+    const readId = `read-${msg.id}`;
     setTimeout(() => {
       setChatHistory((prev) => [...prev, {
-        id: typingId, type: "typing", text: "",
+        id: readId, type: "read", text: "既読",
         agentName: msg.agentName, agentAvatar: msg.agentAvatar,
         agentId: msg.agentId, timestamp: Date.now(),
       }]);
     }, 300);
 
-    // Step 2: Replace with actual message after 600-1200ms
-    const typingDelay = Math.min(900, 300 + msg.text.length * 5);
+    // Step 2: Replace with "typing..." after 800ms
     setTimeout(() => {
-      setChatHistory((prev) => prev.filter((m) => m.id !== typingId).concat([msg]));
+      setChatHistory((prev) => prev.map((m) =>
+        m.id === readId ? { ...m, id: `typing-${msg.id}`, type: "typing", text: "" } : m
+      ));
+    }, 800);
+
+    // Step 3: Replace with actual message after 1.2-2s
+    const typingDelay = Math.min(1000, 400 + msg.text.length * 5);
+    setTimeout(() => {
+      setChatHistory((prev) => prev.filter((m) => m.id !== `typing-${msg.id}`).concat([msg]));
       saveChatMessage({
         id: msg.id, type: msg.type as "user" | "agent", text: msg.text,
         agentName: msg.agentName, agentAvatar: msg.agentAvatar,
@@ -73,7 +80,7 @@ function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<Cha
       }, roomId);
       processing.current = false;
       processQueue();
-    }, 300 + typingDelay);
+    }, 800 + typingDelay);
   }, [setChatHistory]);
 
   const enqueue = useCallback((msg: ChatMessage) => {

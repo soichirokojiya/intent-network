@@ -32,6 +32,8 @@ export default function AgentPage() {
     const id = searchParams.get("id");
     if (id && myAgents.some((a) => a.id === id)) {
       setSelectedAgentId(id);
+      setCreating(false);
+      setEditingAgentId(null);
     }
   }, [searchParams, myAgents]);
 
