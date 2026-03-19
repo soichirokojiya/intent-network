@@ -57,7 +57,7 @@ export async function GET(req: Request) {
           tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
           messages: [{
             role: "user",
-            content: `今日は${today}。以下の事業に関連する最新ニュースを日本語で3件探して、なぜ関係あるか付きで簡潔にまとめて。\n\n事業情報: ${profile.business_info}\n\n形式:\nおはようございます。今日のニュースです。\n\n・[ニュース1タイトル]\n→ なぜ関係あるか\n\n・[ニュース2タイトル]\n→ なぜ関係あるか\n\n・[ニュース3タイトル]\n→ なぜ関係あるか`,
+            content: `今日は${today}。以下の事業に関連する最新ニュースを日本語で3件探して、なぜ関係あるか付きで簡潔にまとめて。\n\n事業情報: ${profile.business_info}\n\nMarkdown禁止（**太字**や##見出し等）。プレーンテキストのみ。\n\n形式:\nおはようございます。今日のニュースです。\n\n・[ニュース1タイトル]\n→ なぜ関係あるか\n\n・[ニュース2タイトル]\n→ なぜ関係あるか\n\n・[ニュース3タイトル]\n→ なぜ関係あるか`,
           }],
         });
 
