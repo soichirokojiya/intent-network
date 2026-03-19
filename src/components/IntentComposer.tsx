@@ -428,16 +428,35 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         )}
 
         {chatHistory.length === 0 && myAgents.length > 0 && (
-          <div className="flex gap-2 animate-fade-in py-4">
-            <div className="flex-shrink-0 mt-1">
-              <AgentAvatarDisplay avatar={myAgents[0]?.config.avatar || ""} size={32} />
-            </div>
-            <div className="max-w-[75%]">
-              <span className="text-[11px] text-[var(--muted)]">{myAgents[0]?.config.name || "Ren"}</span>
-              <div className="mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-[var(--search-bg)]">
-                <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{`はじめまして！チームリーダーの${myAgents[0]?.config.name || "Ren"}です。\n\n使い方のヒント：\n・ここにメッセージを送るだけ。僕がチームに振り分けます\n・@をつけてメンションすれば、特定のメンバーに直接話しかけられます\n・チーム編成は自由。いつでもメンバーを追加・削除できます\n・プロフィールに事業情報を入れると、チーム全員があなたの事業を理解します\n\nまずは気軽に話しかけてみてください！`}</p>
-              </div>
-            </div>
+          <div className="space-y-3 py-4">
+            {myAgents.map((agent, i) => {
+              const introMap: Record<string, string> = {
+                "オーケストレーター": `はじめまして！チームリーダーの${agent.config.name}です。メッセージを送ってくれたら、僕がメンバーに振り分けます。`,
+                "マーケティング": `${agent.config.name}です！マーケティング担当。売り方や集客の相談はお任せください。`,
+                "リサーチ": `${agent.config.name}です。リサーチ担当。市場や競合を調べるのが得意です。`,
+                "哲学者": `${agent.config.name}です。「そもそもこれって正しい？」という視点で物事の本質を問います。`,
+                "ストラテジスト": `${agent.config.name}です。戦略担当。大きな方向性を一緒に考えましょう。`,
+                "クリエイティブ": `${agent.config.name}です！クリエイティブ担当。ユニークなアイデアを提案します。`,
+                "ファイナンス": `${agent.config.name}です。数字とROIの観点からアドバイスします。`,
+              };
+              const role = agent.config.role || agent.config.expertise || "";
+              const intro = introMap[role] || `${agent.config.name}です。${role}担当です。よろしくお願いします。`;
+              const isLast = i === myAgents.length - 1;
+              const lastMsg = isLast ? "\n\n@をつければ特定のメンバーに直接話せます。チーム編成は自由にカスタマイズできます。プロフィールに事業情報を入れるとチーム全員が理解します。気軽にどうぞ！" : "";
+              return (
+                <div key={agent.id} className="flex gap-2 animate-fade-in">
+                  <div className="flex-shrink-0 mt-1">
+                    <AgentAvatarDisplay avatar={agent.config.avatar} size={32} />
+                  </div>
+                  <div className="max-w-[75%]">
+                    <span className="text-[11px] text-[var(--muted)]">{agent.config.name}</span>
+                    <div className="mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-[var(--search-bg)]">
+                      <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{intro + lastMsg}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
