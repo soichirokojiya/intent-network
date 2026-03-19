@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ balance: newBalance });
   } else {
     await supabase.from("user_credits").insert({
-      device_id: deviceId, user_id: deviceId, balance_yen: 1000 + amount, total_charged_yen: amount,
+      device_id: deviceId, user_id: deviceId, balance_yen: 300 + amount, total_charged_yen: amount,
     });
-    return NextResponse.json({ balance: 1000 + amount });
+    return NextResponse.json({ balance: 300 + amount });
   }
 }

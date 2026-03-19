@@ -40,9 +40,9 @@ export async function getBalance(): Promise<number> {
     await supabase.from("user_credits").insert({
       device_id: deviceId,
       user_id: deviceId,
-      balance_yen: 1000,
+      balance_yen: 300,
     });
-    return 1000;
+    return 300;
   }
   return Number(data.balance_yen);
 }

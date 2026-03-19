@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       } else {
         await supabase.from("user_credits").insert({
           device_id: deviceId,
-          balance_yen: 1000 + amount,
+          balance_yen: 300 + amount,
           total_charged_yen: amount,
         });
       }

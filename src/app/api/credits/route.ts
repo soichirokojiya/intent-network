@@ -20,9 +20,9 @@ export async function GET(req: NextRequest) {
     await supabase.from("user_credits").insert({
       device_id: deviceId,
       user_id: deviceId,
-      balance_yen: 1000,
+      balance_yen: 300,
     });
-    return NextResponse.json({ balance: 1000, totalUsed: 0, totalCharged: 0, totalInputTokens: 0, totalOutputTokens: 0 });
+    return NextResponse.json({ balance: 300, totalUsed: 0, totalCharged: 0, totalInputTokens: 0, totalOutputTokens: 0 });
   }
 
   // Get total tokens used (exclude charge entries)
