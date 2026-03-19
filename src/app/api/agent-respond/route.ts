@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
 
     const userPrompt = requestTweet
       ? `オーナーがツイートの作成を依頼しました:\n「${intentText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "オーナーへの返事（1-2文）", "toTimeline": "ツイート文（140文字以内）"}`
-      : `オーナーのメッセージ:\n「${intentText}」\n\nわかりやすい言葉で簡潔に返して。200文字以内。専門用語は最小限に。長文・レポート形式は禁止。聞かれたら詳しく話す。Markdown禁止。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "返事"}`;
+      : `オーナーのメッセージ:\n「${intentText}」\n\n1-2文で返して。100文字以内。LINEの1メッセージくらいの短さ。詳しくは聞かれてから。Markdown禁止。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "短い返事"}`;
 
     // Smart model routing - check task + conversation history for search triggers
     const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http", "https", ".com", ".jp", ".world", ".io"];
@@ -138,13 +138,33 @@ export async function POST(req: NextRequest) {
       ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }]
       : [];
 
-    const message = await client.messages.create({
-      model,
-      max_tokens: maxTokens,
-      system: systemPromptParts,
-      ...(tools.length > 0 ? { tools } : {}),
-      messages: [{ role: "user", content: userPrompt }],
-    });
+    // Try primary model, fallback to Sonnet if fails
+    let actualModel = model;
+    let message;
+    try {
+      message = await client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        system: systemPromptParts,
+        ...(tools.length > 0 ? { tools } : {}),
+        messages: [{ role: "user", content: userPrompt }],
+      });
+    } catch (primaryError) {
+      // Fallback to Sonnet 4.6 if primary model fails
+      if (model !== "claude-sonnet-4-6") {
+        console.error(`Primary model ${model} failed, falling back to Sonnet:`, primaryError);
+        actualModel = "claude-sonnet-4-6";
+        message = await client.messages.create({
+          model: actualModel,
+          max_tokens: maxTokens,
+          system: systemPromptParts,
+          ...(tools.length > 0 ? { tools } : {}),
+          messages: [{ role: "user", content: userPrompt }],
+        });
+      } else {
+        throw primaryError;
+      }
+    }
 
     totalInputTokens += message.usage?.input_tokens || 0;
     totalOutputTokens += message.usage?.output_tokens || 0;
@@ -185,7 +205,7 @@ export async function POST(req: NextRequest) {
 
     // Bill the user with actual model pricing
     if (deviceId) {
-      const pricing = MODEL_PRICING[model] || MODEL_PRICING["claude-sonnet-4-6"];
+      const pricing = MODEL_PRICING[actualModel] || MODEL_PRICING["claude-sonnet-4-6"];
       const MARGIN = 1.5;
       const costUsd = totalInputTokens * pricing.input + totalOutputTokens * pricing.output;
       const costYen = Math.ceil(costUsd * 150 * MARGIN);

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
+import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
@@ -10,7 +11,7 @@ import { useRef } from "react";
 export default function SettingsPage() {
   const { user, signOut, displayName: savedName, avatarUrl, businessInfo: savedBusinessInfo, updateDisplayName, updateAvatarUrl, updateBusinessInfo } = useAuth();
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const { t } = useLocale();
+  const { locale, setLocale, t } = useLocale();
   const router = useRouter();
 
   const [displayName, setDisplayName] = useState(savedName || user?.email?.split("@")[0] || "");
@@ -261,6 +262,22 @@ export default function SettingsPage() {
               {t("settings.updatePassword")}
             </button>
           </div>
+        </div>
+
+        <hr className="border-[var(--card-border)]" />
+
+        {/* Language */}
+        <div>
+          <h2 className="text-[15px] font-bold mb-3">Language</h2>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            className="w-full bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-[15px] outline-none cursor-pointer"
+          >
+            {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
         </div>
 
         <hr className="border-[var(--card-border)]" />
