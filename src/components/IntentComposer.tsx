@@ -430,6 +430,13 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         {chatHistory.length === 0 && myAgents.length > 0 && (
           <div className="space-y-3 py-4">
             {myAgents.map((agent, i) => {
+              // Stagger appearance: each agent appears 800ms after the previous
+              const [visible, setVisible] = useState(false);
+              useEffect(() => {
+                const timer = setTimeout(() => setVisible(true), i * 800);
+                return () => clearTimeout(timer);
+              }, []);
+              if (!visible) return null;
               const introMap: Record<string, string> = {
                 "オーケストレーター": `はじめまして！チームリーダーの${agent.config.name}です。メッセージを送ってくれたら、僕がメンバーに振り分けます。`,
                 "マーケティング": `${agent.config.name}です！マーケティング担当。売り方や集客の相談はお任せください。`,

@@ -83,7 +83,7 @@ export function Sidebar() {
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
           </svg>
-          <span className={`text-[15px] ${pathname.startsWith("/settings/account") ? "font-bold" : ""}`}>
+          <span className={`text-[15px] ${pathname.startsWith("/settings/account") ? "font-bold" : "text-[var(--foreground)]"}`}>
             {t("nav.settings")}
           </span>
         </Link>
@@ -102,20 +102,7 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Profile → Settings */}
-      <Link href="/settings" className="mb-3 flex items-center gap-3 p-3 rounded-full hover:bg-[var(--hover-bg)] transition-colors w-full max-w-[230px]">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
-        ) : (
-          <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm">
-            {displayName?.charAt(0).toUpperCase() || "U"}
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold truncate">{displayName || "User"}</div>
-          <div className="text-xs text-[var(--muted)]">{t("settings.title")}</div>
-        </div>
-      </Link>
+      {/* Profile card removed */}
     </aside>
   );
 }
