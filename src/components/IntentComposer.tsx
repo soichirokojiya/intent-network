@@ -202,6 +202,8 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [replyTo, setReplyTo] = useState<{ agentName: string; text: string } | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load chat history from Supabase on mount or room change
   useEffect(() => {
@@ -393,6 +395,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     processedResponseIds.current.clear();
     postIntent(userText, { mentionAgentId, requestTweet, roomId });
     setText("");
+    setReplyTo(null);
   };
 
   return (
@@ -506,6 +509,17 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
                   {t("chat.copy")}
                 </button>
+                <button
+                  onClick={() => {
+                    setReplyTo({ agentName: msg.agentName || "", text: msg.text.replace(/\\n/g, "\n").slice(0, 50) });
+                    setText(`@${msg.agentName} `);
+                    textareaRef.current?.focus();
+                  }}
+                  className="opacity-0 group-hover:opacity-100 mt-1 ml-1 text-[11px] text-[var(--muted)] hover:text-[var(--accent)] transition-all flex items-center gap-1"
+                >
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
+                  返信
+                </button>
                 {msg.text.length > 500 && /レポート|分析|戦略|調査|まとめ|提案|計画|施策/.test(msg.text) && (
                   <button
                     onClick={() => {
@@ -585,6 +599,18 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             </div>
           );
         })()}
+        {/* Reply quote */}
+        {replyTo && (
+          <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-[var(--search-bg)] rounded-xl text-[13px] border-l-2 border-[var(--accent)]">
+            <div className="flex-1 min-w-0">
+              <span className="font-bold text-[var(--accent)]">{replyTo.agentName}</span>
+              <span className="text-[var(--muted)] ml-2 truncate">{replyTo.text}...</span>
+            </div>
+            <button onClick={() => { setReplyTo(null); setText(""); }} className="text-[var(--muted)] hover:text-red-500 flex-shrink-0">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+        )}
         {/* File attachment preview */}
         {attachedFile && (
           <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-[var(--search-bg)] rounded-xl text-[13px]">
@@ -629,6 +655,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             </svg>
           </button>
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={hasAgent ? t("home.placeholder") : "エージェントを作成してください"}
