@@ -121,7 +121,7 @@ export async function getRoomConversation(roomId: string = "general", limit: num
 
 export async function saveChatMessage(msg: ChatMessage, roomId: string = "general"): Promise<void> {
   const deviceId = getDeviceId();
-  await supabase.from("owner_chats").insert({
+  const { error } = await supabase.from("owner_chats").insert({
     device_id: deviceId,
     user_id: deviceId,
     room_id: roomId,
@@ -132,4 +132,5 @@ export async function saveChatMessage(msg: ChatMessage, roomId: string = "genera
     text: msg.text,
     tweet_preview: msg.tweetPreview || null,
   });
+  if (error) console.error("saveChatMessage error:", error);
 }
