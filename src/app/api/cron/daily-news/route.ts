@@ -17,12 +17,21 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Get all users with business_info
+    // Get all users with business_info who have news enabled
+    const currentHour = new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Tokyo",
+    }); // e.g. "07:00"
+    const currentHourNum = parseInt(currentHour.split(":")[0], 10);
+
     const { data: profiles, error: profileError } = await supabase
       .from("profiles")
-      .select("id, display_name, business_info")
+      .select("id, display_name, business_info, news_enabled, news_time")
       .not("business_info", "is", null)
-      .neq("business_info", "");
+      .neq("business_info", "")
+      .eq("news_enabled", true);
 
     if (profileError) {
       console.error("Failed to fetch profiles:", profileError);
@@ -38,6 +47,10 @@ export async function GET(req: Request) {
 
     for (const profile of profiles) {
       try {
+        // Check if current hour matches user's preferred delivery time
+        const userHour = parseInt((profile.news_time || "07:00").split(":")[0], 10);
+        if (userHour !== currentHourNum) continue;
+
         // Find the user's first agent (research-type preferred) to use as sender
         const { data: agents } = await supabase
           .from("agents")

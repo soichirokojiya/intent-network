@@ -9,6 +9,8 @@ interface AuthContextType {
   displayName: string;
   avatarUrl: string;
   businessInfo: string;
+  newsEnabled: boolean;
+  newsTime: string;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: string | null; isExisting?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -16,6 +18,7 @@ interface AuthContextType {
   updateDisplayName: (name: string) => Promise<{ error: string | null }>;
   updateAvatarUrl: (url: string) => Promise<{ error: string | null }>;
   updateBusinessInfo: (info: string) => Promise<{ error: string | null }>;
+  updateNewsSettings: (enabled: boolean, time: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -25,6 +28,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [businessInfo, setBusinessInfo] = useState("");
+  const [newsEnabled, setNewsEnabled] = useState(false);
+  const [newsTime, setNewsTime] = useState("07:00");
   const [loading, setLoading] = useState(true);
 
   // Bind device_id to user ID (ensures data persists across browsers/sessions)
@@ -48,10 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load profile from profiles table
   const loadProfile = useCallback(async (userId: string, email: string) => {
     bindDeviceId(userId);
-    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info").eq("id", userId).single();
+    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, news_enabled, news_time").eq("id", userId).single();
     setDisplayName(data?.display_name || email.split("@")[0]);
     setAvatarUrl(data?.avatar_url || "");
     setBusinessInfo(data?.business_info || "");
+    setNewsEnabled(data?.news_enabled ?? false);
+    setNewsTime(data?.news_time || "07:00");
     if (data?.business_info) localStorage.setItem("musu_business_info", data.business_info);
   }, [bindDeviceId]);
 
@@ -98,6 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setDisplayName("");
     setAvatarUrl("");
     setBusinessInfo("");
+    setNewsEnabled(false);
+    setNewsTime("07:00");
     // セキュリティ: 他のユーザーのデータにアクセスしないようdevice_idをクリア
     localStorage.removeItem("musu_device_id");
     localStorage.removeItem("musu_business_info");
@@ -136,8 +145,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message || null };
   }, [user]);
 
+  const updateNewsSettings = useCallback(async (enabled: boolean, time: string) => {
+    if (!user) return { error: "Not logged in" };
+    const { error } = await supabase.from("profiles").update({
+      news_enabled: enabled,
+      news_time: time,
+      updated_at: new Date().toISOString(),
+    }).eq("id", user.id);
+    if (!error) {
+      setNewsEnabled(enabled);
+      setNewsTime(time);
+    }
+    return { error: error?.message || null };
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo }}>
+    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, newsEnabled, newsTime, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings }}>
       {children}
     </AuthContext.Provider>
   );

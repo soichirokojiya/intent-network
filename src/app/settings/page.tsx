@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useRef } from "react";
 
 export default function SettingsPage() {
-  const { user, signOut, displayName: savedName, avatarUrl, businessInfo: savedBusinessInfo, updateDisplayName, updateAvatarUrl, updateBusinessInfo } = useAuth();
+  const { user, signOut, displayName: savedName, avatarUrl, businessInfo: savedBusinessInfo, newsEnabled, newsTime, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings } = useAuth();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const { locale, setLocale, t } = useLocale();
   const router = useRouter();
@@ -220,6 +220,33 @@ export default function SettingsPage() {
             className="px-4 py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-xl hover:bg-[var(--accent-hover)] disabled:opacity-50">
             {t("settings.save")}
           </button>
+        </div>
+
+        <hr className="border-[var(--card-border)]" />
+
+        {/* News Delivery */}
+        <div>
+          <h2 className="text-[15px] font-bold mb-3">{t("settings.newsDelivery")}</h2>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[13px] text-[var(--muted)]">{t("settings.newsEnabled")}</span>
+            <button
+              onClick={() => updateNewsSettings(!newsEnabled, newsTime)}
+              className={`relative w-11 h-6 rounded-full transition-colors ${newsEnabled ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${newsEnabled ? "translate-x-5" : ""}`} />
+            </button>
+          </div>
+          {newsEnabled && (
+            <div>
+              <label className="text-[13px] text-[var(--muted)] block mb-1">{t("settings.newsTime")}</label>
+              <input
+                type="time"
+                value={newsTime}
+                onChange={(e) => updateNewsSettings(newsEnabled, e.target.value)}
+                className="bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-[15px] outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+          )}
         </div>
 
         <hr className="border-[var(--card-border)]" />

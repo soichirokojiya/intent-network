@@ -468,6 +468,9 @@ const translations: Record<string, Record<Locale, string>> = {
   "settings.cancelFailed": { en: "Account cancellation failed", ja: "解約に失敗しました", zh: "注销失败", es: "Error al cancelar", ko: "해지 실패" },
   "settings.cancelDesc": { en: "Your account and all agents/chat history will be permanently deleted. This cannot be undone. You can re-register with the same email.", ja: "アカウントとすべてのエージェント・チャット履歴が完全に削除されます。この操作は取り消せません。同じメールアドレスで再登録は可能です。", zh: "您的账户和所有代理/聊天记录将被永久删除。此操作无法撤销。您可以使用相同的邮箱重新注册。", es: "Tu cuenta y todo el historial de agentes/chats se eliminarán permanentemente. Puedes volver a registrarte con el mismo email.", ko: "계정과 모든 에이전트/채팅 기록이 영구 삭제됩니다. 같은 이메일로 재등록 가능합니다." },
   "settings.deleteAccountBtn": { en: "Delete Account", ja: "アカウントを削除する", zh: "删除账户", es: "Eliminar cuenta", ko: "계정 삭제" },
+  "settings.newsDelivery": { en: "News Delivery", ja: "ニュース配信", zh: "新闻推送", es: "Entrega de noticias", ko: "뉴스 배달" },
+  "settings.newsEnabled": { en: "Receive daily news related to your business", ja: "事業に関連するニュースを毎日受け取る", zh: "接收与您业务相关的每日新闻", es: "Recibir noticias diarias relacionadas con tu negocio", ko: "사업 관련 일일 뉴스 수신" },
+  "settings.newsTime": { en: "Delivery time", ja: "配信時刻", zh: "推送时间", es: "Hora de entrega", ko: "배달 시간" },
 
   // Agent page
   "agent.confirmDelete": { en: "Delete {name}?", ja: "{name}を削除しますか？", zh: "删除{name}？", es: "¿Eliminar {name}?", ko: "{name}을(를) 삭제할까요?" },
