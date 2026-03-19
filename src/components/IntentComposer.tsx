@@ -214,8 +214,10 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     setChatHistory([]);
     processedResponseIds.current.clear();
     clearAgentResponses();
-    loadChatHistory(roomId).then((msgs) => {
-      setHasMore(msgs.length >= 30);
+    loadChatHistory(roomId).then((rawMsgs) => {
+      // Filter out old welcome messages (now handled by UI)
+      const msgs = rawMsgs.filter((m) => !m.text?.startsWith("はじめまして！チームリーダー"));
+      setHasMore(rawMsgs.length >= 30);
       if (msgs.length > 0) {
         setChatHistory(msgs as ChatMessage[]);
         // Mark all loaded message IDs as processed to prevent re-adding
@@ -444,7 +446,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               const isLast = i === myAgents.length - 1;
               const lastMsg = isLast ? "\n\n@をつければ特定のメンバーに直接話せます。チーム編成は自由にカスタマイズできます。プロフィールに事業情報を入れるとチーム全員が理解します。気軽にどうぞ！" : "";
               return (
-                <div key={agent.id} className="flex gap-2 animate-fade-in" style={{ animationDelay: `${i * 0.5}s`, animationFillMode: "backwards" }}>
+                <div key={agent.id} className="flex gap-2 animate-fade-in" style={{ animationDelay: `${1 + i * 1.2}s`, animationFillMode: "backwards" }}>
                   <div className="flex-shrink-0 mt-1">
                     <AgentAvatarDisplay avatar={agent.config.avatar} size={32} />
                   </div>
