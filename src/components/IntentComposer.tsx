@@ -427,6 +427,20 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           </button>
         )}
 
+        {chatHistory.length === 0 && myAgents.length > 0 && (
+          <div className="flex gap-2 animate-fade-in py-4">
+            <div className="flex-shrink-0 mt-1">
+              <AgentAvatarDisplay avatar={myAgents[0]?.config.avatar || ""} size={32} />
+            </div>
+            <div className="max-w-[75%]">
+              <span className="text-[11px] text-[var(--muted)]">{myAgents[0]?.config.name || "Ren"}</span>
+              <div className="mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-[var(--search-bg)]">
+                <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{`はじめまして！チームリーダーの${myAgents[0]?.config.name || "Ren"}です。\n\n使い方のヒント：\n・ここにメッセージを送るだけ。僕がチームに振り分けます\n・@をつけてメンションすれば、特定のメンバーに直接話しかけられます\n・チーム編成は自由。いつでもメンバーを追加・削除できます\n・プロフィールに事業情報を入れると、チーム全員があなたの事業を理解します\n\nまずは気軽に話しかけてみてください！`}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {chatHistory.map((msg, idx) => {
           const prevMsg = idx > 0 ? chatHistory[idx - 1] : null;
           const showDate = !prevMsg || formatDateLabel(msg.timestamp) !== formatDateLabel(prevMsg.timestamp);
