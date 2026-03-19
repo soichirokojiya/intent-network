@@ -61,14 +61,14 @@ export async function POST(req: NextRequest) {
       .eq("device_id", deviceId);
 
     await supabase.from("usage_log").insert({
-      device_id: deviceId, input_tokens: 0, output_tokens: 0,
+      device_id: deviceId, user_id: deviceId, input_tokens: 0, output_tokens: 0,
       cost_yen: -amount, model: "charge", api_route: `charge-${sessionId}`,
     });
 
     return NextResponse.json({ balance: newBalance });
   } else {
     await supabase.from("user_credits").insert({
-      device_id: deviceId, balance_yen: 1000 + amount, total_charged_yen: amount,
+      device_id: deviceId, user_id: deviceId, balance_yen: 1000 + amount, total_charged_yen: amount,
     });
     return NextResponse.json({ balance: 1000 + amount });
   }

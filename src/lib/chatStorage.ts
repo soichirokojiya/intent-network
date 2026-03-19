@@ -120,6 +120,7 @@ export async function saveChatMessage(msg: ChatMessage, roomId: string = "genera
   const deviceId = getDeviceId();
   await supabase.from("owner_chats").insert({
     device_id: deviceId,
+    user_id: deviceId,
     room_id: roomId,
     type: msg.type,
     agent_id: msg.agentId || null,

@@ -36,6 +36,7 @@ export async function saveAgent(agent: MyAgent, isActive: boolean): Promise<void
   await supabase.from("owner_agents").upsert({
     id: agent.id,
     device_id: deviceId,
+    user_id: deviceId,
     config: agent.config,
     stats: agent.stats,
     is_active: isActive,

@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   if (!data) {
     await supabase.from("user_credits").insert({
       device_id: deviceId,
+      user_id: deviceId,
       balance_yen: 1000,
     });
     return NextResponse.json({ balance: 1000, totalUsed: 0, totalCharged: 0, totalInputTokens: 0, totalOutputTokens: 0 });
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
 
   await supabase.from("usage_log").insert({
     device_id: deviceId,
+    user_id: deviceId,
     input_tokens: inputTokens || 0,
     output_tokens: outputTokens || 0,
     cost_yen: costYen,
