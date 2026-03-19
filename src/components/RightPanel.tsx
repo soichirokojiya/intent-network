@@ -53,7 +53,7 @@ export function RightPanel() {
               <circle cx="12" cy="12" r="10" />
               <path d="M12 8v8M8 12h8" />
             </svg>
-            <span className="text-[12px] font-bold">エージェントを追加</span>
+            <span className="text-[12px] font-bold">{t("agent.addAgent")}</span>
           </Link>
         </div>
       )}

@@ -384,6 +384,25 @@ const translations: Record<string, Record<Locale, string>> = {
   },
 
   // Tones
+  // UI labels
+  "nav.workspace": { en: "Workspace", ja: "ワークスペース", zh: "工作区", es: "Espacio de trabajo", ko: "워크스페이스" },
+  "nav.profile": { en: "Profile", ja: "プロフィール", zh: "个人资料", es: "Perfil", ko: "프로필" },
+  "nav.billing": { en: "Billing", ja: "料金", zh: "计费", es: "Facturación", ko: "요금" },
+  "chat.today": { en: "Today", ja: "今日", zh: "今天", es: "Hoy", ko: "오늘" },
+  "chat.yesterday": { en: "Yesterday", ja: "昨日", zh: "昨天", es: "Ayer", ko: "어제" },
+  "chat.copy": { en: "Copy", ja: "コピー", zh: "复制", es: "Copiar", ko: "복사" },
+  "chat.readMore": { en: "Read more", ja: "続きを読む", zh: "阅读更多", es: "Leer más", ko: "더 읽기" },
+  "chat.close": { en: "Close", ja: "閉じる", zh: "关闭", es: "Cerrar", ko: "닫기" },
+  "chat.loadOlder": { en: "Load older messages", ja: "過去のメッセージを読み込む", zh: "加载更早的消息", es: "Cargar mensajes anteriores", ko: "이전 메시지 불러오기" },
+  "chat.savePdf": { en: "Save as PDF", ja: "PDF保存", zh: "保存为PDF", es: "Guardar como PDF", ko: "PDF 저장" },
+  "agent.addAgent": { en: "Add Agent", ja: "エージェントを追加", zh: "添加代理", es: "Añadir agente", ko: "에이전트 추가" },
+  "agent.personalityPrompt": { en: "Personality Prompt", ja: "性格プロンプト", zh: "性格提示", es: "Prompt de personalidad", ko: "성격 프롬프트" },
+  "agent.personalityPlaceholder": { en: "Describe the agent's personality, tone, and values", ja: "エージェントの性格・話し方・価値観を自由に記述", zh: "描述代理的性格、语气和价值观", es: "Describe la personalidad, tono y valores del agente", ko: "에이전트의 성격, 말투, 가치관을 자유롭게 기술" },
+  "settings.businessInfo": { en: "Business Info", ja: "事業情報", zh: "业务信息", es: "Info del negocio", ko: "사업 정보" },
+  "settings.businessInfoDesc": { en: "Information for agents to understand your business. Service name, URL, business description, target audience, etc.", ja: "エージェントがあなたの事業を理解するための情報です。サービス名、URL、事業内容、ターゲット層などを自由に記入してください。", zh: "帮助代理了解您业务的信息。服务名称、URL、业务描述、目标受众等。", es: "Información para que los agentes entiendan tu negocio.", ko: "에이전트가 사업을 이해하기 위한 정보입니다." },
+  "settings.creditBalance": { en: "Credit Balance", ja: "クレジット残高", zh: "信用余额", es: "Saldo de crédito", ko: "크레딧 잔액" },
+  "settings.charge": { en: "Charge", ja: "チャージ", zh: "充值", es: "Recargar", ko: "충전" },
+
   "tone.polite": { en: "Polite", ja: "丁寧語", zh: "礼貌", es: "Educado", ko: "존댓말" },
   "tone.casual": { en: "Casual", ja: "タメ口", zh: "随意", es: "Informal", ko: "반말" },
   "tone.sarcastic": { en: "Sarcastic", ja: "毒舌", zh: "毒舌", es: "Sarcástico", ko: "독설" },

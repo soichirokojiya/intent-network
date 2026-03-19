@@ -50,7 +50,7 @@ export function Sidebar() {
           className={`flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>
           <NavIcon type="home" active={pathname === "/"} />
           <span className={`text-[15px] ${pathname === "/" ? "font-bold" : ""}`}>
-            ワークスペース
+            {t("nav.workspace")}
           </span>
         </Link>
 
@@ -61,7 +61,7 @@ export function Sidebar() {
             <circle cx="12" cy="7" r="4" />
           </svg>
           <span className={`text-[15px] ${pathname === "/settings" ? "font-bold" : ""}`}>
-            プロフィール
+            {t("nav.profile")}
           </span>
         </Link>
 
@@ -85,7 +85,7 @@ export function Sidebar() {
       {/* Bottom links - small */}
       <div className="flex gap-3 px-3 mb-2 w-full max-w-[230px]">
         <Link href="/billing" className="text-[12px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
-          料金
+          {t("nav.billing")}
         </Link>
         <Link href="/contact" className="text-[12px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
           {t("nav.contact")}

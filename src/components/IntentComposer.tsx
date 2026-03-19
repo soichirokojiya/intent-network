@@ -15,12 +15,12 @@ function formatDateLabel(timestamp: number): string {
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  if (date.toDateString() === today.toDateString()) return "今日";
-  if (date.toDateString() === yesterday.toDateString()) return "昨日";
-  return `${date.getMonth() + 1}月${date.getDate()}日`;
+  if (date.toDateString() === today.toDateString()) return "__TODAY__";
+  if (date.toDateString() === yesterday.toDateString()) return "__YESTERDAY__";
+  return date.toLocaleDateString();
 }
 
-function CollapsibleText({ text }: { text: string }) {
+function CollapsibleText({ text, readMoreLabel = "続きを読む", closeLabel = "閉じる" }: { text: string; readMoreLabel?: string; closeLabel?: string }) {
   const [expanded, setExpanded] = useState(false);
   const lines = text.split("\n");
   const shouldCollapse = lines.length > COLLAPSE_LINES || text.length > 500;
@@ -31,7 +31,7 @@ function CollapsibleText({ text }: { text: string }) {
         <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{text}</p>
         {shouldCollapse && (
           <button onClick={() => setExpanded(false)} className="text-[12px] text-[var(--accent)] mt-1 hover:underline">
-            閉じる
+            {closeLabel}
           </button>
         )}
       </>
@@ -43,7 +43,7 @@ function CollapsibleText({ text }: { text: string }) {
     <>
       <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{preview}...</p>
       <button onClick={() => setExpanded(true)} className="text-[12px] text-[var(--accent)] mt-1 hover:underline">
-        続きを読む
+        {readMoreLabel}
       </button>
     </>
   );
@@ -165,6 +165,8 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           if (m.id.startsWith("tweeted-")) processedResponseIds.current.add(m.id);
         });
       }
+      // Scroll to bottom after initial load
+      setTimeout(() => chatEndRef.current?.scrollIntoView(), 100);
     });
   }, [roomId]);
 
@@ -327,7 +329,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             }}
             className="w-full text-center py-2 text-[12px] text-[var(--accent)] hover:underline"
           >
-            過去のメッセージを読み込む
+            {t("chat.loadOlder")}
           </button>
         )}
 
@@ -336,7 +338,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           const showDate = !prevMsg || formatDateLabel(msg.timestamp) !== formatDateLabel(prevMsg.timestamp);
           const DateSep = () => showDate ? (
             <div className="flex items-center justify-center py-2">
-              <span className="text-[11px] text-[var(--muted)] bg-[var(--search-bg)] px-3 py-1 rounded-full">{formatDateLabel(msg.timestamp)}</span>
+              <span className="text-[11px] text-[var(--muted)] bg-[var(--search-bg)] px-3 py-1 rounded-full">{formatDateLabel(msg.timestamp).replace("__TODAY__", t("chat.today")).replace("__YESTERDAY__", t("chat.yesterday"))}</span>
             </div>
           ) : null;
           // Read receipt
@@ -407,14 +409,14 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
                     : "bg-[var(--search-bg)]"
                 }`}>
-                  <CollapsibleText text={msg.text.replace(/\\n/g, "\n")} />
+                  <CollapsibleText text={msg.text.replace(/\\n/g, "\n")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
                 </div>
                 <button
-                  onClick={() => { navigator.clipboard.writeText(msg.text.replace(/\\n/g, "\n")); }}
+                  onClick={(e) => { navigator.clipboard.writeText(msg.text.replace(/\\n/g, "\n")); const btn = e.currentTarget; btn.textContent = "✓"; setTimeout(() => { btn.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>${t("chat.copy")}`; }, 1500); }}
                   className="opacity-0 group-hover:opacity-100 mt-1 ml-1 text-[11px] text-[var(--muted)] hover:text-[var(--accent)] transition-all flex items-center gap-1"
                 >
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-                  コピー
+                  {t("chat.copy")}
                 </button>
                 {msg.text.length > 500 && /レポート|分析|戦略|調査|まとめ|提案|計画|施策/.test(msg.text) && (
                   <button
