@@ -204,6 +204,9 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [replyTo, setReplyTo] = useState<{ agentName: string; text: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isListening, setIsListening] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   // Load chat history from Supabase on mount or room change
   useEffect(() => {
@@ -675,6 +678,41 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               target.style.height = Math.min(target.scrollHeight, 120) + "px";
             }}
           />
+          <button
+            onClick={() => {
+              if (isListening) {
+                recognitionRef.current?.stop();
+                setIsListening(false);
+                return;
+              }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+              if (!SR) { alert("このブラウザは音声入力に対応していません"); return; }
+              const recognition = new SR();
+              recognition.lang = "ja-JP";
+              recognition.continuous = false;
+              recognition.interimResults = false;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              recognition.onresult = (e: any) => {
+                const transcript = e.results[0][0].transcript as string;
+                setText((prev) => prev + transcript);
+                setIsListening(false);
+              };
+              recognition.onerror = () => setIsListening(false);
+              recognition.onend = () => setIsListening(false);
+              recognitionRef.current = recognition;
+              recognition.start();
+              setIsListening(true);
+            }}
+            className={`p-2.5 rounded-full transition-colors flex-shrink-0 ${isListening ? "bg-red-500 text-white animate-pulse" : "text-[var(--muted)] hover:text-[var(--accent)]"}`}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+              <path d="M19 10v2a7 7 0 01-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
           <button
             onClick={handleSubmit}
             disabled={(!text.trim() && !attachedFile) || !hasAgent || uploading}
