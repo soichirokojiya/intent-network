@@ -21,7 +21,7 @@ function formatDateLabel(timestamp: number): string {
   return date.toLocaleDateString();
 }
 
-function CollapsibleText({ text, readMoreLabel = "続きを読む", closeLabel = "閉じる" }: { text: string; readMoreLabel?: string; closeLabel?: string }) {
+function CollapsibleText({ text, readMoreLabel = "Read more", closeLabel = "Close" }: { text: string; readMoreLabel?: string; closeLabel?: string }) {
   const [expanded, setExpanded] = useState(false);
   const lines = text.split("\n");
   const shouldCollapse = lines.length > COLLAPSE_LINES || text.length > 500;
@@ -292,7 +292,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           agentName: resp.agentName,
           agentAvatar: resp.agentAvatar,
           agentId: resp.agentId,
-          text: `このツイートでいいですか？\n\n「${resp.toTimeline}」`,
+          text: `${t("chat.tweetConfirm")}\n\n「${resp.toTimeline}」`,
           timestamp: resp.timestamp + 1,
           tweetPreview: resp.toTimeline,
         });
@@ -313,7 +313,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             agentName: resp.agentName,
             agentAvatar: resp.agentAvatar,
             agentId: resp.agentId,
-            text: "Xに投稿しました！ ✓",
+            text: t("chat.tweetPosted"),
             timestamp: Date.now(),
           });
         }
@@ -338,12 +338,12 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           const fileTag = `[ファイル: ${attachedFile.name}](${data.url})`;
           userText = userText ? `${userText}\n${fileTag}` : fileTag;
         } else {
-          alert(data.error || "ファイルのアップロードに失敗しました");
+          alert(data.error || t("chat.uploadFailed"));
           setUploading(false);
           return;
         }
       } catch {
-        alert("ファイルのアップロードに失敗しました");
+        alert(t("chat.uploadFailed"));
         setUploading(false);
         return;
       }
@@ -379,7 +379,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         agentName: resp?.agentName,
         agentAvatar: resp?.agentAvatar,
         agentId: pendingTweetAgentId,
-        text: "了解、ツイートはやめておきますね。",
+        text: t("chat.tweetCancelled"),
         timestamp: Date.now(),
       });
       clearAgentResponses();
@@ -445,7 +445,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                 <div>
                   <span className="text-[11px] text-[var(--muted)] ml-1">{msg.agentName}</span>
                   <div className="mt-0.5 px-3 py-1.5">
-                    <span className="text-[11px] text-[var(--accent)]">既読</span>
+                    <span className="text-[11px] text-[var(--accent)]">{t("chat.read")}</span>
                   </div>
                 </div>
               </div>
@@ -521,14 +521,15 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                   className="opacity-0 group-hover:opacity-100 mt-1 ml-1 text-[11px] text-[var(--muted)] hover:text-[var(--accent)] transition-all flex items-center gap-1"
                 >
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
-                  返信
+                  {t("chat.reply")}
                 </button>
                 {msg.text.length > 500 && /レポート|分析|戦略|調査|まとめ|提案|計画|施策/.test(msg.text) && (
                   <button
                     onClick={() => {
-                      const date = new Date(msg.timestamp).toLocaleString("ja-JP");
+                      const date = new Date(msg.timestamp).toLocaleString();
                       const formattedText = msg.text.replace(/\n/g, "<br>");
-                      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${msg.agentName} レポート</title><style>
+                      const reportLabel = t("chat.report");
+                      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${msg.agentName} ${reportLabel}</title><style>
                         @media print { body { margin: 20mm; } }
                         body { font-family: "Hiragino Sans", "Yu Gothic", sans-serif; color: #222; max-width: 700px; margin: 40px auto; padding: 0 20px; line-height: 1.8; font-size: 14px; }
                         h1 { font-size: 22px; border-bottom: 2px solid #4A99E9; padding-bottom: 8px; margin-bottom: 4px; }
@@ -536,7 +537,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                         .content { white-space: pre-wrap; }
                         .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #ddd; color: #aaa; font-size: 11px; }
                       </style></head><body>
-                        <h1>${msg.agentName} レポート</h1>
+                        <h1>${msg.agentName} ${reportLabel}</h1>
                         <div class="meta">${date} | musu.world</div>
                         <div class="content">${formattedText}</div>
                         <div class="footer">Generated by musu.world</div>
@@ -550,7 +551,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                     </svg>
-                    PDF保存
+                    {t("chat.savePdf")}
                   </button>
                 )}
               </div>
@@ -638,7 +639,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             const file = e.target.files?.[0];
             if (file) {
               if (file.size > 10 * 1024 * 1024) {
-                alert("ファイルサイズは10MBまでです");
+                alert(t("chat.fileSizeLimit"));
                 return;
               }
               setAttachedFile(file);
@@ -651,7 +652,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="text-[var(--muted)] hover:text-[var(--accent)] p-2.5 rounded-full transition-colors flex-shrink-0 disabled:opacity-30"
-            title="ファイルを添付"
+            title={t("chat.attachFile")}
           >
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
@@ -661,7 +662,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={hasAgent ? t("home.placeholder") : "エージェントを作成してください"}
+            placeholder={hasAgent ? t("home.placeholder") : t("chat.createAgentFirst")}
             className="flex-1 bg-[var(--search-bg)] rounded-2xl px-4 py-2.5 text-[15px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)] resize-none max-h-[120px]"
             rows={1}
             onCompositionStart={() => { isComposing.current = true; }}
@@ -687,7 +688,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               }
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-              if (!SR) { alert("このブラウザは音声入力に対応していません"); return; }
+              if (!SR) { alert(t("chat.voiceNotSupported")); return; }
               const recognition = new SR();
               recognition.lang = "ja-JP";
               recognition.continuous = false;

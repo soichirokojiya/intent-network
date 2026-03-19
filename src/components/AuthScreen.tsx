@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLocale } from "@/context/LocaleContext";
 
 import { LogoFull } from "./Logo";
 
 export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" | "reset" } = {}) {
   const { signUp, signIn } = useAuth();
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<"signin" | "signup" | "reset">(defaultMode || (searchParams.get("signup") ? "signup" : "signin"));
   const [email, setEmail] = useState("");
@@ -31,12 +33,12 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
         });
         if (!res.ok) {
           const data = await res.json();
-          setError(data.error || "送信に失敗しました");
+          setError(data.error || t("auth.sendFailed"));
         } else {
-          setSuccess("パスワードリセットメールを送信しました。メールを確認してください。");
+          setSuccess(t("auth.resetEmailSent"));
         }
       } catch {
-        setError("送信に失敗しました");
+        setError(t("auth.sendFailed"));
       }
       setLoading(false);
       return;
@@ -51,21 +53,21 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
         });
         const data = await res.json();
         if (res.status === 409) {
-          setError("このメールアドレスは既に登録されています。サインインしてください。");
+          setError(t("auth.emailExists"));
           setMode("signin");
         } else if (!res.ok) {
-          setError(data.error || "登録に失敗しました。");
+          setError(data.error || t("auth.signupFailed"));
         } else {
-          setSuccess("確認メールを送信しました。メールのリンクをクリックしてください。");
+          setSuccess(t("auth.confirmEmail"));
         }
       } catch {
-        setError("登録に失敗しました。");
+        setError(t("auth.signupFailed"));
       }
       setLoading(false);
       return;
     } else {
       const { error } = await signIn(email, password);
-      if (error) setError("メールアドレスまたはパスワードが正しくありません。");
+      if (error) setError(t("auth.invalidCredentials"));
     }
     setLoading(false);
   };
@@ -87,10 +89,10 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
         </div>
 
         <h1 className="text-2xl font-extrabold text-center mb-1">
-          {isReset ? "パスワードをリセット" : isSignUp ? "ひとりなのに、チームがいる。" : "おかえりなさい"}
+          {isReset ? t("auth.resetPassword") : isSignUp ? t("auth.teamTagline") : t("auth.welcome")}
         </h1>
         <p className="text-[var(--muted)] text-center text-[14px] mb-6">
-          {isReset ? "登録済みのメールアドレスを入力してください" : isSignUp ? "無料ではじめる" : "サインインしてください"}
+          {isReset ? t("auth.enterEmail") : isSignUp ? t("auth.freeStart") : t("auth.signInPlease")}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,7 +101,7 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="メールアドレス"
+              placeholder={t("auth.emailPlaceholder")}
               required
               className="w-full bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-4 py-3 text-[15px] outline-none focus:border-[var(--accent)] transition-colors"
             />
@@ -110,7 +112,7 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="パスワード（6文字以上）"
+                placeholder={t("auth.passwordPlaceholder")}
                 required
                 minLength={6}
                 className="w-full bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-4 py-3 text-[15px] outline-none focus:border-[var(--accent)] transition-colors"
@@ -127,7 +129,7 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
 
           {isSignUp && (
             <p className="text-[11px] text-[var(--muted)] text-center leading-relaxed">
-              アカウントを作成することにより、<a href="/terms" target="_blank" className="text-[var(--accent)] hover:underline">利用規約</a>と<a href="/privacy" target="_blank" className="text-[var(--accent)] hover:underline">プライバシーポリシー</a>に同意したことになります。
+              {t("auth.agreeTerms")}<a href="/terms" target="_blank" className="text-[var(--accent)] hover:underline">{t("auth.terms")}</a>{t("auth.and")}<a href="/privacy" target="_blank" className="text-[var(--accent)] hover:underline">{t("auth.privacy")}</a>{t("auth.agreeEnd")}
             </p>
           )}
 
@@ -140,7 +142,7 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
                 : "bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white"
             }`}
           >
-            {loading ? "..." : isReset ? "リセットメールを送信" : isSignUp ? "新規登録" : "サインイン"}
+            {loading ? "..." : isReset ? t("auth.sendResetEmail") : isSignUp ? t("auth.signUp") : t("auth.signIn")}
           </button>
         </form>
 
@@ -148,30 +150,30 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
           {mode === "signin" && (
             <>
               <p className="text-[14px] text-[var(--muted)]">
-                はじめての方は{" "}
+                {t("auth.newHere")}
                 <button onClick={() => switchMode("signup")} className="text-[var(--accent)] font-bold hover:underline">
-                  新規登録
+                  {t("auth.signUp")}
                 </button>
               </p>
               <p>
                 <button onClick={() => switchMode("reset")} className="text-[13px] text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
-                  パスワードをお忘れの方はこちら
+                  {t("auth.forgotPassword")}
                 </button>
               </p>
             </>
           )}
           {mode === "signup" && (
             <p className="text-[14px] text-[var(--muted)]">
-              アカウントをお持ちの方は{" "}
+              {t("auth.haveAccount")}
               <button onClick={() => switchMode("signin")} className="text-[var(--accent)] font-bold hover:underline">
-                サインイン
+                {t("auth.signIn")}
               </button>
             </p>
           )}
           {mode === "reset" && (
             <p className="text-[14px] text-[var(--muted)]">
               <button onClick={() => switchMode("signin")} className="text-[var(--accent)] font-bold hover:underline">
-                サインインに戻る
+                {t("auth.backToSignIn")}
               </button>
             </p>
           )}

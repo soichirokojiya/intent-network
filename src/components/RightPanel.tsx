@@ -41,7 +41,7 @@ export function RightPanel() {
                 </div>
               </Link>
               <button
-                onClick={() => { if (confirm(`${agent.config.name}を削除しますか？`)) removeAgent(agent.id); }}
+                onClick={() => { if (confirm(t("agent.confirmDelete").replace("{name}", agent.config.name))) removeAgent(agent.id); }}
                 className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted)] hover:text-[var(--danger)] transition-all flex-shrink-0"
               >
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>

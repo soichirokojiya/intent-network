@@ -103,7 +103,7 @@ export default function AgentPage() {
           ) : (
             <button onClick={() => { setDraft(getDefaultDraft()); setCreating(true); }}
               className="px-4 py-1.5 bg-[var(--accent)] text-white font-bold text-sm rounded-full hover:bg-[var(--accent-hover)] transition-colors">
-              + 追加
+              {t("agent.addAgent")}
             </button>
           )}
         </header>
@@ -161,7 +161,7 @@ export default function AgentPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm(`${agent.config.name}を削除しますか？`)) {
+                        if (confirm(t("agent.confirmDelete").replace("{name}", agent.config.name))) {
                           removeAgent(agent.id);
                         }
                       }}
@@ -191,7 +191,7 @@ export default function AgentPage() {
           <button onClick={() => { setCreating(false); setEditingAgentId(null); setDraft(emptyDraft); }} className="p-1.5 rounded-full hover:bg-[var(--hover-bg)]">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--foreground)" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
-          <span className="text-lg font-bold">{editingAgentId ? "Edit Agent" : t("agent.createNew")}</span>
+          <span className="text-lg font-bold">{editingAgentId ? t("agent.editAgent") : t("agent.createNew")}</span>
         </header>
         <div className="px-4 pt-4 pb-4">
           <div className="mb-4">
@@ -236,7 +236,7 @@ export default function AgentPage() {
           {/* Twitter連携削除済み */}
           <button onClick={handleCreate} disabled={!draft.name.trim()}
             className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold py-3 rounded-full">
-            {editingAgentId ? "Save" : t("agent.create")}
+            {editingAgentId ? t("agent.saveBtn") : t("agent.create")}
           </button>
         </div>
         <div className="h-20" />
@@ -309,7 +309,7 @@ export default function AgentPage() {
         {/* Info */}
         <div className="px-4 pb-3 space-y-2">
           {(agent.config.role || agent.config.expertise) && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.role")}:</span> {agent.config.role || agent.config.expertise}</div>}
-          {(agent.config.personality || agent.config.character) && <div className="text-[13px]"><span className="text-[var(--muted)]">性格:</span> {agent.config.personality || agent.config.character}</div>}
+          {(agent.config.personality || agent.config.character) && <div className="text-[13px]"><span className="text-[var(--muted)]">{t("agent.personalityLabel")}</span> {agent.config.personality || agent.config.character}</div>}
           {/* Twitter表示削除済み */}
         </div>
 
@@ -321,8 +321,8 @@ export default function AgentPage() {
         <div className="px-4 py-6 text-center">
           <button
             onClick={() => {
-              if (confirm(`${agent.config.name}を削除しますか？`)) {
-                if (confirm("この操作は取り消せません。本当によろしいですか？")) {
+              if (confirm(t("agent.confirmDelete").replace("{name}", agent.config.name))) {
+                if (confirm(t("settings.cancelConfirm2"))) {
                   removeAgent(agent.id);
                   setSelectedAgentId(null);
                 }
@@ -330,7 +330,7 @@ export default function AgentPage() {
             }}
             className="text-[11px] text-[var(--muted)] hover:text-[var(--danger)] transition-colors"
           >
-            このエージェントを削除
+            {t("agent.deleteThisAgent")}
           </button>
         </div>
       )}

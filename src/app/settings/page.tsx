@@ -40,7 +40,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     if (!file.type.startsWith("image/")) return;
-    if (file.size > 2 * 1024 * 1024) { alert("2MB以下の画像を選択してください"); return; }
+    if (file.size > 2 * 1024 * 1024) { alert(t("settings.avatarTooLarge")); return; }
 
     setAvatarUploading(true);
     const formData = new FormData();
@@ -53,10 +53,10 @@ export default function SettingsPage() {
       if (res.ok && data.url) {
         await updateAvatarUrl(data.url);
       } else {
-        alert(data.error || "アップロードに失敗しました");
+        alert(data.error || t("settings.uploadFailed"));
       }
     } catch {
-      alert("アップロードに失敗しました");
+      alert(t("settings.uploadFailed"));
     }
     setAvatarUploading(false);
     if (avatarInputRef.current) avatarInputRef.current.value = "";
@@ -76,7 +76,7 @@ export default function SettingsPage() {
     setLoading(true);
     const { error } = await updateDisplayName(displayName);
     if (error) showErr(error);
-    else showMsg("保存しました");
+    else showMsg(t("settings.saved"));
     setLoading(false);
   };
 
@@ -100,8 +100,8 @@ export default function SettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm("本当に解約しますか？すべてのデータが削除されます。")) return;
-    if (!confirm("この操作は取り消せません。本当によろしいですか？")) return;
+    if (!confirm(t("settings.cancelConfirm"))) return;
+    if (!confirm(t("settings.cancelConfirm2"))) return;
     setLoading(true);
     try {
       const deviceId = localStorage.getItem("musu_device_id") || "";
@@ -112,7 +112,7 @@ export default function SettingsPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        showErr(data.error || "解約に失敗しました");
+        showErr(data.error || t("settings.cancelFailed"));
         setLoading(false);
         return;
       }
@@ -120,7 +120,7 @@ export default function SettingsPage() {
       localStorage.clear();
       window.location.href = "/?signup=1";
     } catch {
-      showErr("解約に失敗しました");
+      showErr(t("settings.cancelFailed"));
       setLoading(false);
     }
   };
@@ -141,11 +141,11 @@ export default function SettingsPage() {
         {/* Credit balance + charge */}
         <div className="flex items-center justify-between p-4 bg-[var(--search-bg)] rounded-2xl">
           <div>
-            <p className="text-[12px] text-[var(--muted)]">クレジット残高</p>
+            <p className="text-[12px] text-[var(--muted)]">{t("settings.creditLabel")}</p>
             <p className="text-2xl font-extrabold">¥{balance !== null ? Math.round(balance).toLocaleString() : "..."}</p>
           </div>
           <button onClick={() => router.push("/charge")} className="px-5 py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-full hover:bg-[var(--accent-hover)]">
-            チャージ
+            {t("settings.chargeBtn")}
           </button>
         </div>
 
@@ -204,8 +204,8 @@ export default function SettingsPage() {
 
         {/* Business Info */}
         <div>
-          <h2 className="text-[15px] font-bold mb-3">事業情報</h2>
-          <p className="text-[12px] text-[var(--muted)] mb-2">エージェントがあなたの事業を理解するための情報です。サービス名、URL、事業内容、ターゲット層などを自由に記入してください。</p>
+          <h2 className="text-[15px] font-bold mb-3">{t("settings.businessInfo")}</h2>
+          <p className="text-[12px] text-[var(--muted)] mb-2">{t("settings.businessInfoDesc")}</p>
           <textarea value={businessInfoField} onChange={(e) => setBusinessInfoField(e.target.value)}
             placeholder="例: musu.world - AIエージェントチームを育てて仕事に使うツール。ソロプレナー向け。従量課金制。"
             rows={4}
@@ -214,11 +214,11 @@ export default function SettingsPage() {
             setLoading(true);
             const { error } = await updateBusinessInfo(businessInfoField);
             if (error) showErr(error);
-            else showMsg("保存しました");
+            else showMsg(t("settings.saved"));
             setLoading(false);
           }} disabled={loading}
             className="px-4 py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-xl hover:bg-[var(--accent-hover)] disabled:opacity-50">
-            保存
+            {t("settings.save")}
           </button>
         </div>
 
@@ -291,15 +291,15 @@ export default function SettingsPage() {
 
         <hr className="border-[var(--card-border)]" />
 
-        {/* 解約 */}
+        {/* Cancel Account */}
         <div className="pt-2">
-          <h2 className="text-[15px] font-bold mb-2 text-[var(--danger)]">解約</h2>
+          <h2 className="text-[15px] font-bold mb-2 text-[var(--danger)]">{t("settings.cancelAccount")}</h2>
           <p className="text-[13px] text-[var(--muted)] mb-4">
-            アカウントとすべてのエージェント・チャット履歴が完全に削除されます。この操作は取り消せません。同じメールアドレスで再登録は可能です。
+            {t("settings.cancelDesc")}
           </p>
           <button onClick={handleDeleteAccount} disabled={loading}
             className="w-full py-2.5 border border-[var(--danger)] text-[var(--danger)] rounded-xl text-sm font-bold hover:bg-[rgba(244,33,46,0.1)] disabled:opacity-50 transition-colors">
-            アカウントを削除する
+            {t("settings.deleteAccountBtn")}
           </button>
         </div>
       </div>
