@@ -98,6 +98,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setDisplayName("");
     setAvatarUrl("");
     setBusinessInfo("");
+    // セキュリティ: 他のユーザーのデータにアクセスしないようdevice_idをクリア
+    localStorage.removeItem("musu_device_id");
+    localStorage.removeItem("musu_business_info");
   }, []);
 
   const updateDisplayName = useCallback(async (name: string) => {
