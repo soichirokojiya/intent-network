@@ -1,5 +1,3 @@
-import { supabase } from "./supabase";
-
 export interface ChatMessage {
   id: string;
   type: "user" | "agent";
@@ -13,124 +11,118 @@ export interface ChatMessage {
 
 function getDeviceId(): string {
   if (typeof window === "undefined") return "server";
-  let id = localStorage.getItem("musu_device_id");
-  if (!id) {
-    id = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    localStorage.setItem("musu_device_id", id);
-  }
-  return id;
+  return localStorage.getItem("musu_device_id") || "";
 }
 
 export async function loadChatHistory(roomId: string = "general"): Promise<ChatMessage[]> {
   const deviceId = getDeviceId();
-  console.log("loadChatHistory deviceId:", deviceId, "roomId:", roomId);
-  const { data, error } = await supabase
-    .from("owner_chats")
-    .select("*")
-    .eq("device_id", deviceId)
-    .eq("room_id", roomId)
-    .order("created_at", { ascending: false })
-    .limit(30);
+  if (!deviceId) return [];
 
-  if (error) { console.error("loadChatHistory error:", error); return []; }
-  if (!data) return [];
-  console.log("loadChatHistory loaded:", data.length, "messages");
+  try {
+    const res = await fetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=30`);
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
 
-  // Reverse back to chronological order (fetched newest-first for limit)
-  return data.reverse().map((row) => ({
-    id: row.id,
-    type: row.type as "user" | "agent",
-    agentName: row.agent_name || undefined,
-    agentAvatar: row.agent_avatar || undefined,
-    agentId: row.agent_id || undefined,
-    text: row.text,
-    tweetPreview: row.tweet_preview || undefined,
-    timestamp: new Date(row.created_at).getTime(),
-  }));
+    return data.map((row: Record<string, unknown>) => ({
+      id: row.id as string,
+      type: row.type as "user" | "agent",
+      agentName: (row.agent_name as string) || undefined,
+      agentAvatar: (row.agent_avatar as string) || undefined,
+      agentId: (row.agent_id as string) || undefined,
+      text: row.text as string,
+      tweetPreview: (row.tweet_preview as string) || undefined,
+      timestamp: new Date(row.created_at as string).getTime(),
+    }));
+  } catch (e) {
+    console.error("loadChatHistory error:", e);
+    return [];
+  }
 }
 
-// Load older messages before a given timestamp
 export async function loadOlderMessages(roomId: string = "general", beforeTimestamp: number, limit: number = 30): Promise<ChatMessage[]> {
   const deviceId = getDeviceId();
-  const { data, error } = await supabase
-    .from("owner_chats")
-    .select("*")
-    .eq("device_id", deviceId)
-    .eq("room_id", roomId)
-    .lt("created_at", new Date(beforeTimestamp).toISOString())
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  if (!deviceId) return [];
 
-  if (error || !data) return [];
+  try {
+    const before = new Date(beforeTimestamp).toISOString();
+    const res = await fetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=${limit}&before=${before}`);
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
 
-  return data.reverse().map((row) => ({
-    id: row.id,
-    type: row.type as "user" | "agent",
-    agentName: row.agent_name || undefined,
-    agentAvatar: row.agent_avatar || undefined,
-    agentId: row.agent_id || undefined,
-    text: row.text,
-    tweetPreview: row.tweet_preview || undefined,
-    timestamp: new Date(row.created_at).getTime(),
-  }));
+    return data.map((row: Record<string, unknown>) => ({
+      id: row.id as string,
+      type: row.type as "user" | "agent",
+      agentName: (row.agent_name as string) || undefined,
+      agentAvatar: (row.agent_avatar as string) || undefined,
+      agentId: (row.agent_id as string) || undefined,
+      text: row.text as string,
+      tweetPreview: (row.tweet_preview as string) || undefined,
+      timestamp: new Date(row.created_at as string).getTime(),
+    }));
+  } catch (e) {
+    console.error("loadOlderMessages error:", e);
+    return [];
+  }
 }
 
-// Get recent conversation for an agent (for context injection)
 export async function getAgentConversation(agentId: string, roomId: string = "general", limit: number = 10): Promise<{ role: string; text: string }[]> {
   const deviceId = getDeviceId();
-  const { data } = await supabase
-    .from("owner_chats")
-    .select("*")
-    .eq("device_id", deviceId)
-    .eq("room_id", roomId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  if (!deviceId) return [];
 
-  if (!data) return [];
+  try {
+    const res = await fetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=${limit}`);
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
 
-  // Filter to only this agent's messages and user messages near them
-  return data
-    .reverse()
-    .filter((row) => row.type === "user" || row.agent_id === agentId)
-    .map((row) => ({
-      role: row.type === "user" ? "オーナー" : row.agent_name || "Agent",
-      text: row.text,
-    }));
+    return data
+      .filter((row: Record<string, unknown>) => row.type === "user" || row.agent_id === agentId)
+      .map((row: Record<string, unknown>) => ({
+        role: row.type === "user" ? "オーナー" : (row.agent_name as string) || "Agent",
+        text: (row.text as string).slice(0, 200),
+      }));
+  } catch {
+    return [];
+  }
 }
 
-// Get full room conversation (for orchestrator context)
 export async function getRoomConversation(roomId: string = "general", limit: number = 15): Promise<{ role: string; text: string }[]> {
   const deviceId = getDeviceId();
-  const { data } = await supabase
-    .from("owner_chats")
-    .select("*")
-    .eq("device_id", deviceId)
-    .eq("room_id", roomId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  if (!deviceId) return [];
 
-  if (!data) return [];
+  try {
+    const res = await fetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=${limit}`);
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
 
-  return data
-    .reverse()
-    .map((row) => ({
-      role: row.type === "user" ? "オーナー" : row.agent_name || "Agent",
-      text: row.text.slice(0, 200),
+    return data.map((row: Record<string, unknown>) => ({
+      role: row.type === "user" ? "オーナー" : (row.agent_name as string) || "Agent",
+      text: (row.text as string).slice(0, 200),
     }));
+  } catch {
+    return [];
+  }
 }
 
 export async function saveChatMessage(msg: ChatMessage, roomId: string = "general"): Promise<void> {
   const deviceId = getDeviceId();
-  const { error } = await supabase.from("owner_chats").insert({
-    device_id: deviceId,
-    user_id: deviceId,
-    room_id: roomId,
-    type: msg.type,
-    agent_id: msg.agentId || null,
-    agent_name: msg.agentName || null,
-    agent_avatar: msg.agentAvatar || null,
-    text: msg.text,
-    tweet_preview: msg.tweetPreview || null,
-  });
-  if (error) console.error("saveChatMessage error:", error);
+  if (!deviceId) return;
+
+  try {
+    await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deviceId,
+        roomId,
+        type: msg.type,
+        agentId: msg.agentId || null,
+        agentName: msg.agentName || null,
+        agentAvatar: msg.agentAvatar || null,
+        text: msg.text,
+        tweetPreview: msg.tweetPreview || null,
+      }),
+    });
+  } catch (e) {
+    console.error("saveChatMessage error:", e);
+  }
 }
