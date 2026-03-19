@@ -105,6 +105,71 @@ function ChatMessageText({ text, readMoreLabel, closeLabel }: { text: string; re
   return <>{parts}</>;
 }
 
+const INTRO_MAP: Record<string, (name: string) => string> = {
+  "オーケストレーター": (n) => `はじめまして！チームリーダーの${n}です。メッセージを送ってくれたら、僕がメンバーに振り分けます。`,
+  "マーケティング": (n) => `${n}です！マーケティング担当。売り方や集客の相談はお任せください。`,
+  "リサーチ": (n) => `${n}です。リサーチ担当。市場や競合を調べるのが得意です。`,
+  "哲学者": (n) => `${n}です。「そもそもこれって正しい？」という視点で物事の本質を問います。`,
+  "ストラテジスト": (n) => `${n}です。戦略担当。大きな方向性を一緒に考えましょう。`,
+  "クリエイティブ": (n) => `${n}です！クリエイティブ担当。ユニークなアイデアを提案します。`,
+  "ファイナンス": (n) => `${n}です。数字とROIの観点からアドバイスします。`,
+};
+
+function WelcomeSequence({ agents }: { agents: { id: string; config: { name: string; avatar: string; role: string; expertise: string } }[] }) {
+  const [step, setStep] = useState(-1); // -1 = not started, 0..n = showing typing for agent i
+  const [shown, setShown] = useState<number[]>([]); // indices of agents whose messages are visible
+
+  useEffect(() => {
+    // Start after 500ms
+    const t0 = setTimeout(() => setStep(0), 500);
+    return () => clearTimeout(t0);
+  }, []);
+
+  useEffect(() => {
+    if (step < 0 || step >= agents.length) return;
+    // Show typing for 1.2s, then reveal message and move to next
+    const timer = setTimeout(() => {
+      setShown((prev) => [...prev, step]);
+      setStep(step + 1);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [step, agents.length]);
+
+  return (
+    <div className="space-y-3 py-4">
+      {agents.map((agent, i) => {
+        const role = agent.config.role || agent.config.expertise || "";
+        const introFn = INTRO_MAP[role];
+        const intro = introFn ? introFn(agent.config.name) : `${agent.config.name}です。${role}担当です。よろしくお願いします。`;
+        const isLast = i === agents.length - 1;
+        const lastMsg = isLast ? "\n\n@をつければ特定のメンバーに直接話せます。チーム編成は自由にカスタマイズできます。プロフィールに事業情報を入れるとチーム全員が理解します。気軽にどうぞ！" : "";
+        const isTyping = step === i && !shown.includes(i);
+        const isVisible = shown.includes(i);
+
+        if (!isTyping && !isVisible) return null;
+
+        return (
+          <div key={agent.id} className="flex gap-2 animate-fade-in">
+            <div className="flex-shrink-0 mt-1">
+              <AgentAvatarDisplay avatar={agent.config.avatar} size={32} />
+            </div>
+            <div className="max-w-[75%]">
+              <span className="text-[11px] text-[var(--muted)]">{agent.config.name}</span>
+              <div className="mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-[var(--search-bg)]">
+                {isTyping ? (
+                  <span className="text-[14px] text-[var(--muted)] animate-pulse">...</span>
+                ) : (
+                  <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{intro + lastMsg}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface ChatMessage {
   id: string;
   type: "user" | "agent" | "read" | "typing";
@@ -430,36 +495,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         )}
 
         {chatHistory.length === 0 && myAgents.length > 0 && (
-          <div className="space-y-3 py-4">
-            {myAgents.map((agent, i) => {
-              const introMap: Record<string, string> = {
-                "オーケストレーター": `はじめまして！チームリーダーの${agent.config.name}です。メッセージを送ってくれたら、僕がメンバーに振り分けます。`,
-                "マーケティング": `${agent.config.name}です！マーケティング担当。売り方や集客の相談はお任せください。`,
-                "リサーチ": `${agent.config.name}です。リサーチ担当。市場や競合を調べるのが得意です。`,
-                "哲学者": `${agent.config.name}です。「そもそもこれって正しい？」という視点で物事の本質を問います。`,
-                "ストラテジスト": `${agent.config.name}です。戦略担当。大きな方向性を一緒に考えましょう。`,
-                "クリエイティブ": `${agent.config.name}です！クリエイティブ担当。ユニークなアイデアを提案します。`,
-                "ファイナンス": `${agent.config.name}です。数字とROIの観点からアドバイスします。`,
-              };
-              const role = agent.config.role || agent.config.expertise || "";
-              const intro = introMap[role] || `${agent.config.name}です。${role}担当です。よろしくお願いします。`;
-              const isLast = i === myAgents.length - 1;
-              const lastMsg = isLast ? "\n\n@をつければ特定のメンバーに直接話せます。チーム編成は自由にカスタマイズできます。プロフィールに事業情報を入れるとチーム全員が理解します。気軽にどうぞ！" : "";
-              return (
-                <div key={agent.id} className="flex gap-2 animate-fade-in" style={{ animationDelay: `${1 + i * 1.2}s`, animationFillMode: "backwards" }}>
-                  <div className="flex-shrink-0 mt-1">
-                    <AgentAvatarDisplay avatar={agent.config.avatar} size={32} />
-                  </div>
-                  <div className="max-w-[75%]">
-                    <span className="text-[11px] text-[var(--muted)]">{agent.config.name}</span>
-                    <div className="mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-[var(--search-bg)]">
-                      <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{intro + lastMsg}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <WelcomeSequence agents={myAgents} />
         )}
 
         {chatHistory.map((msg, idx) => {
