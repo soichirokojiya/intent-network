@@ -7,7 +7,7 @@ import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import Link from "next/link";
 
 export function RightPanel() {
-  const { intents, myAgents, removeAgent } = useIntents();
+  const { intents, myAgents, removeAgent, activeAgentIds, toggleActiveAgent } = useIntents();
   const { locale, t } = useLocale();
 
   return (
@@ -30,10 +30,14 @@ export function RightPanel() {
           <h2 className="text-xl font-extrabold mb-3">{t("right.myAgents")}</h2>
           {myAgents.map((agent) => (
             <div key={agent.id} className="flex items-center gap-3 py-2.5 border-b border-[var(--card-border)] last:border-b-0 hover:bg-[var(--hover-bg)] -mx-2 px-2 rounded-lg transition-colors group">
-              <Link href={`/agent?id=${agent.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                <div className={`${agent.stats.mood === "dead" ? "grayscale opacity-50" : ""}`}>
-                  <AgentAvatarDisplay avatar={agent.config.avatar} size={36} />
-                </div>
+              <button
+                onClick={() => toggleActiveAgent(agent.id)}
+                className={`w-8 h-5 rounded-full flex-shrink-0 transition-colors ${activeAgentIds.has(agent.id) ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
+              >
+                <div className={`w-3.5 h-3.5 bg-white rounded-full transition-transform mx-0.5 ${activeAgentIds.has(agent.id) ? "translate-x-3" : ""}`} />
+              </button>
+              <Link href={`/agent?id=${agent.id}`} className={`flex items-center gap-3 flex-1 min-w-0 ${!activeAgentIds.has(agent.id) ? "opacity-40" : ""}`}>
+                <AgentAvatarDisplay avatar={agent.config.avatar} size={36} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-bold truncate">{agent.config.name}</span>
