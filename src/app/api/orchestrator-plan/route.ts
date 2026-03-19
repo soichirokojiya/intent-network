@@ -40,16 +40,23 @@ ${agentList}
 以下のJSON形式で出力してください（他の文字不要）:
 {
   "directResponse": "オーナーへの返事（下記のフォーマットに従う）",
-  "delegations": [
+  "steps": [
     {
       "agentId": "エージェントのID",
       "agentName": "エージェント名",
       "task": "そのエージェントへの具体的な指示内容",
       "complexity": "simple or moderate or complex",
-      "requestTweet": false
+      "requestTweet": false,
+      "dependsOn": []
     }
   ]
 }
+
+stepsのdependsOnについて:
+- dependsOnは、そのステップが実行前に完了を待つべきエージェント名の配列
+- 依存関係がないステップ（dependsOn: []）は並列実行される
+- 例: Kaiの分析結果をHanaが検証する場合 → Hanaのステップに "dependsOn": ["Kai"]
+- 依存があるステップには、前のステップの結果が自動的に渡される
 
 directResponseのフォーマット（振り分けがある場合）:
 「了解です。以下のように振り分けます。
@@ -70,8 +77,9 @@ directResponseのフォーマット（雑談・簡単な質問の場合）:
 - requestTweetは常にfalse
 - taskは具体的に。エージェントが即座に行動できる指示にする。ツイートの作成は指示に含めないこと
 - 自分（オーケストレーター）にタスクを振らないこと
-- 簡単な質問や雑談の場合はdelegationsを空配列にしてdirectResponseだけ返す
-- 「数日で」「後ほど」など時間がかかる表現は絶対に使わない。全て即座に回答する`,
+- 簡単な質問や雑談の場合はstepsを空配列にしてdirectResponseだけ返す
+- 「数日で」「後ほど」など時間がかかる表現は絶対に使わない。全て即座に回答する
+- 各エージェントのtaskには、そのエージェントが単独で回答できる十分な情報を含めること。「結果待ち」「整理してから」は不要`,
       }],
     });
 

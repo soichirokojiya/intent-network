@@ -760,7 +760,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         const directResponse = (plan.directResponse || "了解しました。").replace(/\\n/g, "\n");
+        // Backward compatibility: support both "steps" (new pipeline) and "delegations" (old flow)
+        const steps = plan.steps || [];
         const delegations = plan.delegations || [];
+        const pipelineSteps = steps.length > 0 ? steps : delegations.map((d: { agentId: string; agentName?: string; task: string; complexity?: string; requestTweet?: boolean }) => ({ ...d, dependsOn: [] }));
 
         // Show orchestrator's response
         setAgentResponses((prev) => [...prev, {
@@ -768,98 +771,86 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           toOwner: directResponse, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
         }]);
 
-        // Execute delegations sequentially to avoid rate limits
-        type Delegation = { agentId: string; agentName?: string; task: string; requestTweet?: boolean };
-        const resolved = delegations.map((d: Delegation) => ({
+        // Resolve agent references for each step
+        type PipelineStep = { agentId: string; agentName?: string; task: string; requestTweet?: boolean; complexity?: string; dependsOn?: string[] };
+        const resolved = pipelineSteps.map((d: PipelineStep) => ({
           ...d,
           agent: allConfigured.find((a) => a.id === d.agentId)
             || allConfigured.find((a) => a.config.name === d.agentName)
             || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase()),
         }));
 
-        // 動的議論: オーケストレーターがOKと判断するまでループ
+        // Task Execution Pipeline: run steps in dependency order
         (async () => {
-          const allAgents = resolved.filter((d: { agent?: MyAgent }) => d.agent).map((d: { agent?: MyAgent }) => ({
-            name: d.agent!.config.name,
-            role: d.agent!.config.role || d.agent!.config.expertise || "",
-            agent: d.agent!,
-          }));
-          const discussion: { name: string; text: string }[] = [];
+          const results: Record<string, string> = {};
+          const completed = new Set<string>();
+          const validSteps = resolved.filter((d: { agent?: MyAgent }) => d.agent);
 
-          // Initial: 各エージェントが並列で回答
-          const initialPromises = resolved.filter((d: { agent?: MyAgent }) => d.agent).map((d: { agent?: MyAgent; task: string; requestTweet?: boolean; complexity?: string }) =>
-            Promise.race([
-              directAgentRespond(d.agent!, `${d.task}\n\nオーナーの元のメッセージ:「${text}」\n\n自然な話し言葉で回答して。ラベル（主張:、根拠:等）は使わない。提案とその理由、注意点を会話として伝えて。`, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
-              new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
-            ]).then((response) => {
-              discussion.push({ name: d.agent!.config.name, text: response || "" });
-              return response;
-            }).catch((e) => {
-              console.error(`Initial ${d.agent!.config.name} skipped:`, e);
-              return "";
-            })
-          );
-          await Promise.all(initialPromises);
+          // Helper: check if all dependencies are satisfied
+          const depsReady = (step: PipelineStep) => {
+            const deps = step.dependsOn || [];
+            return deps.every((dep: string) => completed.has(dep));
+          };
 
-          // 議論ループ（最大3回）: オーケストレーターが判断
-          for (let round = 0; round < 3 && orchestrator; round++) {
-            const discussionSummary = discussion.map((d) => `${d.name}: ${d.text.slice(0, 250)}`).join("\n");
+          // Process steps in waves until all are done
+          const pending = new Set(validSteps.map((s: { agent?: MyAgent }) => s.agent!.config.name));
+          let maxWaves = 5; // safety limit
 
-            // オーケストレーターに判断を仰ぐ（Haikuで高速）
-            let judgeResult = { done: true, nextAgent: "", question: "" };
-            try {
-              const judgeRes = await fetch("/api/orchestrator-plan", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  ownerMessage: `以下のチーム議論を評価してください。オーナーの元の質問:「${text}」\n\n議論内容:\n${discussionSummary}\n\n判断してJSON出力:\n{"done": true/false, "reason": "議論が十分か不十分かの理由", "nextAgent": "追加で意見を求めるエージェント名（不十分な場合）", "question": "そのエージェントへの具体的な質問（不十分な場合）"}\n\n不十分な基準: 根拠が弱い、反論がない、具体性が足りない、リスク検討が不十分`,
-                  orchestratorName: orchestrator.config.name,
-                  orchestratorPersonality: orchestrator.config.character || orchestrator.config.personality,
-                  orchestratorTone: orchestrator.config.speakingStyle || orchestrator.config.tone,
-                  ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
-                  agents: allAgents.map((a: { agent: MyAgent; name: string; role: string }) => ({ id: a.agent.id, name: a.name, role: a.role, twitterEnabled: false })),
-                }),
-              }).then((r) => r.json());
+          while (pending.size > 0 && maxWaves-- > 0) {
+            // Find steps ready to run (dependencies met, not yet completed)
+            const readySteps = validSteps.filter((s: { agent?: MyAgent; dependsOn?: string[] }) =>
+              pending.has(s.agent!.config.name) && depsReady(s as PipelineStep)
+            );
 
-              // Parse judge response
-              const jMatch = JSON.stringify(judgeRes).match(/\{[\s\S]*"done"[\s\S]*\}/);
-              if (jMatch) {
-                try {
-                  const parsed = JSON.parse(jMatch[0].replace(/,\s*([}\]])/g, "$1"));
-                  judgeResult = parsed;
-                } catch { /* use default done=true */ }
-              }
-              if (judgeRes.directResponse && !judgeRes.done) {
-                judgeResult = { done: false, nextAgent: judgeRes.nextAgent || "", question: judgeRes.directResponse };
-              }
-            } catch (e) {
-              console.error("Judge call failed:", e);
-              break;
+            if (readySteps.length === 0) {
+              // Circular dependency or missing agents - run remaining anyway
+              console.warn("Pipeline: no ready steps, forcing remaining");
+              readySteps.push(...validSteps.filter((s: { agent?: MyAgent }) => pending.has(s.agent!.config.name)));
             }
 
-            if (judgeResult.done) break;
-
-            // 指名されたエージェントに追加質問
-            const targetAgent = allAgents.find((a: { name: string }) => a.name === judgeResult.nextAgent) || allAgents[round % allAgents.length];
-            if (targetAgent) {
-              const followUpPrompt = `${judgeResult.question}\n\nこれまでの議論:\n${discussionSummary}\n\n自然な話し言葉で回答して。他のメンバーに言及する時は「@Kai」「@Sora」のようにメンション形式で。3-4文で。`;
-              try {
-                const response = await Promise.race([
-                  directAgentRespond(targetAgent.agent, followUpPrompt, false, 0, roomId, "moderate"),
-                  new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 60000)),
-                ]);
-                discussion.push({ name: targetAgent.name, text: response || "" });
-              } catch (e) {
-                console.error(`FollowUp ${targetAgent.name} skipped:`, e);
+            // Execute ready steps in parallel
+            const wavePromises = readySteps.map((d: { agent?: MyAgent; task: string; requestTweet?: boolean; complexity?: string; dependsOn?: string[] }) => {
+              // Build prompt with previous results injected
+              const deps = d.dependsOn || [];
+              let previousResultsText = "";
+              if (deps.length > 0) {
+                const depResults = deps
+                  .filter((dep: string) => results[dep])
+                  .map((dep: string) => `・${dep}: ${results[dep]}`);
+                if (depResults.length > 0) {
+                  previousResultsText = `前のステップの結果:\n${depResults.join("\n")}\n\n`;
+                }
               }
-            }
+
+              const taskPrompt = `${previousResultsText}${d.task}\n\nオーナーの元のメッセージ:「${text}」\n\n自然な話し言葉で回答して。ラベル（主張:、根拠:等）は使わない。提案とその理由、注意点を会話として伝えて。`;
+
+              return Promise.race([
+                directAgentRespond(d.agent!, taskPrompt, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
+                new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
+              ]).then((response) => {
+                const name = d.agent!.config.name;
+                results[name] = response || "";
+                completed.add(name);
+                pending.delete(name);
+              }).catch((e) => {
+                const name = d.agent!.config.name;
+                console.error(`Pipeline step ${name} failed:`, e);
+                results[name] = `エラー: ${e.message || "タイムアウト"}`;
+                completed.add(name);
+                pending.delete(name);
+              });
+            });
+
+            await Promise.all(wavePromises);
           }
 
-          // 最終まとめ: オーケストレーター
-          if (discussion.length > 0 && orchestrator) {
-            const finalSummary = discussion.map((d) => `${d.name}: ${d.text.slice(0, 300)}`).join("\n");
+          // Final summary: orchestrator synthesizes all results
+          const resultEntries = Object.entries(results).filter(([, v]) => v && !v.startsWith("エラー:"));
+          if (resultEntries.length > 0 && orchestrator) {
+            const finalSummary = resultEntries.map(([name, text]) => `${name}: ${text.slice(0, 300)}`).join("\n");
             try {
               await Promise.race([
-                directAgentRespond(orchestrator, `チームの議論結果からオーナーへの意思決定ブリーフを作成。\n\n${finalSummary}\n\n・結論: 最終提案（1文）\n・確度: 高/中/低\n・重要な論点と結論\n・最大リスク\n・次のアクション\n・監視指標`, false, 0, roomId, "moderate"),
+                directAgentRespond(orchestrator, `チームの作業結果からオーナーへの意思決定ブリーフを作成。\n\n${finalSummary}\n\n・結論: 最終提案（1文）\n・確度: 高/中/低\n・重要な論点と結論\n・最大リスク\n・次のアクション\n・監視指標`, false, 0, roomId, "moderate"),
                 new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
             } catch (e) {
@@ -868,8 +859,8 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           }
         })();
 
-        // If no delegations (simple chat), just update orchestrator stats
-        if (delegations.length === 0) {
+        // If no steps (simple chat), just update orchestrator stats
+        if (pipelineSteps.length === 0) {
           updateAgentStats(orchestrator.id, (s) => {
             const { mood } = calcBiorhythm(s.biorhythmSeed || 0, Date.now(), s.recentPostTimestamps || [], s.restingUntil);
             return { ...s, lastInteractedAt: Date.now(), mood };
