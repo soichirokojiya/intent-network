@@ -13,20 +13,35 @@ interface Todo {
   created_at: string;
 }
 
-const COLUMNS: { key: Status; label: string }[] = [
-  { key: "todo", label: "TODO" },
-  { key: "doing", label: "進行中" },
-  { key: "done", label: "完了" },
-];
+const DEFAULT_LABELS: Record<Status, string> = {
+  todo: "TODO",
+  doing: "進行中",
+  done: "完了",
+};
 
 export default function TodoPage() {
   const { t } = useLocale();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [loading, setLoading] = useState(true);
+  const [labels, setLabels] = useState<Record<Status, string>>(DEFAULT_LABELS);
+  const [editingLabel, setEditingLabel] = useState<Status | null>(null);
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
+  const [editingTodoTitle, setEditingTodoTitle] = useState("");
 
   const getDeviceId = () =>
     typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
+
+  // Load labels from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("musu_todo_labels");
+    if (saved) try { setLabels(JSON.parse(saved)); } catch { /* ignore */ }
+  }, []);
+
+  const saveLabels = (newLabels: Record<Status, string>) => {
+    setLabels(newLabels);
+    localStorage.setItem("musu_todo_labels", JSON.stringify(newLabels));
+  };
 
   const fetchTodos = useCallback(async () => {
     const deviceId = getDeviceId();
@@ -50,7 +65,7 @@ export default function TodoPage() {
     setNewTitle("");
     const { data } = await supabase
       .from("todos")
-      .insert({ device_id: deviceId, title, status: "todo" as Status })
+      .insert({ device_id: deviceId, user_id: deviceId, title, status: "todo" as Status })
       .select("id, title, status, created_at")
       .single();
     if (data) setTodos((prev) => [...prev, data]);
@@ -68,9 +83,23 @@ export default function TodoPage() {
     await supabase.from("todos").update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", id);
   };
 
+  const updateTodoTitle = async (id: string, title: string) => {
+    if (!title.trim()) return;
+    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, title: title.trim() } : t)));
+    await supabase.from("todos").update({ title: title.trim(), updated_at: new Date().toISOString() }).eq("id", id);
+    setEditingTodoId(null);
+  };
+
   const deleteTodo = async (id: string) => {
     setTodos((prev) => prev.filter((t) => t.id !== id));
     await supabase.from("todos").delete().eq("id", id);
+  };
+
+  const clearDone = async () => {
+    const doneTodos = todos.filter((t) => t.status === "done");
+    if (doneTodos.length === 0) return;
+    setTodos((prev) => prev.filter((t) => t.status !== "done"));
+    await Promise.all(doneTodos.map((t) => supabase.from("todos").delete().eq("id", t.id)));
   };
 
   const columnTodos = (status: Status) => todos.filter((t) => t.status === status);
@@ -88,17 +117,41 @@ export default function TodoPage() {
       <h1 className="text-2xl font-bold mb-6">{t("nav.todo")}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {COLUMNS.map((col) => (
+        {(["todo", "doing", "done"] as Status[]).map((colKey) => (
           <div
-            key={col.key}
+            key={colKey}
             className="bg-[var(--search-bg)] rounded-2xl p-4 min-h-[300px] flex flex-col"
           >
-            <h2 className="font-bold text-sm mb-3 text-[var(--muted)] uppercase tracking-wide">
-              {col.label}
-              <span className="ml-2 text-xs font-normal">({columnTodos(col.key).length})</span>
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              {editingLabel === colKey ? (
+                <input
+                  autoFocus
+                  value={labels[colKey]}
+                  onChange={(e) => saveLabels({ ...labels, [colKey]: e.target.value })}
+                  onBlur={() => setEditingLabel(null)}
+                  onKeyDown={(e) => { if (e.key === "Enter") setEditingLabel(null); }}
+                  className="font-bold text-sm bg-transparent border-b border-[var(--accent)] outline-none w-full"
+                />
+              ) : (
+                <h2
+                  onClick={() => setEditingLabel(colKey)}
+                  className="font-bold text-sm text-[var(--muted)] uppercase tracking-wide cursor-pointer hover:text-[var(--foreground)]"
+                >
+                  {labels[colKey]}
+                  <span className="ml-2 text-xs font-normal">({columnTodos(colKey).length})</span>
+                </h2>
+              )}
+              {colKey === "done" && columnTodos("done").length > 0 && (
+                <button
+                  onClick={clearDone}
+                  className="text-[11px] text-[var(--muted)] hover:text-[var(--danger)] transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
 
-            {col.key === "todo" && (
+            {colKey === "todo" && (
               <form
                 onSubmit={(e) => { e.preventDefault(); addTodo(); }}
                 className="flex gap-2 mb-3"
@@ -121,38 +174,36 @@ export default function TodoPage() {
             )}
 
             <div className="flex flex-col gap-2 flex-1">
-              {columnTodos(col.key).map((todo) => (
+              {columnTodos(colKey).map((todo) => (
                 <div
                   key={todo.id}
                   className="bg-[var(--background)] border border-[var(--card-border)] rounded-xl px-3 py-2 flex items-center gap-2 group"
                 >
-                  <span className="flex-1 text-sm break-all">{todo.title}</span>
-                  <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
-                    {col.key !== "todo" && (
-                      <button
-                        onClick={() => moveTodo(todo.id, "left")}
-                        className="text-[var(--muted)] hover:text-[var(--foreground)] text-xs px-1"
-                        title="Move left"
-                      >
-                        ←
-                      </button>
-                    )}
-                    {col.key !== "done" && (
-                      <button
-                        onClick={() => moveTodo(todo.id, "right")}
-                        className="text-[var(--muted)] hover:text-[var(--foreground)] text-xs px-1"
-                        title="Move right"
-                      >
-                        →
-                      </button>
-                    )}
-                    <button
-                      onClick={() => deleteTodo(todo.id)}
-                      className="text-[var(--muted)] hover:text-red-500 text-xs px-1"
-                      title="Delete"
+                  {editingTodoId === todo.id ? (
+                    <input
+                      autoFocus
+                      value={editingTodoTitle}
+                      onChange={(e) => setEditingTodoTitle(e.target.value)}
+                      onBlur={() => updateTodoTitle(todo.id, editingTodoTitle)}
+                      onKeyDown={(e) => { if (e.key === "Enter") updateTodoTitle(todo.id, editingTodoTitle); if (e.key === "Escape") setEditingTodoId(null); }}
+                      className="flex-1 text-sm bg-transparent border-b border-[var(--accent)] outline-none"
+                    />
+                  ) : (
+                    <span
+                      onClick={() => { setEditingTodoId(todo.id); setEditingTodoTitle(todo.title); }}
+                      className={`flex-1 text-sm break-all cursor-pointer ${colKey === "done" ? "line-through text-[var(--muted)]" : ""}`}
                     >
-                      ×
-                    </button>
+                      {todo.title}
+                    </span>
+                  )}
+                  <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+                    {colKey !== "todo" && (
+                      <button onClick={() => moveTodo(todo.id, "left")} className="text-[var(--muted)] hover:text-[var(--foreground)] text-xs px-1">←</button>
+                    )}
+                    {colKey !== "done" && (
+                      <button onClick={() => moveTodo(todo.id, "right")} className="text-[var(--muted)] hover:text-[var(--foreground)] text-xs px-1">→</button>
+                    )}
+                    <button onClick={() => deleteTodo(todo.id)} className="text-[var(--muted)] hover:text-red-500 text-xs px-1">×</button>
                   </div>
                 </div>
               ))}
