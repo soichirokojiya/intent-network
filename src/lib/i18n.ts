@@ -403,6 +403,10 @@ const translations: Record<string, Record<Locale, string>> = {
   "settings.creditBalance": { en: "Credit Balance", ja: "クレジット残高", zh: "信用余额", es: "Saldo de crédito", ko: "크레딧 잔액" },
   "settings.charge": { en: "Charge", ja: "チャージ", zh: "充值", es: "Recargar", ko: "충전" },
 
+  // TODO board
+  "nav.todo": { en: "TODO", ja: "TODO", zh: "TODO", es: "TODO", ko: "TODO" },
+  "todo.addPlaceholder": { en: "Add a task...", ja: "タスクを追加...", zh: "添加任务...", es: "Agregar tarea...", ko: "작업 추가..." },
+
   "tone.polite": { en: "Polite", ja: "丁寧語", zh: "礼貌", es: "Educado", ko: "존댓말" },
   "tone.casual": { en: "Casual", ja: "タメ口", zh: "随意", es: "Informal", ko: "반말" },
   "tone.sarcastic": { en: "Sarcastic", ja: "毒舌", zh: "毒舌", es: "Sarcástico", ko: "독설" },
