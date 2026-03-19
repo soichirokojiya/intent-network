@@ -430,13 +430,6 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         {chatHistory.length === 0 && myAgents.length > 0 && (
           <div className="space-y-3 py-4">
             {myAgents.map((agent, i) => {
-              // Stagger appearance: each agent appears 800ms after the previous
-              const [visible, setVisible] = useState(false);
-              useEffect(() => {
-                const timer = setTimeout(() => setVisible(true), i * 800);
-                return () => clearTimeout(timer);
-              }, []);
-              if (!visible) return null;
               const introMap: Record<string, string> = {
                 "オーケストレーター": `はじめまして！チームリーダーの${agent.config.name}です。メッセージを送ってくれたら、僕がメンバーに振り分けます。`,
                 "マーケティング": `${agent.config.name}です！マーケティング担当。売り方や集客の相談はお任せください。`,
@@ -451,7 +444,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               const isLast = i === myAgents.length - 1;
               const lastMsg = isLast ? "\n\n@をつければ特定のメンバーに直接話せます。チーム編成は自由にカスタマイズできます。プロフィールに事業情報を入れるとチーム全員が理解します。気軽にどうぞ！" : "";
               return (
-                <div key={agent.id} className="flex gap-2 animate-fade-in">
+                <div key={agent.id} className="flex gap-2 animate-fade-in" style={{ animationDelay: `${i * 0.5}s`, animationFillMode: "backwards" }}>
                   <div className="flex-shrink-0 mt-1">
                     <AgentAvatarDisplay avatar={agent.config.avatar} size={32} />
                   </div>
