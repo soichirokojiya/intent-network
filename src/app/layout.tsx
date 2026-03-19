@@ -20,13 +20,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "musu.world - ひとりなのに、仲間がいる。",
+  title: "musu.world - ひとりだけど、ひとりじゃない。",
   description: "AIが、あなたの仕事仲間になる。フリーランス・個人事業主のためのAIエージェントチーム。",
   icons: {
     icon: "/favicon.svg",
   },
   openGraph: {
-    title: "musu.world - ひとりなのに、仲間がいる。",
+    title: "musu.world - ひとりだけど、ひとりじゃない。",
     description: "AIが、あなたの仕事仲間になる。フリーランス・個人事業主のためのAIエージェントチーム。",
     url: "https://musu.world",
     siteName: "musu.world",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "musu.world - ひとりなのに、仲間がいる。",
+    title: "musu.world - ひとりだけど、ひとりじゃない。",
     description: "AIが、あなたの仕事仲間になる。フリーランス・個人事業主のためのAIエージェントチーム。",
   },
 };

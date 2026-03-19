@@ -418,7 +418,7 @@ const translations: Record<string, Record<Locale, string>> = {
 
   // Auth screen
   "auth.resetPassword": { en: "Reset Password", ja: "パスワードをリセット", zh: "重置密码", es: "Restablecer contraseña", ko: "비밀번호 재설정" },
-  "auth.teamTagline": { en: "Solo, yet a team.", ja: "ひとりなのに、チームがいる。", zh: "一个人，却有团队。", es: "Solo, pero con equipo.", ko: "혼자이지만, 팀이 있다." },
+  "auth.teamTagline": { en: "Solo, but never alone.", ja: "ひとりだけど、ひとりじゃない。", zh: "一个人，却有团队。", es: "Solo, pero con equipo.", ko: "혼자이지만, 팀이 있다." },
   "auth.welcome": { en: "Welcome back", ja: "おかえりなさい", zh: "欢迎回来", es: "Bienvenido de nuevo", ko: "다시 오셨군요" },
   "auth.enterEmail": { en: "Enter your registered email", ja: "登録済みのメールアドレスを入力してください", zh: "请输入注册邮箱", es: "Ingresa tu email registrado", ko: "등록된 이메일을 입력하세요" },
   "auth.freeStart": { en: "Start for free", ja: "無料ではじめる", zh: "免费开始", es: "Empieza gratis", ko: "무료로 시작하기" },

@@ -45,7 +45,7 @@ export function LandingContent() {
           </span>
         </div>
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-5 sm:mb-6">
-          ひとりなのに、
+          ひとりだけど、
           <br />
           仲間がいる。
         </h1>

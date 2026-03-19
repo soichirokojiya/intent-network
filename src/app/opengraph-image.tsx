@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "musu.world - ひとりなのに、仲間がいる。";
+export const alt = "musu.world - ひとりだけど、ひとりじゃない。";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -65,7 +65,7 @@ export default function Image() {
             margin: 0,
           }}
         >
-          ひとりなのに、仲間がいる。
+          ひとりだけど、ひとりじゃない。
         </h1>
         <p
           style={{
