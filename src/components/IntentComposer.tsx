@@ -606,6 +606,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                   onClick={() => {
                     const newText = text.replace(/@\S*$/, `@${agent.config.name} `);
                     setText(newText);
+                    setTimeout(() => textareaRef.current?.focus(), 0);
                   }}
                   className="flex items-center gap-2 px-3 py-2 hover:bg-[var(--hover-bg)] transition-colors w-full text-left"
                 >
