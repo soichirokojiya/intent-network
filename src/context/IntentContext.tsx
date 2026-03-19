@@ -844,13 +844,53 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             await Promise.all(wavePromises);
           }
 
-          // Final summary: orchestrator synthesizes all results
+          // Evaluate and possibly add more steps (max 2 additional rounds)
+          for (let evalRound = 0; evalRound < 2 && orchestrator; evalRound++) {
+            const resultEntries = Object.entries(results).filter(([, v]) => v && !v.startsWith("エラー:"));
+            if (resultEntries.length === 0) break;
+            const currentSummary = resultEntries.map(([name, r]) => `${name}: ${r.slice(0, 250)}`).join("\n");
+
+            // Ask orchestrator: enough to summarize, or need more?
+            try {
+              const evalRes = await fetch("/api/orchestrator-plan", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ownerMessage: `チームの作業結果を評価してください。\n\n元の質問:「${text}」\n\n作業結果:\n${currentSummary}\n\n判断: まとめに入れるか、追加の作業が必要かをJSON出力:\n{"directResponse":"判断理由","steps":[追加ステップがあれば]}\n\nstepsが空配列ならまとめに入ります。不足があればstepsに追加タスクを入れてください。`,
+                  orchestratorName: orchestrator.config.name,
+                  orchestratorPersonality: orchestrator.config.character || orchestrator.config.personality,
+                  orchestratorTone: orchestrator.config.speakingStyle || orchestrator.config.tone,
+                  ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
+                  agents: otherAgents.map((a) => ({ id: a.id, name: a.config.name, role: a.config.role || a.config.expertise || "", twitterEnabled: false })),
+                }),
+              }).then(async (r) => { const t = await r.text(); try { return JSON.parse(t); } catch { return {}; } });
+
+              const additionalSteps = evalRes.steps || [];
+              if (additionalSteps.length === 0) break; // Ready to summarize
+
+              // Execute additional steps
+              for (const addStep of additionalSteps) {
+                const agent = allConfigured.find((a: { config: { name: string } }) => a.config.name === addStep.agentName)
+                  || allConfigured.find((a: { id: string }) => a.id === addStep.agentId);
+                if (!agent) continue;
+                const depResults = Object.entries(results).map(([n, r]) => `・${n}: ${r.slice(0, 200)}`).join("\n");
+                try {
+                  const response = await Promise.race([
+                    directAgentRespond(agent, `これまでの結果:\n${depResults}\n\n${addStep.task}\n\nオーナーの元のメッセージ:「${text}」`, false, 0, roomId, addStep.complexity || "moderate"),
+                    new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
+                  ]);
+                  results[agent.config.name] = response || "";
+                } catch { /* skip */ }
+              }
+            } catch { break; }
+          }
+
+          // Final summary
           const resultEntries = Object.entries(results).filter(([, v]) => v && !v.startsWith("エラー:"));
           if (resultEntries.length > 0 && orchestrator) {
-            const finalSummary = resultEntries.map(([name, text]) => `${name}: ${text.slice(0, 300)}`).join("\n");
+            const finalSummary = resultEntries.map(([name, r]) => `${name}: ${r.slice(0, 300)}`).join("\n");
             try {
               await Promise.race([
-                directAgentRespond(orchestrator, `チームの作業結果からオーナーへの意思決定ブリーフを作成。\n\n${finalSummary}\n\n・結論: 最終提案（1文）\n・確度: 高/中/低\n・重要な論点と結論\n・最大リスク\n・次のアクション\n・監視指標`, false, 0, roomId, "moderate"),
+                directAgentRespond(orchestrator, `チームの作業結果からオーナーへの意思決定ブリーフを作成。\n\n${finalSummary}\n\n・結論: 最終提案（1文）\n・確度: 高/中/低\n・重要な論点と結論\n・最大リスク\n・次のアクション\n・監視指標`, false, 0, roomId, "complex"),
                 new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
             } catch (e) {

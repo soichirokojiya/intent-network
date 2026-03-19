@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
     ).join("\n");
 
     const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 800,
+      model: "claude-opus-4-6",
+      max_tokens: 1200,
       messages: [{
         role: "user",
         content: `${ownerBusinessInfo ? `【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。\n\n` : ""}
