@@ -125,15 +125,24 @@ function WelcomeSequence({ agents }: { agents: { id: string; config: { name: str
     return () => clearTimeout(t0);
   }, []);
 
+  const [typing, setTyping] = useState(false);
+
   useEffect(() => {
     if (step < 0 || step >= agents.length) return;
-    // Show typing for random duration, then reveal message and move to next
-    const delay = 800 + Math.random() * 1200; // 0.8s〜2.0s
-    const timer = setTimeout(() => {
-      setShown((prev) => [...prev, step]);
-      setStep(step + 1);
-    }, delay);
-    return () => clearTimeout(timer);
+    // Wait before showing typing indicator
+    const pauseDelay = 400 + Math.random() * 800; // 0.4〜1.2s pause
+    const t1 = setTimeout(() => {
+      setTyping(true);
+      // Show typing for random duration, then reveal message
+      const typingDelay = 800 + Math.random() * 1200; // 0.8〜2.0s typing
+      const t2 = setTimeout(() => {
+        setTyping(false);
+        setShown((prev) => [...prev, step]);
+        setStep(step + 1);
+      }, typingDelay);
+      return () => clearTimeout(t2);
+    }, pauseDelay);
+    return () => clearTimeout(t1);
   }, [step, agents.length]);
 
   return (
@@ -144,7 +153,7 @@ function WelcomeSequence({ agents }: { agents: { id: string; config: { name: str
         const intro = introFn ? introFn(agent.config.name) : `${agent.config.name}です。${role}担当です。よろしくお願いします。`;
         const isLast = i === agents.length - 1;
         const lastMsg = isLast ? "\n\n@をつければ特定のメンバーに直接話せます。チーム編成は自由にカスタマイズできます。プロフィールに事業情報を入れるとチーム全員が理解します。気軽にどうぞ！" : "";
-        const isTyping = step === i && !shown.includes(i);
+        const isTyping = step === i && typing;
         const isVisible = shown.includes(i);
 
         if (!isTyping && !isVisible) return null;
