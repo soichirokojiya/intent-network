@@ -106,13 +106,13 @@ function ChatMessageText({ text, readMoreLabel, closeLabel }: { text: string; re
 }
 
 const INTRO_MAP: Record<string, (name: string) => string> = {
-  "オーケストレーター": (n) => `はじめまして！チームリーダーの${n}です。メッセージを送ってくれたら、僕がメンバーに振り分けます。`,
-  "マーケティング": (n) => `${n}です！マーケティング担当。売り方や集客の相談はお任せください。`,
-  "リサーチ": (n) => `${n}です。リサーチ担当。市場や競合を調べるのが得意です。`,
-  "哲学者": (n) => `${n}です。「そもそもこれって正しい？」という視点で物事の本質を問います。`,
-  "ストラテジスト": (n) => `${n}です。戦略担当。大きな方向性を一緒に考えましょう。`,
-  "クリエイティブ": (n) => `${n}です！クリエイティブ担当。ユニークなアイデアを提案します。`,
-  "ファイナンス": (n) => `${n}です。数字とROIの観点からアドバイスします。`,
+  "オーケストレーター": (n) => `${n}です。チームのまとめ役やってます。何でも気軽に投げてください、適任のメンバーに回しますね。`,
+  "マーケティング": (n) => `どうも、${n}です！「どうやって届けるか」を考えるのが好きなタイプです。`,
+  "リサーチ": (n) => `${n}といいます。気になることがあったら調べてきますよ。根拠のない話は苦手なので。`,
+  "哲学者": (n) => `${n}です。みんなが走り出す前に「ちょっと待って、それ本当に合ってる？」って聞く係です。`,
+  "ストラテジスト": (n) => `${n}です。目先の施策より「半年後にどうなっていたいか」から考えるタイプです。よろしく。`,
+  "クリエイティブ": (n) => `${n}です！ぱっと見で伝わる表現とか、意外な切り口を考えるの得意です。`,
+  "ファイナンス": (n) => `${n}です。いい話には必ず数字の裏付けをつけます。`,
 };
 
 function WelcomeSequence({ agents }: { agents: { id: string; config: { name: string; avatar: string; role: string; expertise: string } }[] }) {
@@ -129,12 +129,14 @@ function WelcomeSequence({ agents }: { agents: { id: string; config: { name: str
 
   useEffect(() => {
     if (step < 0 || step >= agents.length) return;
-    // Wait before showing typing indicator
-    const pauseDelay = 400 + Math.random() * 800; // 0.4〜1.2s pause
+    // Wait before showing typing indicator (varies a lot)
+    const pauses = [300, 800, 500, 1500, 600]; // different pause per agent
+    const pauseDelay = (pauses[step % pauses.length] || 500) + Math.random() * 700;
     const t1 = setTimeout(() => {
       setTyping(true);
-      // Show typing for random duration, then reveal message
-      const typingDelay = 800 + Math.random() * 1200; // 0.8〜2.0s typing
+      // Typing duration varies by message length feel
+      const typingDurations = [1000, 700, 1400, 900, 1100];
+      const typingDelay = (typingDurations[step % typingDurations.length] || 1000) + Math.random() * 800;
       const t2 = setTimeout(() => {
         setTyping(false);
         setShown((prev) => [...prev, step]);
