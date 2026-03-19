@@ -23,6 +23,7 @@ function getDeviceId(): string {
 
 export async function loadChatHistory(roomId: string = "general"): Promise<ChatMessage[]> {
   const deviceId = getDeviceId();
+  console.log("loadChatHistory deviceId:", deviceId, "roomId:", roomId);
   const { data, error } = await supabase
     .from("owner_chats")
     .select("*")
@@ -31,7 +32,9 @@ export async function loadChatHistory(roomId: string = "general"): Promise<ChatM
     .order("created_at", { ascending: false })
     .limit(30);
 
-  if (error || !data) return [];
+  if (error) { console.error("loadChatHistory error:", error); return []; }
+  if (!data) return [];
+  console.log("loadChatHistory loaded:", data.length, "messages");
 
   // Reverse back to chronological order (fetched newest-first for limit)
   return data.reverse().map((row) => ({
