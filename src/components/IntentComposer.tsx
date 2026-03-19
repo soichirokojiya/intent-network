@@ -127,11 +127,12 @@ function WelcomeSequence({ agents }: { agents: { id: string; config: { name: str
 
   useEffect(() => {
     if (step < 0 || step >= agents.length) return;
-    // Show typing for 1.2s, then reveal message and move to next
+    // Show typing for random duration, then reveal message and move to next
+    const delay = 800 + Math.random() * 1200; // 0.8s〜2.0s
     const timer = setTimeout(() => {
       setShown((prev) => [...prev, step]);
       setStep(step + 1);
-    }, 1200);
+    }, delay);
     return () => clearTimeout(timer);
   }, [step, agents.length]);
 
