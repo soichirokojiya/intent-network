@@ -113,8 +113,8 @@ export default function AccountSettingsPage() {
               <label className="text-[13px] text-[var(--muted)] block mb-1">{t("settings.newsTime")}</label>
               <input
                 type="time"
-                value={newsTime}
-                onChange={(e) => updateNewsSettings(newsEnabled, e.target.value)}
+                defaultValue={newsTime}
+                onBlur={(e) => updateNewsSettings(newsEnabled, e.target.value)}
                 className="bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-[15px] outline-none focus:border-[var(--accent)]"
               />
             </div>
