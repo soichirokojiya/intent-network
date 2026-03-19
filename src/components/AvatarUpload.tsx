@@ -19,7 +19,7 @@ export function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUploadProp
     if (!file || !user) return;
 
     if (!file.type.startsWith("image/")) return;
-    if (file.size > 2 * 1024 * 1024) { alert("2MB以下の画像を選択してください"); return; }
+    if (file.size > 2 * 1024 * 1024) { alert("Max 2MB"); return; }
 
     setUploading(true);
 
@@ -33,10 +33,10 @@ export function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUploadProp
       if (res.ok && data.url) {
         onAvatarChange(data.url);
       } else {
-        alert(data.error || "アップロードに失敗しました");
+        alert(data.error || "Upload failed");
       }
     } catch {
-      alert("アップロードに失敗しました");
+      alert("Upload failed");
     }
 
     setUploading(false);
@@ -66,7 +66,7 @@ export function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUploadProp
         disabled={uploading}
         className="px-4 py-2 bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl text-[13px] font-bold hover:bg-[var(--hover-bg)] disabled:opacity-50 transition-colors"
       >
-        写真をアップロード
+        Upload Photo
       </button>
 
       <input

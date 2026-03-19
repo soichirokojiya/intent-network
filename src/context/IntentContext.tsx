@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { Intent, Conversation, AgentReaction, AgentResponse } from "@/lib/types";
 import { SEED_AGENTS } from "@/lib/agents";
 import { loadAgents, saveAgent, deleteAgent as deleteAgentFromDb } from "@/lib/agentStorage";
-import { getAgentConversation, getRoomConversation } from "@/lib/chatStorage";
+import { getAgentConversation, getRoomConversation, saveChatMessage } from "@/lib/chatStorage";
 
 // --- Types ---
 
@@ -291,6 +291,16 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           setMyAgents(defaults);
           setActiveAgentIds(new Set(defaults.map((a) => a.id)));
           defaults.forEach((a) => saveAgent(a, true));
+          // Send welcome message from orchestrator (Ren)
+          saveChatMessage({
+            id: `welcome-${Date.now()}`,
+            type: "agent",
+            agentName: "Ren",
+            agentAvatar: defaults[0].config.avatar,
+            agentId: defaults[0].id,
+            text: `はじめまして！チームリーダーのRenです。\n\n使い方のヒントをお伝えしますね。\n\n・ここにメッセージを送るだけ。僕がチームに振り分けます\n・@をつけてメンションすれば、特定のメンバーに直接話しかけられます\n・「ストラテジスト」を追加すると競争優位の視点で提案してくれます\n・「哲学者」を追加すると議論の本質に切り込んでくれます\n・チーム編成は自由。いつでもメンバーを追加・削除できます\n・プロフィールに事業情報を入れると、チーム全員があなたの事業を理解します\n\nまずは気軽に話しかけてみてください！`,
+            timestamp: Date.now(),
+          }, "general");
         }
       }
     });

@@ -16,7 +16,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 };
 
 // Roles that benefit from Opus 4.6 (deep analysis, financial, research, strategy)
-const OPUS_ROLES = ["戦略", "哲学者"];
+const OPUS_ROLES = ["ストラテジスト", "哲学者"];
 
 // Select model based on complexity + agent role
 function selectModel(complexity: string, needsSearch: boolean, agentRole: string = ""): string {

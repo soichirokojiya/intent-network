@@ -201,7 +201,7 @@ const translations: Record<string, Record<Locale, string>> = {
 
   // Right panel
   "right.myAgents": {
-    en: "My Agents", ja: "エージェント", zh: "我的Agent", es: "Mis Agentes", ko: "내 에이전트",
+    en: "Team", ja: "チーム", zh: "我的Agent", es: "Mis Agentes", ko: "내 에이전트",
   },
   "right.activity": {
     en: "Activity", ja: "アクティビティ", zh: "活动", es: "Actividad", ko: "활동",
@@ -290,7 +290,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "role.creative": { en: "Creative", ja: "クリエイティブ", zh: "创意", es: "Creativo", ko: "크리에이티브" },
   "role.finance": { en: "Finance", ja: "ファイナンス", zh: "金融", es: "Finanzas", ko: "금융" },
   "role.operations": { en: "Operations", ja: "オペレーション", zh: "运营", es: "Operaciones", ko: "운영" },
-  "role.strategy": { en: "Strategy", ja: "戦略", zh: "战略", es: "Estrategia", ko: "전략" },
+  "role.strategy": { en: "Strategy", ja: "ストラテジスト", zh: "战略", es: "Estrategia", ko: "전략" },
   "role.developer": { en: "Developer", ja: "開発者", zh: "开发者", es: "Desarrollador", ko: "개발자" },
   "role.designer": { en: "Designer", ja: "デザイナー", zh: "设计师", es: "Diseñador", ko: "디자이너" },
   "role.dataScientist": { en: "Data Scientist", ja: "データサイエンティスト", zh: "数据科学家", es: "Científico de Datos", ko: "데이터 사이언티스트" },
@@ -395,7 +395,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "chat.close": { en: "Close", ja: "閉じる", zh: "关闭", es: "Cerrar", ko: "닫기" },
   "chat.loadOlder": { en: "Load older messages", ja: "過去のメッセージを読み込む", zh: "加载更早的消息", es: "Cargar mensajes anteriores", ko: "이전 메시지 불러오기" },
   "chat.savePdf": { en: "Save as PDF", ja: "PDF保存", zh: "保存为PDF", es: "Guardar como PDF", ko: "PDF 저장" },
-  "agent.addAgent": { en: "Add Agent", ja: "エージェントを追加", zh: "添加代理", es: "Añadir agente", ko: "에이전트 추가" },
+  "agent.addAgent": { en: "Add Member", ja: "仲間を追加", zh: "添加代理", es: "Añadir agente", ko: "에이전트 추가" },
   "agent.personalityPrompt": { en: "Personality Prompt", ja: "性格プロンプト", zh: "性格提示", es: "Prompt de personalidad", ko: "성격 프롬프트" },
   "agent.personalityPlaceholder": { en: "Describe the agent's personality, tone, and values", ja: "エージェントの性格・話し方・価値観を自由に記述", zh: "描述代理的性格、语气和价值观", es: "Describe la personalidad, tono y valores del agente", ko: "에이전트의 성격, 말투, 가치관을 자유롭게 기술" },
   "settings.businessInfo": { en: "Business Info", ja: "事業情報", zh: "业务信息", es: "Info del negocio", ko: "사업 정보" },

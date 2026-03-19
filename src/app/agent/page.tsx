@@ -18,7 +18,7 @@ const DEFAULT_PERSONALITY_BY_ROLE: Record<string, string> = {
   "リサーチ": "好奇心旺盛で分析的。曖昧な情報は許さない。データで証明する。落ち着いた仕事仲間の口調。",
   "クリエイティブ": "直感的で常識にとらわれない。人の心に響くものを追求。明るく前向きな仕事仲間の口調。",
   "ファイナンス": "慎重で数字に強い。リスクを見逃さない。ROIで判断。落ち着いた仕事仲間の口調。",
-  "戦略": "大局を見る。競争優位を追求。実行可能性と市場タイミングを重視。落ち着いた仕事仲間の口調。",
+  "ストラテジスト": "大局を見る。競争優位を追求。実行可能性と市場タイミングを重視。落ち着いた仕事仲間の口調。",
   "哲学者": "前提を疑う。本質的な問いを投げかける。短期的な利益より長期的な意味を問う。穏やかだが鋭い口調。",
   "開発者": "技術的に正確。実装の現実性を重視。シンプルな解決策を好む。落ち着いた仕事仲間の口調。",
   "デザイナー": "ユーザー視点で考える。美しさと使いやすさの両立。丁寧で温かみのある口調。",
@@ -227,9 +227,9 @@ export default function AgentPage() {
               className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)]" />
           </div>
           <div className="mb-4">
-            <label className="text-[13px] text-[var(--muted)] block mb-1">性格プロンプト</label>
+            <label className="text-[13px] text-[var(--muted)] block mb-1">{t("agent.personalityPrompt")}</label>
             <textarea value={draft.personality} onChange={(e) => setDraft((d) => ({ ...d, personality: e.target.value, character: e.target.value, tone: "", speakingStyle: "", beliefs: "", coreValue: "" }))}
-              placeholder="エージェントの性格・話し方・価値観を自由に記述"
+              placeholder={t("agent.personalityPlaceholder")}
               rows={4}
               className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)] resize-none" />
           </div>
