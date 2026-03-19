@@ -10,36 +10,21 @@ const supabase = createClient(
 );
 
 export async function GET(req: Request) {
-  // Verify cron secret
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    // Get all users with business_info who have news enabled
-    const currentHour = new Date().toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Tokyo",
-    }); // e.g. "07:00"
-    const currentHourNum = parseInt(currentHour.split(":")[0], 10);
-
-    const { data: profiles, error: profileError } = await supabase
+    const { data: profiles } = await supabase
       .from("profiles")
       .select("id, display_name, business_info, news_enabled, news_time")
       .not("business_info", "is", null)
       .neq("business_info", "")
       .eq("news_enabled", true);
 
-    if (profileError) {
-      console.error("Failed to fetch profiles:", profileError);
-      return NextResponse.json({ error: profileError.message }, { status: 500 });
-    }
-
     if (!profiles || profiles.length === 0) {
-      return NextResponse.json({ processed: 0, message: "No users with business info" });
+      return NextResponse.json({ processed: 0, total: 0 });
     }
 
     let processed = 0;
@@ -47,111 +32,58 @@ export async function GET(req: Request) {
 
     for (const profile of profiles) {
       try {
-        // Check if current hour matches user's preferred delivery time
-        const userHour = parseInt((profile.news_time || "07:00").split(":")[0], 10);
-        if (userHour !== currentHourNum) continue;
+        // device_id = user ID (bindDeviceId sets this)
+        const deviceId = profile.id;
 
-        // Find the user's first agent (research-type preferred) to use as sender
+        // Find user's agents from owner_agents
         const { data: agents } = await supabase
-          .from("agents")
-          .select("id, name, avatar, role")
-          .eq("user_id", profile.id)
+          .from("owner_agents")
+          .select("id, config")
+          .eq("device_id", deviceId)
           .limit(10);
 
         if (!agents || agents.length === 0) continue;
 
-        // Prefer a research agent, otherwise use the first one
+        // Prefer research agent as sender
         const senderAgent = agents.find((a) =>
-          (a.role || "").match(/リサーチ|research|Research/i)
+          (a.config?.role || "").match(/リサーチ|research/i)
         ) || agents[0];
 
-        // Get device_id for this user to save chat message
-        const { data: deviceRow } = await supabase
-          .from("devices")
-          .select("device_id")
-          .eq("user_id", profile.id)
-          .limit(1)
-          .single();
-
-        if (!deviceRow?.device_id) continue;
-
-        // Generate news summary with web search
-        const today = new Date().toLocaleDateString("ja-JP", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
+        const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 
         const response = await anthropic.messages.create({
           model: "claude-sonnet-4-6",
           max_tokens: 1024,
-          tools: [
-            {
-              type: "web_search_20250305",
-              name: "web_search",
-              max_uses: 3,
-            },
-          ],
-          messages: [
-            {
-              role: "user",
-              content: `You are a business research assistant. Today is ${today}.
-
-The user's business info:
-${profile.business_info}
-
-Search the web for the latest news relevant to this business. Then write a brief morning news digest in Japanese (3-5 bullet points). Focus on:
-- Industry trends and news
-- Competitor movements
-- Relevant technology updates
-- Market changes
-
-Keep it concise and actionable. Start with a brief greeting like "おはようございます。今朝のニュースダイジェストです。" Format with bullet points.`,
-            },
-          ],
+          tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
+          messages: [{
+            role: "user",
+            content: `今日は${today}。以下の事業に関連する最新ニュースを日本語で3件探して、なぜ関係あるか付きで簡潔にまとめて。\n\n事業情報: ${profile.business_info}\n\n形式:\nおはようございます。今日のニュースです。\n\n・[ニュース1タイトル]\n→ なぜ関係あるか\n\n・[ニュース2タイトル]\n→ なぜ関係あるか\n\n・[ニュース3タイトル]\n→ なぜ関係あるか`,
+          }],
         });
 
-        // Extract text from response
-        const newsText = response.content
-          .filter((block) => block.type === "text")
-          .map((block) => {
-            if (block.type === "text") return block.text;
-            return "";
-          })
-          .join("\n")
-          .trim();
-
+        const textBlocks = response.content.filter((b) => b.type === "text");
+        const newsText = textBlocks.length > 0 ? (textBlocks[textBlocks.length - 1] as { type: "text"; text: string }).text : "";
         if (!newsText) continue;
 
-        // Save as a chat message in the general room
-        const messageId = `news-${Date.now()}-${profile.id.slice(0, 6)}`;
         await supabase.from("owner_chats").insert({
-          id: messageId,
-          device_id: deviceRow.device_id,
+          device_id: deviceId,
+          user_id: deviceId,
           room_id: "general",
           type: "agent",
-          agent_name: senderAgent.name,
-          agent_avatar: senderAgent.avatar || "",
+          agent_name: senderAgent.config?.name || "Sora",
+          agent_avatar: senderAgent.config?.avatar || "",
           agent_id: senderAgent.id,
           text: newsText,
-          timestamp: Date.now(),
         });
 
         processed++;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error(`News delivery failed for user ${profile.id}:`, msg);
-        errors.push(`${profile.id}: ${msg}`);
+        errors.push(`${profile.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
-    return NextResponse.json({
-      processed,
-      total: profiles.length,
-      errors: errors.length > 0 ? errors : undefined,
-    });
+    return NextResponse.json({ processed, total: profiles.length, errors: errors.length > 0 ? errors : undefined });
   } catch (err) {
-    console.error("Daily news error:", err);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 }
