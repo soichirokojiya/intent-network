@@ -2,12 +2,13 @@
 
 import { useIntents, MOOD_EMOJI } from "@/context/IntentContext";
 import { useLocale } from "@/context/LocaleContext";
+import { translateRole } from "@/lib/i18n";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import Link from "next/link";
 
 export function RightPanel() {
   const { intents, myAgents, removeAgent } = useIntents();
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
 
   return (
     <aside className="hidden lg:block w-[350px] pl-6 pr-4 pt-3 sticky top-0 h-screen overflow-y-auto">
@@ -36,16 +37,16 @@ export function RightPanel() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-bold truncate">{agent.config.name}</span>
-                    {(agent.config.role || agent.config.expertise) && <span className="text-[11px] text-[var(--muted)]">{agent.config.role || agent.config.expertise}</span>}
+                    {(agent.config.role || agent.config.expertise) && <span className="text-[11px] text-[var(--muted)]">{translateRole(agent.config.role || agent.config.expertise, locale)}</span>}
                   </div>
                 </div>
               </Link>
-              <button
+              {!agent.config.isOrchestrator && <button
                 onClick={() => { if (confirm(t("agent.confirmDelete").replace("{name}", agent.config.name))) removeAgent(agent.id); }}
                 className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted)] hover:text-[var(--danger)] transition-all flex-shrink-0"
               >
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-              </button>
+              </button>}
             </div>
           ))}
           <Link href="/agent?new=1" className="flex items-center justify-center gap-1.5 pt-3 mt-1 text-[var(--muted)] hover:text-[var(--accent)] transition-colors">

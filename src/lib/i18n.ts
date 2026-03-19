@@ -491,3 +491,24 @@ const translations: Record<string, Record<Locale, string>> = {
 export function t(key: string, locale: Locale): string {
   return translations[key]?.[locale] || translations[key]?.["en"] || key;
 }
+
+// Reverse lookup: translate a Japanese role name to the current locale
+const ROLE_MAP: Record<string, string> = {
+  "オーケストレーター": "role.orchestrator",
+  "マーケティング": "role.marketing",
+  "リサーチ": "role.research",
+  "クリエイティブ": "role.creative",
+  "ファイナンス": "role.finance",
+  "ストラテジスト": "role.strategy",
+  "哲学者": "role.philosopher",
+  "開発者": "role.developer",
+  "デザイナー": "role.designer",
+  "データサイエンティスト": "role.dataScientist",
+  "オペレーション": "role.operations",
+};
+
+export function translateRole(role: string, locale: Locale): string {
+  const key = ROLE_MAP[role];
+  if (key) return t(key, locale);
+  return role;
+}
