@@ -6,6 +6,7 @@ import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { AgentResponse } from "@/lib/types";
 import { loadChatHistory, loadOlderMessages, saveChatMessage } from "@/lib/chatStorage";
+import { useAuth } from "@/context/AuthContext";
 
 const COLLAPSE_LINES = 10;
 
@@ -47,6 +48,61 @@ function CollapsibleText({ text, readMoreLabel = "続きを読む", closeLabel =
       </button>
     </>
   );
+}
+
+const FILE_PATTERN = /\[ファイル: (.+?)\]\((.+?)\)/g;
+const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+
+function ChatMessageText({ text, readMoreLabel, closeLabel }: { text: string; readMoreLabel?: string; closeLabel?: string }) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  const regex = /\[ファイル: (.+?)\]\((.+?)\)/g;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Text before this match
+    if (match.index > lastIndex) {
+      const before = text.slice(lastIndex, match.index);
+      parts.push(<CollapsibleText key={`t-${lastIndex}`} text={before} readMoreLabel={readMoreLabel} closeLabel={closeLabel} />);
+    }
+    const fileName = match[1];
+    const url = match[2];
+    const isImage = IMAGE_EXTENSIONS.test(fileName);
+
+    parts.push(
+      <div key={`f-${match.index}`} className="my-1">
+        {isImage && (
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            <img src={url} alt={fileName} className="max-w-[240px] max-h-[180px] rounded-lg mb-1 cursor-pointer hover:opacity-80 transition-opacity" />
+          </a>
+        )}
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[13px] text-[var(--accent)] hover:underline"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+          </svg>
+          {fileName}
+        </a>
+      </div>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Remaining text after last match
+  if (lastIndex < text.length) {
+    parts.push(<CollapsibleText key={`t-${lastIndex}`} text={text.slice(lastIndex)} readMoreLabel={readMoreLabel} closeLabel={closeLabel} />);
+  }
+
+  // No file links found - just use CollapsibleText
+  if (parts.length === 0) {
+    return <CollapsibleText text={text} readMoreLabel={readMoreLabel} closeLabel={closeLabel} />;
+  }
+
+  return <>{parts}</>;
 }
 
 interface ChatMessage {
@@ -142,6 +198,10 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const processedResponseIds = useRef<Set<string>>(new Set());
   const enqueueMessage = useMessageQueue(setChatHistory, roomId);
   const roomLoadTime = useRef<number>(0);
+  const { user } = useAuth();
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load chat history from Supabase on mount or room change
   useEffect(() => {
@@ -256,9 +316,37 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     });
   }, [agentResponses, enqueueMessage]);
 
-  const handleSubmit = () => {
-    if (!text.trim()) return;
-    const userText = text.trim();
+  const handleSubmit = async () => {
+    if (!text.trim() && !attachedFile) return;
+    let userText = text.trim();
+
+    // Upload file if attached
+    if (attachedFile && user) {
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", attachedFile);
+        formData.append("userId", user.id);
+        const res = await fetch("/api/upload-file", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.url) {
+          const fileTag = `[ファイル: ${attachedFile.name}](${data.url})`;
+          userText = userText ? `${userText}\n${fileTag}` : fileTag;
+        } else {
+          alert(data.error || "ファイルのアップロードに失敗しました");
+          setUploading(false);
+          return;
+        }
+      } catch {
+        alert("ファイルのアップロードに失敗しました");
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+      setAttachedFile(null);
+    }
+
+    if (!userText) return;
 
     const userMsg = {
       id: `user-${Date.now()}`,
@@ -386,7 +474,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               <div className="flex justify-end items-end gap-1 animate-fade-in">
                 <span className="text-[10px] text-[var(--muted)] opacity-50 mb-1">{new Date(msg.timestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}</span>
                 <div className="max-w-[75%] bg-[var(--accent)] text-white px-4 py-2.5 rounded-2xl rounded-br-sm">
-                  <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                  <ChatMessageText text={msg.text} />
                 </div>
               </div></React.Fragment>
             );
@@ -409,7 +497,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
                     : "bg-[var(--search-bg)]"
                 }`}>
-                  <CollapsibleText text={msg.text.replace(/\\n/g, "\n")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
+                  <ChatMessageText text={msg.text.replace(/\\n/g, "\n")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
                 </div>
                 <button
                   onClick={(e) => { navigator.clipboard.writeText(msg.text.replace(/\\n/g, "\n")); const btn = e.currentTarget; btn.textContent = "✓"; setTimeout(() => { btn.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>${t("chat.copy")}`; }, 1500); }}
@@ -497,7 +585,49 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             </div>
           );
         })()}
+        {/* File attachment preview */}
+        {attachedFile && (
+          <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-[var(--search-bg)] rounded-xl text-[13px]">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0 text-[var(--accent)]">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+            </svg>
+            <span className="truncate flex-1">{attachedFile.name}</span>
+            <span className="text-[11px] text-[var(--muted)] flex-shrink-0">{(attachedFile.size / 1024).toFixed(0)}KB</span>
+            <button onClick={() => setAttachedFile(null)} className="text-[var(--muted)] hover:text-red-500 flex-shrink-0">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              if (file.size > 10 * 1024 * 1024) {
+                alert("ファイルサイズは10MBまでです");
+                return;
+              }
+              setAttachedFile(file);
+            }
+            e.target.value = "";
+          }}
+        />
         <div className="flex items-end gap-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="text-[var(--muted)] hover:text-[var(--accent)] p-2.5 rounded-full transition-colors flex-shrink-0 disabled:opacity-30"
+            title="ファイルを添付"
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+            </svg>
+          </button>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -520,7 +650,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           />
           <button
             onClick={handleSubmit}
-            disabled={!text.trim() || !hasAgent}
+            disabled={(!text.trim() && !attachedFile) || !hasAgent || uploading}
             className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-30 text-white p-2.5 rounded-full transition-colors flex-shrink-0"
           >
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
