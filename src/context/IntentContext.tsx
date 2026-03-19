@@ -269,8 +269,8 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           } catch {}
         } else {
           // No agents anywhere → create default agents from presets (only once)
-          if (initDone.current) return;
-          initDone.current = true;
+          if (localStorage.getItem("musu_defaults_created")) return;
+          localStorage.setItem("musu_defaults_created", "1");
           const defaults: MyAgent[] = DEFAULT_AGENT_PRESETS.slice(0, 5).map((preset, i) => ({
             id: `agent-default-${i}-${Date.now()}`,
             config: {

@@ -75,7 +75,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Password recovery: redirect to change password page
+      if (event === "PASSWORD_RECOVERY" && session?.user) {
+        window.location.href = "/settings/account";
+        return;
+      }
       setUser(session?.user ?? null);
       if (session?.user) {
         loadProfile(session.user.id, session.user.email || "");
@@ -110,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // セキュリティ: 他のユーザーのデータにアクセスしないようdevice_idをクリア
     localStorage.removeItem("musu_device_id");
     localStorage.removeItem("musu_business_info");
+    localStorage.removeItem("musu_defaults_created");
   }, []);
 
   const updateDisplayName = useCallback(async (name: string) => {
