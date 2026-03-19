@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
-import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 import { useState, useEffect } from "react";
 
 function NavIcon({ type, active }: { type: string; active: boolean }) {
@@ -69,31 +68,29 @@ export function Sidebar() {
 
         <Link href="/settings"
           className={`flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={pathname === "/settings" ? 2.5 : 1.5}>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={pathname === "/settings" && !pathname.startsWith("/settings/account") ? 2.5 : 1.5}>
             <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
-          <span className={`text-[15px] ${pathname === "/settings" ? "font-bold" : ""}`}>
+          <span className={`text-[15px] ${pathname === "/settings" && !pathname.startsWith("/settings/account") ? "font-bold" : ""}`}>
             {t("nav.profile")}
+          </span>
+        </Link>
+
+        <Link href="/settings/account"
+          className={`flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={pathname.startsWith("/settings/account") ? 2.5 : 1.5}>
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+          <span className={`text-[15px] ${pathname.startsWith("/settings/account") ? "font-bold" : ""}`}>
+            {t("nav.settings")}
           </span>
         </Link>
 
       </nav>
 
       <div className="mt-auto" />
-
-      {/* Language selector */}
-      <div className="w-full max-w-[230px] mb-2">
-        <select
-          value={locale}
-          onChange={(e) => setLocale(e.target.value as Locale)}
-          className="w-full bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2 text-sm outline-none cursor-pointer"
-        >
-          {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([key, label]) => (
-            <option key={key} value={key}>{label}</option>
-          ))}
-        </select>
-      </div>
 
       {/* Bottom links - small */}
       <div className="flex gap-3 px-3 mb-2 w-full max-w-[230px]">
