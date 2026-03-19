@@ -23,11 +23,8 @@ export function AuthGate({ children, publicChildren }: { children: React.ReactNo
     );
   }
 
-  // Unauthenticated users at root → show LP
+  // Unauthenticated → show auth screen
   if (!user) {
-    if (pathname === "/") {
-      return <LandingContent />;
-    }
     return <AuthScreen />;
   }
 
