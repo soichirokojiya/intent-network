@@ -23,5 +23,5 @@ export async function GET(req: NextRequest) {
     state,
   });
 
-  return NextResponse.redirect(`https://api.moneyforward.com/oauth/authorize?${params.toString()}`);
+  return NextResponse.redirect(`https://api.biz.moneyforward.com/authorize?${params.toString()}`);
 }

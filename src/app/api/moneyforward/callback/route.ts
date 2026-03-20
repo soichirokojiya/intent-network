@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Exchange code for tokens
-    const tokenRes = await fetch("https://api.moneyforward.com/oauth/token", {
+    const tokenRes = await fetch("https://api.biz.moneyforward.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({

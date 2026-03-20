@@ -8,7 +8,7 @@ const supabase = createClient(
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   try {
-    const res = await fetch("https://api.moneyforward.com/oauth/token", {
+    const res = await fetch("https://api.biz.moneyforward.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   let accessToken = profile.mf_access_token;
 
   // Fetch recent transactions
-  let res = await fetch("https://api.moneyforward.com/api/v1/user_assets", {
+  let res = await fetch("https://api.biz.moneyforward.com/api/v1/user_assets", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
         .update({ mf_access_token: newToken, updated_at: new Date().toISOString() })
         .eq("id", deviceId);
 
-      res = await fetch("https://api.moneyforward.com/api/v1/user_assets", {
+      res = await fetch("https://api.biz.moneyforward.com/api/v1/user_assets", {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
     }
