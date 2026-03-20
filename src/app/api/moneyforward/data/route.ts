@@ -8,7 +8,7 @@ const supabase = createClient(
 
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   try {
-    const res = await fetch("https://api.biz.moneyforward.com/oauth/token", {
+    const res = await fetch("https://api.biz.moneyforward.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
