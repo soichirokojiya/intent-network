@@ -558,10 +558,16 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
 
           // User message (right side)
           if (msg.type === "user") {
+            // Check if next message is from an agent (= this message was "read")
+            const nextMsg = idx < chatHistory.length - 1 ? chatHistory[idx + 1] : null;
+            const wasRead = nextMsg && nextMsg.type === "agent";
             return (
               <React.Fragment key={msg.id}><DateSep />
               <div className="flex justify-end items-end gap-1 animate-fade-in">
-                <span className="text-[10px] text-[var(--muted)] opacity-50 mb-1">{new Date(msg.timestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}</span>
+                <div className="flex flex-col items-end gap-0.5">
+                  {wasRead && <span className="text-[10px] text-[var(--accent)]">{t("chat.read")}</span>}
+                  <span className="text-[10px] text-[var(--muted)] opacity-50">{new Date(msg.timestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
                 <div className="max-w-[75%] bg-[var(--accent)] text-white px-4 py-2.5 rounded-2xl rounded-br-sm">
                   <ChatMessageText text={msg.text} />
                 </div>

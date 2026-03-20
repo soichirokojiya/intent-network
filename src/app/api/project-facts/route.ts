@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
       .from("project_facts")
       .select("*")
       .eq("device_id", deviceId)
+      .or("status.eq.active,status.is.null")
       .order("created_at", { ascending: false });
 
     if (error) {

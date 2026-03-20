@@ -172,25 +172,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    // Insert new project facts
+    // Insert new project facts (supersede old ones in same category)
     let factsInserted = 0;
     if (newFacts.length > 0) {
       const validCategories = ["decision", "spec", "task", "policy"];
-      const factsToInsert = newFacts
-        .filter((f) => f.category && f.content && validCategories.includes(f.category))
-        .map((f) => ({
-          device_id: deviceId,
-          category: f.category,
-          content: f.content,
-          source_agent: "summarize-memory",
-        }));
+      const validFacts = newFacts.filter((f) => f.category && f.content && validCategories.includes(f.category));
 
-      if (factsToInsert.length > 0) {
-        const { error: factsError } = await supabase
+      for (const fact of validFacts) {
+        // Supersede existing active facts in same category
+        await supabase
           .from("project_facts")
-          .insert(factsToInsert);
-        if (!factsError) {
-          factsInserted = factsToInsert.length;
+          .update({ status: "superseded", updated_at: new Date().toISOString() })
+          .eq("device_id", deviceId)
+          .eq("category", fact.category)
+          .or("status.eq.active,status.is.null");
+
+        // Insert new fact as active
+        const { error: factError } = await supabase
+          .from("project_facts")
+          .insert({
+            device_id: deviceId,
+            category: fact.category,
+            content: fact.content,
+            source_agent: "summarize-memory",
+            status: "active",
+          });
+        if (!factError) {
+          factsInserted++;
         }
       }
     }
