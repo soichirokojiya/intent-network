@@ -784,10 +784,16 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         (async () => {
           const results: Record<string, string> = {};
           const validSteps = resolved.filter((d: { agent?: MyAgent }) => d.agent);
+          console.log("Pipeline: starting", validSteps.length, "steps:", validSteps.map((s: { agent?: MyAgent }) => s.agent?.config.name));
+
+          if (validSteps.length === 0) {
+            console.warn("Pipeline: no valid steps found. Resolved:", resolved.map((r: { agentName?: string; agent?: MyAgent }) => `${r.agentName}→${r.agent?.config.name || "NOT FOUND"}`));
+          }
 
           // Execute each step sequentially
           for (const step of validSteps) {
             if (!step.agent) continue;
+            console.log("Pipeline: executing step", step.agent.config.name);
             const prevEntries = Object.entries(results);
             const prevText = prevEntries.length > 0
               ? `これまでのチームの結果:\n${prevEntries.map(([n, r]) => `・${n}: ${r}`).join("\n")}\n\n`
@@ -799,9 +805,16 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
                 directAgentRespond(step.agent, taskPrompt, false, 0, roomId, step.complexity || "moderate"),
                 new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
+              console.log("Pipeline: step", step.agent.config.name, "completed, response length:", response?.length);
               results[step.agent.config.name] = response || "";
             } catch (e) {
-              console.error(`Step ${step.agent.config.name} failed:`, e);
+              const msg = e instanceof Error ? e.message : String(e);
+              console.error(`Pipeline: step ${step.agent.config.name} FAILED:`, msg);
+              // Show error in chat
+              setAgentResponses((prev) => [...prev, {
+                agentId: step.agent!.id, agentName: step.agent!.config.name, agentAvatar: step.agent!.config.avatar,
+                toOwner: `エラー: ${msg}`, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
+              }]);
             }
           }
 
