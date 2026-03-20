@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.operations", "role.strategy", "role.developer", "role.designer", "role.dataScientist", "role.orchestrator", "role.philosopher"];
+const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.operations", "role.strategy", "role.developer", "role.designer", "role.dataScientist", "role.orchestrator", "role.philosopher", "role.secretary"];
 
 const DEFAULT_PERSONALITY_BY_ROLE: Record<string, string> = {
   "オーケストレーター": "冷静で本質を突く。丁寧だが簡潔。無駄な議論をさせず結論を出す。落ち着いた仕事仲間の口調。",
@@ -24,6 +24,7 @@ const DEFAULT_PERSONALITY_BY_ROLE: Record<string, string> = {
   "デザイナー": "ユーザー視点で考える。美しさと使いやすさの両立。丁寧で温かみのある口調。",
   "データサイエンティスト": "数値とデータで判断。仮説検証を重視。バイアスに敏感。落ち着いた仕事仲間の口調。",
   "オペレーション": "効率と仕組み化を追求。ボトルネックを見つける。落ち着いた仕事仲間の口調。",
+  "秘書": "スケジュール管理と段取りが得意。先回りして必要な情報を整理する。気配りのある丁寧な口調。",
 };
 
 // No HP/energy bars - mood is expressed through behavior and emoji

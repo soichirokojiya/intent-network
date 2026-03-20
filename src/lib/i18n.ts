@@ -296,6 +296,7 @@ const translations: Record<string, Record<Locale, string>> = {
   "role.dataScientist": { en: "Data Scientist", ja: "データサイエンティスト", zh: "数据科学家", es: "Científico de Datos", ko: "데이터 사이언티스트" },
   "role.orchestrator": { en: "Orchestrator", ja: "オーケストレーター", zh: "编排器", es: "Orquestador", ko: "오케스트레이터" },
   "role.philosopher": { en: "Philosopher", ja: "哲学者", zh: "哲学家", es: "Filósofo", ko: "철학자" },
+  "role.secretary": { en: "Secretary", ja: "秘書", zh: "秘书", es: "Secretario", ko: "비서" },
 
   // Character presets
   "character.logical": { en: "Logical", ja: "論理的", zh: "逻辑性强", es: "Lógico", ko: "논리적" },
