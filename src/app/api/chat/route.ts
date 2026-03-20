@@ -53,5 +53,38 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Trigger memory summarization in background if needed
+  try {
+    const { count } = await supabase
+      .from("owner_chats")
+      .select("*", { count: "exact", head: true })
+      .eq("device_id", deviceId);
+
+    if (count && count > 30) {
+      // Check if last summary was > 1 hour ago (or never)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("memory_updated_at")
+        .eq("id", deviceId)
+        .single();
+
+      const lastUpdated = profile?.memory_updated_at ? new Date(profile.memory_updated_at).getTime() : 0;
+      const oneHourAgo = Date.now() - 3600000;
+
+      if (lastUpdated < oneHourAgo) {
+        // Fire and forget
+        const baseUrl = new URL(req.url).origin;
+        fetch(`${baseUrl}/api/summarize-memory`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId }),
+        }).catch(() => {});
+      }
+    }
+  } catch {
+    // Don't fail the main request if summarization check fails
+  }
+
   return NextResponse.json({ ok: true });
 }

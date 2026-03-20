@@ -635,6 +635,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
         complexity,
         ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
+        memorySummary: typeof window !== "undefined" ? localStorage.getItem("musu_memory_summary") || "" : "",
       }),
     }).then(async (r) => {
       const text = await r.text();
