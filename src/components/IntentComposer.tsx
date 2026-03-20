@@ -594,37 +594,34 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                 }`}>
                   <ChatMessageText text={msg.text.replace(/\\n/g, "\n")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
                 </div>
-                <button
-                  onClick={(e) => { navigator.clipboard.writeText(msg.text.replace(/\\n/g, "\n")); const btn = e.currentTarget; btn.textContent = "✓"; setTimeout(() => { btn.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>${t("chat.copy")}`; }, 1500); }}
-                  className="opacity-0 group-hover:opacity-100 mt-1 ml-1 text-[11px] text-[var(--muted)] hover:text-[var(--accent)] transition-all flex items-center gap-1"
-                >
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-                  {t("chat.copy")}
-                </button>
-                <button
-                  onClick={() => {
-                    setReplyTo({ agentName: msg.agentName || "", text: msg.text.replace(/\\n/g, "\n").slice(0, 50) });
-                    setText(`@${msg.agentName} `);
-                    textareaRef.current?.focus();
-                  }}
-                  className="opacity-0 group-hover:opacity-100 mt-1 ml-1 text-[11px] text-[var(--muted)] hover:text-[var(--accent)] transition-all flex items-center gap-1"
-                >
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
-                  {t("chat.reply")}
-                </button>
-                {msg.text.length > 500 && /レポート|分析|戦略|調査|まとめ|提案|計画|施策/.test(msg.text) && (
+                <div className="opacity-0 group-hover:opacity-100 mt-1 ml-1 flex items-center gap-3">
+                  <button
+                    onClick={(e) => { navigator.clipboard.writeText(msg.text.replace(/\\n/g, "\n")); const btn = e.currentTarget; btn.textContent = "✓"; setTimeout(() => { btn.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>${t("chat.copy")}`; }, 1500); }}
+                    className="text-[11px] text-[var(--muted)] hover:text-[var(--accent)] transition-all flex items-center gap-1"
+                  >
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                    {t("chat.copy")}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReplyTo({ agentName: msg.agentName || "", text: msg.text.replace(/\\n/g, "\n").slice(0, 50) });
+                      setText(`@${msg.agentName} `);
+                      textareaRef.current?.focus();
+                    }}
+                    className="text-[11px] text-[var(--muted)] hover:text-[var(--accent)] transition-all flex items-center gap-1"
+                  >
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
+                    {t("chat.reply")}
+                  </button>
+                </div>
+                {false && (
                   <button
                     onClick={() => {
                       const date = new Date(msg.timestamp).toLocaleString();
                       const formattedText = msg.text.replace(/\n/g, "<br>");
-                      const reportLabel = t("chat.report");
+                      const reportLabel = "Report";
                       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${msg.agentName} ${reportLabel}</title><style>
-                        @media print { body { margin: 20mm; } }
-                        body { font-family: "Hiragino Sans", "Yu Gothic", sans-serif; color: #222; max-width: 700px; margin: 40px auto; padding: 0 20px; line-height: 1.8; font-size: 14px; }
-                        h1 { font-size: 22px; border-bottom: 2px solid #4A99E9; padding-bottom: 8px; margin-bottom: 4px; }
-                        .meta { color: #888; font-size: 12px; margin-bottom: 24px; }
-                        .content { white-space: pre-wrap; }
-                        .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #ddd; color: #aaa; font-size: 11px; }
+                        body { font-family: sans-serif; }
                       </style></head><body>
                         <h1>${msg.agentName} ${reportLabel}</h1>
                         <div class="meta">${date} | musu.world</div>
