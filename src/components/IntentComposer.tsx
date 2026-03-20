@@ -506,9 +506,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           </button>
         )}
 
-        {chatHistory.length === 0 && myAgents.length > 0 && (
-          <WelcomeSequence agents={myAgents} />
-        )}
+        {/* Welcome sequence removed */}
 
         {chatHistory.map((msg, idx) => {
           const prevMsg = idx > 0 ? chatHistory[idx - 1] : null;

@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.operations", "role.strategy", "role.developer", "role.designer", "role.dataScientist", "role.orchestrator", "role.philosopher", "role.secretary"];
+const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.strategy", "role.developer", "role.dataScientist", "role.orchestrator", "role.philosopher", "role.secretary"];
 
 const DEFAULT_PERSONALITY_BY_ROLE: Record<string, string> = {
   "オーケストレーター": "冷静で本質を突く。丁寧だが簡潔。無駄な議論をさせず結論を出す。落ち着いた仕事仲間の口調。",
