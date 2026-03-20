@@ -44,10 +44,8 @@ export async function GET(req: Request) {
 
         if (!agents || agents.length === 0) continue;
 
-        // Prefer research agent as sender
-        const senderAgent = agents.find((a) =>
-          (a.config?.role || "").match(/リサーチ|research/i)
-        ) || agents[0];
+        // Use first agent as sender
+        const senderAgent = agents[0];
 
         const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 
