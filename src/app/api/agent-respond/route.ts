@@ -63,7 +63,7 @@ const STATIC_RULES = `重要ルール:
 
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents } = await req.json();
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, financialData } = await req.json();
 
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
@@ -134,6 +134,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Build financial data context (only for finance/secretary agents)
+    let financialContext = "";
+    if (financialData && Array.isArray(financialData.assets) && financialData.assets.length > 0) {
+      const expertise = agentExpertise || "";
+      if (/ファイナンス|秘書|finance|secretary/i.test(expertise)) {
+        const assetLines = financialData.assets.map((a: { category: string; name: string; value: number }) =>
+          `${a.category}: ${a.name} ${a.value.toLocaleString()}円`
+        );
+        financialContext = "\n【財務データ】\n" + assetLines.join("\n");
+      }
+    }
+
     // Build calendar context (all agents)
     let calendarContext = "";
     if (Array.isArray(calendarEvents) && calendarEvents.length > 0) {
@@ -157,7 +169,7 @@ export async function POST(req: NextRequest) {
       },
       {
         type: "text" as const,
-        text: `あなたは「${agentName}」というAIエージェントです。\n現在の日付: ${today}\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}${calendarContext}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
+        text: `あなたは「${agentName}」というAIエージェントです。\n現在の日付: ${today}\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}${calendarContext}${financialContext}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
       },
     ];
 

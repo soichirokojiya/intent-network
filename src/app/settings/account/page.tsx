@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function AccountSettingsPage() {
-  const { user, signOut, newsEnabled, newsTime, updateNewsSettings, googleCalendarConnected } = useAuth();
+  const { user, signOut, newsEnabled, newsTime, updateNewsSettings, googleCalendarConnected, mfConnected, scheduleDeliveryEnabled, updateScheduleDelivery } = useAuth();
   const { locale, setLocale, t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,9 +20,13 @@ export default function AccountSettingsPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [gcalConnected, setGcalConnected] = useState(googleCalendarConnected);
+  const [mfConn, setMfConn] = useState(mfConnected);
+  const [scheduleEnabled, setScheduleEnabled] = useState(scheduleDeliveryEnabled);
 
   // Sync gcalConnected with context (loads async)
   useEffect(() => { setGcalConnected(googleCalendarConnected); }, [googleCalendarConnected]);
+  useEffect(() => { setMfConn(mfConnected); }, [mfConnected]);
+  useEffect(() => { setScheduleEnabled(scheduleDeliveryEnabled); }, [scheduleDeliveryEnabled]);
 
   // Handle OAuth callback redirect
   useEffect(() => {
@@ -33,11 +37,46 @@ export default function AccountSettingsPage() {
     } else if (googleParam === "error") {
       setError("Google Calendar connection failed.");
     }
+    const mfParam = searchParams.get("mf");
+    if (mfParam === "connected") {
+      setMfConn(true);
+      setMessage("MoneyForward connected!");
+    } else if (mfParam === "error") {
+      setError("MoneyForward connection failed.");
+    }
   }, [searchParams]);
 
   const handleConnectGoogle = () => {
     const deviceId = localStorage.getItem("musu_device_id") || "";
     window.location.href = `/api/google/auth?deviceId=${deviceId}`;
+  };
+
+  const handleConnectMF = () => {
+    const deviceId = localStorage.getItem("musu_device_id") || "";
+    window.location.href = `/api/moneyforward/auth?deviceId=${deviceId}`;
+  };
+
+  const handleDisconnectMF = async () => {
+    const deviceId = localStorage.getItem("musu_device_id") || "";
+    setLoading(true);
+    const res = await fetch("/api/moneyforward/disconnect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId }),
+    });
+    if (res.ok) {
+      setMfConn(false);
+      showMsg("MoneyForward disconnected.");
+    } else {
+      showErr("Failed to disconnect.");
+    }
+    setLoading(false);
+  };
+
+  const handleToggleSchedule = async () => {
+    const newVal = !scheduleEnabled;
+    setScheduleEnabled(newVal);
+    await updateScheduleDelivery(newVal);
   };
 
   const handleDisconnectGoogle = async () => {
@@ -185,6 +224,46 @@ export default function AccountSettingsPage() {
           )}
           <p className="text-[12px] text-[var(--muted)] mt-2">
             Connect to let your agents see today&apos;s schedule.
+          </p>
+          {gcalConnected && (
+            <div className="flex items-center justify-between mt-3">
+              <span className="text-[13px] text-[var(--muted)]">Morning schedule delivery (7:00 JST)</span>
+              <button
+                onClick={handleToggleSchedule}
+                className={`relative w-11 h-6 rounded-full transition-colors ${scheduleEnabled ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${scheduleEnabled ? "translate-x-5" : ""}`} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <hr className="border-[var(--card-border)]" />
+
+        {/* MoneyForward */}
+        <div>
+          <h2 className="text-[15px] font-bold mb-3">MoneyForward</h2>
+          {mfConn ? (
+            <div className="flex items-center justify-between">
+              <span className="text-[14px] text-[var(--green)]">Connected</span>
+              <button
+                onClick={handleDisconnectMF}
+                disabled={loading}
+                className="px-4 py-2 border border-[var(--card-border)] rounded-xl text-sm hover:bg-[var(--hover-bg)] disabled:opacity-50"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleConnectMF}
+              className="w-full py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-xl hover:bg-[var(--accent-hover)]"
+            >
+              Connect MoneyForward
+            </button>
+          )}
+          <p className="text-[12px] text-[var(--muted)] mt-2">
+            Connect to let your finance agents access your financial data.
           </p>
         </div>
 
