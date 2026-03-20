@@ -5,7 +5,7 @@ import { AuthScreen } from "./AuthScreen";
 import { usePathname } from "next/navigation";
 import { LandingContent } from "./LandingContent";
 
-const PUBLIC_PATHS = ["/terms", "/privacy", "/lp", "/contact"];
+const PUBLIC_PATHS = ["/terms", "/privacy", "/lp", "/contact", "/admin"];
 
 export function AuthGate({ children, publicChildren }: { children: React.ReactNode; publicChildren: React.ReactNode }) {
   const { user, loading } = useAuth();
