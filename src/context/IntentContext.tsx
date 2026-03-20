@@ -768,7 +768,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       // --- DIRECT FLOW: メンション指定のエージェントだけ応答 ---
       const requestTweet = options?.requestTweet || false;
       directAgentRespond(mentionedAgent, text, requestTweet, 0, roomId);
-    } else if (allConfigured.length > 0) {
+      return;
+    }
+
+    if (allConfigured.length > 0) {
       // --- AUTO FLOW: 直近の会話相手がいればその人、いなければ全員 ---
       const nonOrchestrator = allConfigured.filter((a) => !a.config.isOrchestrator);
 
