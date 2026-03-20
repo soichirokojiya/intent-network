@@ -780,122 +780,41 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             || allConfigured.find((a) => a.config.name.toLowerCase() === (d.agentName || "").toLowerCase()),
         }));
 
-        // Task Execution Pipeline: run steps in dependency order
+        // Simple sequential pipeline: each agent runs once, gets all previous results
         (async () => {
           const results: Record<string, string> = {};
-          const completed = new Set<string>();
           const validSteps = resolved.filter((d: { agent?: MyAgent }) => d.agent);
 
-          // Helper: check if all dependencies are satisfied
-          const depsReady = (step: PipelineStep) => {
-            const deps = step.dependsOn || [];
-            return deps.every((dep: string) => completed.has(dep));
-          };
+          // Execute each step sequentially
+          for (const step of validSteps) {
+            if (!step.agent) continue;
+            const prevEntries = Object.entries(results);
+            const prevText = prevEntries.length > 0
+              ? `これまでのチームの結果:\n${prevEntries.map(([n, r]) => `・${n}: ${r}`).join("\n")}\n\n`
+              : "";
+            const taskPrompt = `${prevText}あなたのタスク: ${step.task}`;
 
-          // Process steps in waves until all are done
-          const pending = new Set(validSteps.map((s: { agent?: MyAgent }) => s.agent!.config.name));
-          let maxWaves = 5; // safety limit
-
-          while (pending.size > 0 && maxWaves-- > 0) {
-            // Find steps ready to run (dependencies met, not yet completed)
-            const readySteps = validSteps.filter((s: { agent?: MyAgent; dependsOn?: string[] }) =>
-              pending.has(s.agent!.config.name) && depsReady(s as PipelineStep)
-            );
-
-            if (readySteps.length === 0) {
-              // Circular dependency or missing agents - run remaining anyway
-              console.warn("Pipeline: no ready steps, forcing remaining");
-              readySteps.push(...validSteps.filter((s: { agent?: MyAgent }) => pending.has(s.agent!.config.name)));
-            }
-
-            // Execute ready steps in parallel
-            const wavePromises = readySteps.map((d: { agent?: MyAgent; task: string; requestTweet?: boolean; complexity?: string; dependsOn?: string[] }) => {
-              // Build prompt with previous results injected
-              const deps = d.dependsOn || [];
-              let previousResultsText = "";
-              if (deps.length > 0) {
-                const depResults = deps
-                  .filter((dep: string) => results[dep])
-                  .map((dep: string) => `・${dep}: ${results[dep]}`);
-                if (depResults.length > 0) {
-                  previousResultsText = `前のステップの結果:\n${depResults.join("\n")}\n\n`;
-                }
-              }
-
-              const taskPrompt = `${previousResultsText}${d.task}\n\nオーナーの元のメッセージ:「${text}」\n\n自然な話し言葉で回答して。ラベル（主張:、根拠:等）は使わない。提案とその理由、注意点を会話として伝えて。`;
-
-              return Promise.race([
-                directAgentRespond(d.agent!, taskPrompt, d.requestTweet || false, 0, roomId, d.complexity || "moderate"),
-                new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
-              ]).then((response) => {
-                const name = d.agent!.config.name;
-                results[name] = response || "";
-                completed.add(name);
-                pending.delete(name);
-              }).catch((e) => {
-                const name = d.agent!.config.name;
-                console.error(`Pipeline step ${name} failed:`, e);
-                results[name] = `エラー: ${e.message || "タイムアウト"}`;
-                completed.add(name);
-                pending.delete(name);
-              });
-            });
-
-            await Promise.all(wavePromises);
-          }
-
-          // Evaluate and possibly add more steps (max 2 additional rounds)
-          for (let evalRound = 0; evalRound < 2 && orchestrator; evalRound++) {
-            const resultEntries = Object.entries(results).filter(([, v]) => v && !v.startsWith("エラー:"));
-            if (resultEntries.length === 0) break;
-            const currentSummary = resultEntries.map(([name, r]) => `${name}: ${r.slice(0, 250)}`).join("\n");
-
-            // Ask orchestrator: enough to summarize, or need more?
             try {
-              const evalRes = await fetch("/api/orchestrator-plan", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  ownerMessage: `チームの作業結果を評価してください。\n\n元の質問:「${text}」\n\n作業結果:\n${currentSummary}\n\n判断: まとめに入れるか、追加の作業が必要かをJSON出力:\n{"directResponse":"判断理由","steps":[追加ステップがあれば]}\n\nstepsが空配列ならまとめに入ります。不足があればstepsに追加タスクを入れてください。`,
-                  orchestratorName: orchestrator.config.name,
-                  orchestratorPersonality: orchestrator.config.character || orchestrator.config.personality,
-                  orchestratorTone: orchestrator.config.speakingStyle || orchestrator.config.tone,
-                  ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
-                  agents: otherAgents.map((a) => ({ id: a.id, name: a.config.name, role: a.config.role || a.config.expertise || "", twitterEnabled: false })),
-                }),
-              }).then(async (r) => { const t = await r.text(); try { return JSON.parse(t); } catch { return {}; } });
-
-              const additionalSteps = evalRes.steps || [];
-              if (additionalSteps.length === 0) break; // Ready to summarize
-
-              // Execute additional steps
-              for (const addStep of additionalSteps) {
-                const agent = allConfigured.find((a: { config: { name: string } }) => a.config.name === addStep.agentName)
-                  || allConfigured.find((a: { id: string }) => a.id === addStep.agentId);
-                if (!agent) continue;
-                const depResults = Object.entries(results).map(([n, r]) => `・${n}: ${r.slice(0, 200)}`).join("\n");
-                try {
-                  const response = await Promise.race([
-                    directAgentRespond(agent, `これまでの結果:\n${depResults}\n\n${addStep.task}\n\nオーナーの元のメッセージ:「${text}」`, false, 0, roomId, addStep.complexity || "moderate"),
-                    new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
-                  ]);
-                  results[agent.config.name] = response || "";
-                } catch { /* skip */ }
-              }
-            } catch { break; }
+              const response = await Promise.race([
+                directAgentRespond(step.agent, taskPrompt, false, 0, roomId, step.complexity || "moderate"),
+                new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
+              ]);
+              results[step.agent.config.name] = response || "";
+            } catch (e) {
+              console.error(`Step ${step.agent.config.name} failed:`, e);
+            }
           }
 
-          // Final summary
-          const resultEntries = Object.entries(results).filter(([, v]) => v && !v.startsWith("エラー:"));
-          if (resultEntries.length > 0 && orchestrator) {
-            const finalSummary = resultEntries.map(([name, r]) => `${name}: ${r.slice(0, 300)}`).join("\n");
+          // Final summary by orchestrator (Opus)
+          const successResults = Object.entries(results).filter(([, v]) => v);
+          if (successResults.length > 0 && orchestrator) {
+            const summary = successResults.map(([n, r]) => `${n}: ${r.slice(0, 300)}`).join("\n");
             try {
               await Promise.race([
-                directAgentRespond(orchestrator, `チームの作業結果からオーナーへの意思決定ブリーフを作成。\n\n${finalSummary}\n\n・結論: 最終提案（1文）\n・確度: 高/中/低\n・重要な論点と結論\n・最大リスク\n・次のアクション\n・監視指標`, false, 0, roomId, "complex"),
+                directAgentRespond(orchestrator, `チームの作業結果をまとめて。\n\n${summary}\n\n結論、重要ポイント、次のアクションを簡潔に。`, false, 0, roomId, "complex"),
                 new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
               ]);
-            } catch (e) {
-              console.error("Final synthesis skipped:", e);
-            }
+            } catch { /* skip */ }
           }
         })();
 
