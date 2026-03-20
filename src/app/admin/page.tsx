@@ -2,6 +2,28 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+interface UserRow {
+  id: string;
+  display_name: string | null;
+  email: string | null;
+  created_at: string;
+  balance_yen: number;
+  total_used_yen: number;
+  total_charged_yen: number;
+  message_count: number;
+  agent_count: number;
+}
+
+interface UsageLogRow {
+  device_id: string;
+  model: string | null;
+  api_route: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cost_yen: number | null;
+  created_at: string;
+}
+
 interface Stats {
   totalUsers: number;
   activeUsersToday: number;
@@ -10,6 +32,8 @@ interface Stats {
   totalRevenue: number;
   totalCharged: number;
   activeAgents: number;
+  users: UserRow[];
+  usageLog: UsageLogRow[];
 }
 
 function formatNumber(n: number): string {
@@ -27,6 +51,7 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState<"users" | "usage">("users");
 
   const fetchStats = useCallback(async (token: string) => {
     setLoading(true);
@@ -250,6 +275,93 @@ export default function AdminPage() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Tabs */}
+        {stats && (
+          <div style={{ marginTop: "32px" }}>
+            <div style={{ display: "flex", gap: "0", borderBottom: "1px solid #eff3f4", marginBottom: "16px" }}>
+              {(["users", "usage"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    padding: "12px 24px",
+                    background: "none",
+                    border: "none",
+                    borderBottom: activeTab === tab ? "2px solid #1d9bf0" : "2px solid transparent",
+                    color: activeTab === tab ? "#0f1419" : "#536471",
+                    fontWeight: activeTab === tab ? 700 : 500,
+                    fontSize: "15px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {tab === "users" ? "Users" : "Usage Log"}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === "users" && (
+              <div style={{ overflowX: "auto", background: "#fff", borderRadius: "16px", border: "1px solid #eff3f4", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #eff3f4", textAlign: "left" }}>
+                      {["Name", "Email", "Registered", "Balance", "Used", "Charged", "Messages", "Agents"].map((h) => (
+                        <th key={h} style={{ padding: "12px 16px", fontWeight: 600, color: "#536471", fontSize: "13px", whiteSpace: "nowrap" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.users.map((u) => (
+                      <tr key={u.id} style={{ borderBottom: "1px solid #eff3f4" }}>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap" }}>{u.display_name || "-"}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", color: "#536471" }}>{u.email || "-"}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", color: "#536471" }}>{new Date(u.created_at).toLocaleDateString("ja-JP")}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(u.balance_yen)}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(u.total_used_yen)}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(u.total_charged_yen)}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatNumber(u.message_count)}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatNumber(u.agent_count)}</td>
+                      </tr>
+                    ))}
+                    {stats.users.length === 0 && (
+                      <tr><td colSpan={8} style={{ padding: "24px", textAlign: "center", color: "#536471" }}>No users found</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {activeTab === "usage" && (
+              <div style={{ overflowX: "auto", background: "#fff", borderRadius: "16px", border: "1px solid #eff3f4", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #eff3f4", textAlign: "left" }}>
+                      {["Time", "User", "Model", "Route", "Input Tok", "Output Tok", "Cost"].map((h) => (
+                        <th key={h} style={{ padding: "12px 16px", fontWeight: 600, color: "#536471", fontSize: "13px", whiteSpace: "nowrap" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.usageLog.map((row, i) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #eff3f4" }}>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", color: "#536471" }}>{new Date(row.created_at).toLocaleString("ja-JP", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", fontFamily: "monospace", fontSize: "12px" }}>{row.device_id.slice(0, 8)}...</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap" }}>{row.model || "-"}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", color: "#536471" }}>{row.api_route || "-"}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatNumber(row.input_tokens || 0)}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatNumber(row.output_tokens || 0)}</td>
+                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(row.cost_yen || 0)}</td>
+                      </tr>
+                    ))}
+                    {stats.usageLog.length === 0 && (
+                      <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "#536471" }}>No usage log entries</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -85,6 +85,80 @@ export async function GET(req: NextRequest) {
     0,
   );
 
+  // --- User list ---
+  const [usersRes, userCreditsRes, userMessagesRes, userAgentsRes] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, display_name, email, created_at")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("user_credits")
+        .select("device_id, balance_yen, total_used_yen, total_charged_yen"),
+      supabase.from("owner_chats").select("device_id"),
+      supabase.from("owner_agents").select("device_id"),
+    ]);
+
+  const creditsByDevice = new Map(
+    (userCreditsRes.data || []).map(
+      (c: {
+        device_id: string;
+        balance_yen: number | null;
+        total_used_yen: number | null;
+        total_charged_yen: number | null;
+      }) => [c.device_id, c],
+    ),
+  );
+
+  const messageCounts = new Map<string, number>();
+  for (const m of userMessagesRes.data || []) {
+    messageCounts.set(
+      (m as { device_id: string }).device_id,
+      (messageCounts.get((m as { device_id: string }).device_id) || 0) + 1,
+    );
+  }
+
+  const agentCounts = new Map<string, number>();
+  for (const a of userAgentsRes.data || []) {
+    agentCounts.set(
+      (a as { device_id: string }).device_id,
+      (agentCounts.get((a as { device_id: string }).device_id) || 0) + 1,
+    );
+  }
+
+  const users = (usersRes.data || []).map(
+    (u: {
+      id: string;
+      display_name: string | null;
+      email: string | null;
+      created_at: string;
+    }) => {
+      const credits = creditsByDevice.get(u.id) as {
+        balance_yen: number | null;
+        total_used_yen: number | null;
+        total_charged_yen: number | null;
+      } | undefined;
+      return {
+        id: u.id,
+        display_name: u.display_name,
+        email: u.email,
+        created_at: u.created_at,
+        balance_yen: credits?.balance_yen ?? 0,
+        total_used_yen: credits?.total_used_yen ?? 0,
+        total_charged_yen: credits?.total_charged_yen ?? 0,
+        message_count: messageCounts.get(u.id) || 0,
+        agent_count: agentCounts.get(u.id) || 0,
+      };
+    },
+  );
+
+  // --- Usage log (last 50) ---
+  const usageLogRes = await supabase
+    .from("usage_log")
+    .select("device_id, model, api_route, input_tokens, output_tokens, cost_yen, created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
   return NextResponse.json({
     totalUsers: profilesRes.count || 0,
     activeUsersToday: activeDeviceIds.size,
@@ -93,5 +167,7 @@ export async function GET(req: NextRequest) {
     totalRevenue: Math.round(totalRevenue * 100) / 100,
     totalCharged: Math.round(totalCharged * 100) / 100,
     activeAgents: agentsRes.count || 0,
+    users,
+    usageLog: usageLogRes.data || [],
   });
 }
