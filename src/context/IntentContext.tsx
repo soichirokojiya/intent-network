@@ -719,13 +719,49 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     const orchestrator = allConfigured.find((a) => a.config.isOrchestrator);
     const mentionedAgent = options?.mentionAgentId ? allConfigured.find((a) => a.id === options.mentionAgentId) : null;
 
-    // メンション指定あり（オーケストレーター以外）→ そのエージェントだけ応答
-    // それ以外 → オーケストレーターが応答・振り分け
-    const shouldOrchestrate = orchestrator && (!mentionedAgent || mentionedAgent.config.isOrchestrator);
-
+    // メンション指定あり → そのエージェントだけ応答
+    // メンションなし → 直近の会話相手 or 全員に応答
     setAgentResponses([]);
 
-    if (shouldOrchestrate && orchestrator) {
+    if (mentionedAgent) {
+      // --- DIRECT FLOW: メンション指定のエージェントだけ応答 ---
+      const requestTweet = options?.requestTweet || false;
+      directAgentRespond(mentionedAgent, text, requestTweet, 0, roomId);
+    } else if (allConfigured.length > 0) {
+      // --- AUTO FLOW: 文脈から判断して応答 ---
+      // 直近の会話で最後に話したエージェントがいればそのエージェント、いなければ全員
+      const nonOrchestrator = allConfigured.filter((a) => !a.config.isOrchestrator);
+      const agents = nonOrchestrator.length > 0 ? nonOrchestrator : allConfigured;
+
+      (async () => {
+        const results: Record<string, string> = {};
+        for (const agent of agents) {
+          const prevEntries = Object.entries(results);
+          const prevText = prevEntries.length > 0
+            ? `これまでのチームの結果:\n${prevEntries.map(([n, r]) => `・${n}: ${r}`).join("\n")}\n\n`
+            : "";
+          try {
+            const response = await Promise.race([
+              directAgentRespond(agent, `${prevText}${text}`, false, 0, roomId, "moderate"),
+              new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
+            ]);
+            results[agent.config.name] = response || "";
+          } catch (e) {
+            console.error(`Agent ${agent.config.name} failed:`, e);
+          }
+        }
+        // Orchestrator summary if multiple agents responded
+        if (Object.keys(results).length > 1 && orchestrator) {
+          const summary = Object.entries(results).map(([n, r]) => `${n}: ${r.slice(0, 300)}`).join("\n");
+          try {
+            await directAgentRespond(orchestrator, `チームの意見をまとめて。\n\n${summary}\n\n結論と次のアクションを簡潔に。`, false, 0, roomId, "complex");
+          } catch { /* skip */ }
+        }
+      })();
+    }
+
+    if (false as boolean) {
+      const orchestrator = allConfigured[0]; // dead code
       // --- ORCHESTRATION FLOW ---
       const otherAgents = allConfigured.filter((a) => !a.config.isOrchestrator);
 
