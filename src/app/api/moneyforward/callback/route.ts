@@ -38,8 +38,9 @@ export async function GET(req: NextRequest) {
     const tokens = await tokenRes.json();
 
     if (!tokens.access_token) {
-      console.error("MoneyForward token exchange failed:", tokens);
-      return NextResponse.redirect(new URL("/settings/account?mf=error", req.url));
+      console.error("MoneyForward token exchange failed:", JSON.stringify(tokens));
+      const errorMsg = encodeURIComponent(tokens.error_description || tokens.error || "token_failed");
+      return NextResponse.redirect(new URL(`/settings/account?mf=error&mf_detail=${errorMsg}`, req.url));
     }
 
     // Save tokens to profiles table
