@@ -63,7 +63,7 @@ const STATIC_RULES = `重要ルール:
 
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary } = await req.json();
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts } = await req.json();
 
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
@@ -109,6 +109,31 @@ export async function POST(req: NextRequest) {
       urlContext = "\n" + urlContents.join("\n\n");
     }
 
+    // Filter project facts by agent role relevance
+    let factsContext = "";
+    if (Array.isArray(projectFacts) && projectFacts.length > 0) {
+      const roleCategories: Record<string, string[]> = {
+        "哲学者": ["policy", "decision"],
+        "ストラテジスト": ["policy", "decision"],
+        "マーケティング": ["decision", "task"],
+        "リサーチ": ["spec", "decision"],
+        "オーケストレーター": ["decision", "spec", "task", "policy"],
+      };
+      const expertise = agentExpertise || "";
+      const matchedRole = Object.keys(roleCategories).find((r) => expertise.includes(r));
+      const relevantCategories = matchedRole ? roleCategories[matchedRole] : ["decision", "spec", "task", "policy"];
+
+      const filtered = projectFacts
+        .filter((f: { category: string }) => relevantCategories.includes(f.category))
+        .slice(0, 10);
+
+      if (filtered.length > 0) {
+        factsContext = "\n【プロジェクト情報】\n" + filtered
+          .map((f: { category: string; content: string }) => `[${f.category}] ${f.content}`)
+          .join("\n");
+      }
+    }
+
     const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 
     // System prompt with prompt caching: static rules are cached
@@ -120,7 +145,7 @@ export async function POST(req: NextRequest) {
       },
       {
         type: "text" as const,
-        text: `あなたは「${agentName}」というAIエージェントです。\n現在の日付: ${today}\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
+        text: `あなたは「${agentName}」というAIエージェントです。\n現在の日付: ${today}\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
       },
     ];
 

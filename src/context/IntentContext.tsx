@@ -233,6 +233,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   const [internalChats, setInternalChats] = useState<InternalChat[]>([]);
   const [agentResponses, setAgentResponses] = useState<AgentResponse[]>([]);
   const initDone = useRef(false);
+  const projectFactsCache = useRef<{ facts: { category: string; content: string }[]; fetchedAt: number }>({ facts: [], fetchedAt: 0 });
 
   // Backward compat
   const activeAgentId = activeAgentIds.size > 0 ? [...activeAgentIds][0] : null;
@@ -611,6 +612,26 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     });
   }, [internalChats, myAgents]);
 
+  // --- Fetch project facts (cached for 5 minutes) ---
+  const fetchProjectFacts = useCallback(async (): Promise<{ category: string; content: string }[]> => {
+    const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
+    if (!deviceId) return [];
+    const now = Date.now();
+    if (projectFactsCache.current.fetchedAt > 0 && now - projectFactsCache.current.fetchedAt < 5 * 60 * 1000) {
+      return projectFactsCache.current.facts;
+    }
+    try {
+      const res = await fetch(`/api/project-facts?deviceId=${encodeURIComponent(deviceId)}`);
+      if (!res.ok) return projectFactsCache.current.facts;
+      const data = await res.json();
+      const facts = (data.facts || []).map((f: { category: string; content: string }) => ({ category: f.category, content: f.content }));
+      projectFactsCache.current = { facts, fetchedAt: now };
+      return facts;
+    } catch {
+      return projectFactsCache.current.facts;
+    }
+  }, []);
+
   // --- Post intent ---
   // --- Helper: direct agent response ---
   const directAgentRespond = useCallback(async (agent: MyAgent, text: string, requestTweet: boolean, delay: number, roomId: string = "general", complexity: string = "moderate") => {
@@ -620,6 +641,8 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error(`Failed to load conversation for ${agent.config.name}:`, e);
     }
+
+    const facts = await fetchProjectFacts();
 
     return fetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -636,6 +659,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         complexity,
         ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
         memorySummary: typeof window !== "undefined" ? localStorage.getItem("musu_memory_summary") || "" : "",
+        projectFacts: facts,
       }),
     }).then(async (r) => {
       const text = await r.text();
@@ -709,7 +733,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       });
       return "";
     });
-  }, [updateAgentStats]);
+  }, [updateAgentStats, fetchProjectFacts]);
 
   // --- Post intent: direct or orchestrated ---
   const postIntent = useCallback((text: string, options?: { mentionAgentId?: string; requestTweet?: boolean; roomId?: string }) => {
