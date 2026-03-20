@@ -713,7 +713,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   // --- Post intent: direct or orchestrated ---
   const postIntent = useCallback((text: string, options?: { mentionAgentId?: string; requestTweet?: boolean; roomId?: string }) => {
     const roomId = options?.roomId || "general";
-    const allConfigured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead");
+    const allConfigured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead" && activeAgentIds.has(a.id));
     if (allConfigured.length === 0) return;
 
     const orchestrator = allConfigured.find((a) => a.config.isOrchestrator);
