@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   const redirectUri = "https://musu.world/api/moneyforward/callback";
-  const scope = "read";
+  const scope = "mfc/admin/tenant.read";
   const state = deviceId;
 
   const params = new URLSearchParams({
