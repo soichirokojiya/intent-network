@@ -12,6 +12,7 @@ interface AuthContextType {
   memorySummary: string;
   newsEnabled: boolean;
   newsTime: string;
+  googleCalendarConnected: boolean;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: string | null; isExisting?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [memorySummary, setMemorySummary] = useState("");
   const [newsEnabled, setNewsEnabled] = useState(false);
   const [newsTime, setNewsTime] = useState("07:00");
+  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Bind device_id to user ID (ensures data persists across browsers/sessions)
@@ -55,13 +57,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load profile from profiles table
   const loadProfile = useCallback(async (userId: string, email: string) => {
     bindDeviceId(userId);
-    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time").eq("id", userId).single();
+    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, google_calendar_connected").eq("id", userId).single();
     setDisplayName(data?.display_name || email.split("@")[0]);
     setAvatarUrl(data?.avatar_url || "");
     setBusinessInfo(data?.business_info || "");
     setMemorySummary(data?.memory_summary || "");
     setNewsEnabled(data?.news_enabled ?? false);
     setNewsTime(data?.news_time || "07:00");
+    setGoogleCalendarConnected(data?.google_calendar_connected ?? false);
     if (data?.business_info) localStorage.setItem("musu_business_info", data.business_info);
     if (data?.memory_summary) localStorage.setItem("musu_memory_summary", data.memory_summary);
   }, [bindDeviceId]);
@@ -117,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMemorySummary("");
     setNewsEnabled(false);
     setNewsTime("07:00");
+    setGoogleCalendarConnected(false);
     // セキュリティ: 他のユーザーのデータにアクセスしないようdevice_idをクリア
     localStorage.removeItem("musu_device_id");
     localStorage.removeItem("musu_business_info");
@@ -172,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings }}>
+    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, googleCalendarConnected, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings }}>
       {children}
     </AuthContext.Provider>
   );

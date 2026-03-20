@@ -644,6 +644,21 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
     const facts = await fetchProjectFacts();
 
+    // Fetch Google Calendar events if connected
+    let calendarEvents: { title: string; start: string; end: string; location: string }[] | undefined;
+    try {
+      const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
+      if (deviceId) {
+        const calRes = await fetch(`/api/google/calendar?deviceId=${deviceId}`);
+        if (calRes.ok) {
+          const calData = await calRes.json();
+          if (calData.connected && calData.events?.length > 0) {
+            calendarEvents = calData.events;
+          }
+        }
+      }
+    } catch { /* ignore calendar errors */ }
+
     return fetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -660,6 +675,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
         memorySummary: typeof window !== "undefined" ? localStorage.getItem("musu_memory_summary") || "" : "",
         projectFacts: facts,
+        calendarEvents,
       }),
     }).then(async (r) => {
       const text = await r.text();
