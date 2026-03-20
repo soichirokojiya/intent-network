@@ -44,8 +44,8 @@ export async function GET(req: Request) {
 
         if (!agents || agents.length === 0) continue;
 
-        // Use first agent as sender
-        const senderAgent = agents[0];
+        // Prefer research agent, fallback to first
+        const senderAgent = agents.find((a) => /リサーチ|research/i.test(a.config?.role || "")) || agents[0];
 
         const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 
