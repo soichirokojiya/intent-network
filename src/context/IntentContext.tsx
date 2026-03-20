@@ -769,10 +769,13 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       const requestTweet = options?.requestTweet || false;
       directAgentRespond(mentionedAgent, text, requestTweet, 0, roomId);
     } else if (allConfigured.length > 0) {
-      // --- AUTO FLOW: 文脈から判断して応答 ---
-      // 直近の会話で最後に話したエージェントがいればそのエージェント、いなければ全員
+      // --- AUTO FLOW: 直近の会話相手がいればその人、いなければ全員 ---
       const nonOrchestrator = allConfigured.filter((a) => !a.config.isOrchestrator);
-      const agents = nonOrchestrator.length > 0 ? nonOrchestrator : allConfigured;
+
+      // Find the last agent who spoke in agentResponses or chatHistory
+      const lastAgentResponse = [...(agentResponses || [])].reverse().find((r) => r.agentId && !r.toOwner.startsWith("エラー"));
+      const lastAgent = lastAgentResponse ? nonOrchestrator.find((a) => a.id === lastAgentResponse.agentId) : null;
+      const agents = lastAgent ? [lastAgent] : (nonOrchestrator.length > 0 ? nonOrchestrator : allConfigured);
 
       (async () => {
         const results: Record<string, string> = {};
@@ -788,7 +791,12 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             ]);
             results[agent.config.name] = response || "";
           } catch (e) {
-            console.error(`Agent ${agent.config.name} failed:`, e);
+            const msg = e instanceof Error ? e.message : String(e);
+            console.error(`Agent ${agent.config.name} failed:`, msg);
+            setAgentResponses((prev) => [...prev, {
+              agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
+              toOwner: `エラー: ${msg}`, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
+            }]);
           }
         }
         // Orchestrator summary if multiple agents responded
