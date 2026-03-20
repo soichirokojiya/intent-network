@@ -134,9 +134,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Build calendar context if available
+    // Build calendar context (secretary only)
     let calendarContext = "";
-    if (Array.isArray(calendarEvents) && calendarEvents.length > 0) {
+    const isSecretary = (agentExpertise || "").includes("秘書") || (agentExpertise || "").toLowerCase().includes("secretary");
+    if (isSecretary && Array.isArray(calendarEvents) && calendarEvents.length > 0) {
       const eventLines = calendarEvents.map((e: { title: string; start: string; end: string; location: string }) => {
         const startTime = e.start ? new Date(e.start).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" }) : "終日";
         const endTime = e.end ? new Date(e.end).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" }) : "";
