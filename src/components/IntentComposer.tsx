@@ -165,11 +165,19 @@ function WelcomeSequence({ agents, onMessageShown, onComplete }: { agents: { id:
     return `${a.config.name}（${role}）`;
   }).join("、");
 
-  const messages = [
+  // Stable ref for messages to avoid stale closures in useEffect
+  const messagesRef = useRef([
     `はじめまして、${orchestrator.config.name}です。あなた専属チームのリーダーです。\nここにいる全員があなたの仕事仲間です。何でも気軽に話しかけてください。`,
     `メンバーを紹介します。\n${memberList}\nチーム編成は自由にカスタマイズできます。メンバーの追加・削除・役割変更はいつでも可能です。`,
     `まずはプロフィールを完成させてください。事業内容を入れると、チーム全員があなたの事業を理解した上で動けるようになります。\n@をつければ特定のメンバーに直接話せます。\n「ニュースを7時と18時に送って」「予定を毎朝8時に教えて」のように話しかければ、秘書が対応します。\nGoogleカレンダーやTrelloとの連携もできます。アプリ連携から設定してみてください。`,
-  ];
+  ]);
+  const messages = messagesRef.current;
+  const onMessageShownRef = useRef(onMessageShown);
+  onMessageShownRef.current = onMessageShown;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const orchestratorRef = useRef(orchestrator);
+  orchestratorRef.current = orchestrator;
 
   useEffect(() => {
     const t0 = setTimeout(() => setStep(0), 500);
@@ -177,7 +185,7 @@ function WelcomeSequence({ agents, onMessageShown, onComplete }: { agents: { id:
   }, []);
 
   useEffect(() => {
-    if (step < 0 || step >= messages.length) return;
+    if (step < 0 || step >= messagesRef.current.length) return;
     const pauseDelay = step === 0 ? 400 : 800 + Math.random() * 500;
     const t1 = setTimeout(() => {
       setTyping(true);
@@ -185,25 +193,24 @@ function WelcomeSequence({ agents, onMessageShown, onComplete }: { agents: { id:
       const t2 = setTimeout(() => {
         setTyping(false);
         setShown((prev) => [...prev, step]);
-        // Save to DB when message is shown
-        if (onMessageShown) {
-          onMessageShown({
-            text: messages[step],
-            agentName: orchestrator.config.name,
-            agentAvatar: orchestrator.config.avatar,
-            agentId: orchestrator.id,
+        if (onMessageShownRef.current) {
+          onMessageShownRef.current({
+            text: messagesRef.current[step],
+            agentName: orchestratorRef.current.config.name,
+            agentAvatar: orchestratorRef.current.config.avatar,
+            agentId: orchestratorRef.current.id,
           });
         }
         const nextStep = step + 1;
         setStep(nextStep);
-        if (nextStep >= messages.length && onComplete) {
-          onComplete();
+        if (nextStep >= messagesRef.current.length && onCompleteRef.current) {
+          onCompleteRef.current();
         }
       }, typingDelay);
       return () => clearTimeout(t2);
     }, pauseDelay);
     return () => clearTimeout(t1);
-  }, [step, messages.length]);
+  }, [step]);
 
   return (
     <div className="space-y-3 py-4">
