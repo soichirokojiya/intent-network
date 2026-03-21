@@ -148,7 +148,7 @@ export default function HelpPage() {
                 <path d="M12 28c0-8 4-14 8-14s8 6 8 14" />
               </svg>
             </div>
-            <span className="text-lg font-extrabold">musu.world</span>
+            <span className="text-lg font-extrabold">musu</span>
           </Link>
           <Link href="/" className="text-sm text-[#4A99E9] font-bold hover:underline">
             ワークスペースへ
