@@ -152,12 +152,11 @@ function TypingBubble({ avatar, name }: { avatar: string; name: string }) {
   );
 }
 
-function WelcomeSequence({ agents }: { agents: { id: string; config: { name: string; avatar: string; role: string; expertise: string } }[] }) {
+function WelcomeSequence({ agents, onMessageShown }: { agents: { id: string; config: { name: string; avatar: string; role: string; expertise: string } }[]; onMessageShown?: (msg: { text: string; agentName: string; agentAvatar: string; agentId: string }) => void }) {
   const [step, setStep] = useState(-1);
   const [shown, setShown] = useState<number[]>([]);
   const [typing, setTyping] = useState(false);
 
-  // Build orientation messages from the orchestrator (Ren)
   const orchestrator = agents.find((a) => a.config.role === "オーケストレーター" || a.config.expertise === "オーケストレーター") || agents[0];
   const otherAgents = agents.filter((a) => a.id !== orchestrator.id);
 
@@ -186,6 +185,15 @@ function WelcomeSequence({ agents }: { agents: { id: string; config: { name: str
       const t2 = setTimeout(() => {
         setTyping(false);
         setShown((prev) => [...prev, step]);
+        // Save to DB when message is shown
+        if (onMessageShown) {
+          onMessageShown({
+            text: messages[step],
+            agentName: orchestrator.config.name,
+            agentAvatar: orchestrator.config.avatar,
+            agentId: orchestrator.id,
+          });
+        }
         setStep(step + 1);
       }, typingDelay);
       return () => clearTimeout(t2);
@@ -733,7 +741,22 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
 
         {/* Welcome sequence: show when no chat history */}
         {chatHistory.length === 0 && configured.length > 0 && (
-          <WelcomeSequence agents={configured} />
+          <WelcomeSequence
+            agents={configured}
+            onMessageShown={(msg) => {
+              const chatMsg: ChatMessage = {
+                id: `welcome-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                type: "agent",
+                agentName: msg.agentName,
+                agentAvatar: msg.agentAvatar,
+                agentId: msg.agentId,
+                text: msg.text,
+                timestamp: Date.now(),
+              };
+              setChatHistory((prev) => [...prev, chatMsg]);
+              saveChatMessage(chatMsg, roomId);
+            }}
+          />
         )}
 
         {chatHistory.map((msg, idx) => {
