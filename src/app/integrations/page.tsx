@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "freee" | "slack";
+type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack";
 
 interface Integration {
   key: IntegrationKey;
@@ -21,7 +21,6 @@ const CATEGORIES = [
   { id: "google", label: "Google" },
   { id: "project", label: "プロジェクト管理" },
   { id: "communication", label: "コミュニケーション" },
-  { id: "finance", label: "会計・ファイナンス" },
   { id: "sns", label: "SNS" },
 ];
 
@@ -138,20 +137,6 @@ const integrations: Integration[] = [
       </svg>
     ),
   },
-  {
-    key: "freee",
-    name: "freee",
-    description: "ファイナンス担当が会計データを参照できるようになります。",
-    authPath: "/api/freee/auth",
-    disconnectPath: "/api/freee/disconnect",
-    category: "finance",
-    icon: (
-      <svg viewBox="0 0 24 24" width="20" height="20">
-        <rect width="24" height="24" rx="4" fill="#2ecc71"/>
-        <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="bold">f</text>
-      </svg>
-    ),
-  },
 ];
 
 const STATUS_MAP: Record<IntegrationKey, string> = {
@@ -161,7 +146,6 @@ const STATUS_MAP: Record<IntegrationKey, string> = {
   gmail: "gmailConnected",
   notion: "notionConnected",
   x: "xConnected",
-  freee: "freeeConnected",
   slack: "slackConnected",
 };
 
@@ -172,7 +156,7 @@ export default function IntegrationsPage() {
   const searchParams = useSearchParams();
 
   const [connected, setConnected] = useState<Record<IntegrationKey, boolean>>({
-    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, freee: false, slack: false,
+    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false,
   });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -201,7 +185,7 @@ export default function IntegrationsPage() {
 
   // Handle all OAuth callbacks
   useEffect(() => {
-    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "freee", "slack"];
+    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack"];
     for (const key of callbackKeys) {
       const param = searchParams.get(key);
       if (param === "connected") {
