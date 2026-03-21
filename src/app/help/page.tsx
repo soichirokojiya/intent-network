@@ -201,7 +201,7 @@ export default function HelpPage() {
         <div className="flex justify-center gap-4">
           <Link href="/terms" className="hover:underline">利用規約</Link>
           <Link href="/privacy" className="hover:underline">プライバシーポリシー</Link>
-          <a href="https://www.cfac.co.jp/" target="_blank" rel="noopener noreferrer" className="hover:underline">運営会社</a>
+          <a href="https://cfac.co.jp/" target="_blank" rel="noopener noreferrer" className="hover:underline">運営会社</a>
         </div>
         <p>&copy; 2026 musu.world</p>
       </footer>

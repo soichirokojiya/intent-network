@@ -197,7 +197,7 @@ export function LandingContent() {
             <Link href="/privacy" className="hover:underline">プライバシーポリシー</Link>
             <Link href="/contact" className="hover:underline">お問い合わせ</Link>
             <Link href="/help" className="hover:underline">ヘルプ</Link>
-            <a href="https://www.cfac.co.jp/" target="_blank" rel="noopener noreferrer" className="hover:underline">運営会社</a>
+            <a href="https://cfac.co.jp/" target="_blank" rel="noopener noreferrer" className="hover:underline">運営会社</a>
           </div>
           {/* Copyright */}
           <p className="text-[12px] text-gray-400 pt-3">&copy; 2026 musu.world</p>

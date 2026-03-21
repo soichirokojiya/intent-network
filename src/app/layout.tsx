@@ -82,7 +82,7 @@ export default function RootLayout({
     creator: {
       "@type": "Organization",
       name: "株式会社CFAC",
-      url: "https://www.cfac.co.jp/",
+      url: "https://cfac.co.jp/",
     },
   };
 
