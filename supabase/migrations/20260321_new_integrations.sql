@@ -27,3 +27,9 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS freee_connected boolean DEF
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS slack_access_token text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS slack_connected boolean DEFAULT false;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS slack_team_name text;
+
+-- LINE
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS line_access_token text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS line_refresh_token text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS line_connected boolean DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS line_display_name text;

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("google_calendar_connected, trello_connected, schedule_delivery_enabled, google_drive_connected, notion_connected, x_connected, freee_connected, gmail_connected, slack_connected")
+    .select("google_calendar_connected, trello_connected, schedule_delivery_enabled, google_drive_connected, notion_connected, x_connected, gmail_connected, slack_connected, line_connected")
     .eq("id", deviceId)
     .single();
 
@@ -29,8 +29,8 @@ export async function GET(req: NextRequest) {
     googleDriveConnected: data?.google_drive_connected ?? false,
     notionConnected: data?.notion_connected ?? false,
     xConnected: data?.x_connected ?? false,
-    freeeConnected: data?.freee_connected ?? false,
     gmailConnected: data?.gmail_connected ?? false,
     slackConnected: data?.slack_connected ?? false,
+    lineConnected: data?.line_connected ?? false,
   });
 }

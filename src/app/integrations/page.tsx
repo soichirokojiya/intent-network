@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack";
+type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line";
 
 interface Integration {
   key: IntegrationKey;
@@ -124,6 +124,20 @@ const integrations: Integration[] = [
     ),
   },
   {
+    key: "line",
+    name: "LINE",
+    description: "チームがLINEと連携できるようになります。",
+    authPath: "/api/line/auth",
+    disconnectPath: "/api/line/disconnect",
+    category: "communication",
+    icon: (
+      <svg viewBox="0 0 24 24" width="20" height="20">
+        <rect width="24" height="24" rx="4" fill="#06C755"/>
+        <path d="M12 4C7.03 4 3 7.18 3 11.09c0 2.68 1.77 5.02 4.4 6.36-.17.61-.62 2.27-.71 2.62-.12.44.16.44.34.32.14-.1 2.2-1.5 3.1-2.11.28.03.57.05.87.05 4.97 0 9-3.18 9-7.09S16.97 4 12 4z" fill="#fff"/>
+      </svg>
+    ),
+  },
+  {
     key: "x",
     name: "X (Twitter)",
     description: "チームがXに投稿できるようになります。",
@@ -147,6 +161,7 @@ const STATUS_MAP: Record<IntegrationKey, string> = {
   notion: "notionConnected",
   x: "xConnected",
   slack: "slackConnected",
+  line: "lineConnected",
 };
 
 export default function IntegrationsPage() {
@@ -156,7 +171,7 @@ export default function IntegrationsPage() {
   const searchParams = useSearchParams();
 
   const [connected, setConnected] = useState<Record<IntegrationKey, boolean>>({
-    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false,
+    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false,
   });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -185,7 +200,7 @@ export default function IntegrationsPage() {
 
   // Handle all OAuth callbacks
   useEffect(() => {
-    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack"];
+    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line"];
     for (const key of callbackKeys) {
       const param = searchParams.get(key);
       if (param === "connected") {
