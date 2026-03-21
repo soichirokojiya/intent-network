@@ -39,7 +39,7 @@ const STATIC_RULES = `重要ルール:
 
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData } = await req.json();
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData, gmailData } = await req.json();
 
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
@@ -127,6 +127,15 @@ export async function POST(req: NextRequest) {
       trelloContext = "\n【Trelloタスク】\n" + boardLines.join("\n\n");
     }
 
+    // Build Gmail context
+    let gmailContext = "";
+    if (gmailData?.messages && Array.isArray(gmailData.messages) && gmailData.messages.length > 0) {
+      const mailLines = gmailData.messages.slice(0, 10).map((m: { subject: string; from: string; date: string; snippet: string }) => {
+        return `From: ${m.from}\n件名: ${m.subject}\n日時: ${m.date}\n概要: ${m.snippet}`;
+      });
+      gmailContext = "\n【最近のメール】\n" + mailLines.join("\n---\n");
+    }
+
     const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 
     // System prompt with prompt caching
@@ -143,7 +152,7 @@ export async function POST(req: NextRequest) {
       },
       {
         type: "text" as const,
-        text: `現在の日付: ${today}${calendarContext}${trelloContext}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
+        text: `現在の日付: ${today}${calendarContext}${trelloContext}${gmailContext}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
       },
     ];
 

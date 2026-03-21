@@ -680,16 +680,17 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
     const facts = await fetchProjectFacts();
 
-    // Fetch Google Calendar events if connected
+    // Fetch integration data if connected
     let calendarEvents: { title: string; start: string; end: string; location: string }[] | undefined;
-    // Fetch Trello boards/cards if connected
     let trelloData: { boards: { name: string; url: string; cards: { name: string; list: string; due: string | null }[] }[] } | undefined;
+    let gmailData: { messages: { id: string; subject: string; from: string; date: string; snippet: string }[] } | undefined;
     try {
       const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
       if (deviceId) {
-        const [calRes, trelloRes] = await Promise.all([
+        const [calRes, trelloRes, gmailRes] = await Promise.all([
           fetch(`/api/google/calendar?deviceId=${deviceId}`).catch(() => null),
           fetch(`/api/trello/boards?deviceId=${deviceId}`).catch(() => null),
+          fetch(`/api/gmail/messages?deviceId=${deviceId}`).catch(() => null),
         ]);
         if (calRes?.ok) {
           const calData = await calRes.json();
@@ -701,6 +702,12 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           const tData = await trelloRes.json();
           if (tData.connected && tData.boards?.length > 0) {
             trelloData = tData;
+          }
+        }
+        if (gmailRes?.ok) {
+          const gData = await gmailRes.json();
+          if (gData.connected && gData.messages?.length > 0) {
+            gmailData = gData;
           }
         }
       }
@@ -724,6 +731,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         projectFacts: facts,
         calendarEvents,
         trelloData,
+        gmailData,
       }),
     }).then(async (r) => {
       const text = await r.text();
