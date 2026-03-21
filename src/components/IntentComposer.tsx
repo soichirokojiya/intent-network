@@ -903,7 +903,17 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
                     : "bg-[var(--search-bg)]"
                 }`}>
-                  <ChatMessageText text={msg.text.replace(/\\n/g, "\n").replace(/<cite[^>]*>|<\/cite>/g, "")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
+                  <ChatMessageText text={msg.text.replace(/\\n/g, "\n").replace(/<cite[^>]*>|<\/cite>/g, "").replace("→ /billing", "")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
+                  {msg.text.includes("/billing") && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => window.location.href = "/billing"}
+                        className="px-4 py-2 bg-[var(--accent)] text-white text-[13px] font-bold rounded-lg hover:bg-[var(--accent-hover)]"
+                      >
+                        チャージする
+                      </button>
+                    </div>
+                  )}
                   {msg.id.startsWith("email-preview-") && msg.agentId && (
                     <div className="mt-2 flex gap-2">
                       <button

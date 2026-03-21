@@ -48,6 +48,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "required" }, { status: 400 });
     }
 
+    // Check credit balance before calling AI
+    if (deviceId) {
+      const balRes = await fetch(new URL(`/api/credits?deviceId=${deviceId}`, req.url).toString());
+      if (balRes.ok) {
+        const balData = await balRes.json();
+        if (balData.balance <= 0) {
+          return NextResponse.json({ error: "insufficient_balance", balance: 0 }, { status: 402 });
+        }
+      }
+    }
+
     const persona = [
       agentPersonality && `性格: ${agentPersonality}`,
       agentExpertise && `専門: ${agentExpertise}`,
