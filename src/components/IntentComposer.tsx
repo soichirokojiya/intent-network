@@ -401,6 +401,7 @@ function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<Cha
 export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const [text, setText] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [welcomeDone, setWelcomeDone] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const isComposing = useRef(false);
   const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, approveTweet, restAgent } = useIntents();
@@ -429,12 +430,14 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     loadChatHistory(roomId).then((rawMsgs) => {
       const msgs = rawMsgs;
       setHasMore(rawMsgs.length >= 30);
-      if (msgs.length > 0) {
+      // Filter out incomplete welcome messages so sequence can replay cleanly
+      const realMsgs = msgs.filter((m) => !m.id.startsWith("welcome-"));
+      if (realMsgs.length > 0) {
         setChatHistory(msgs as ChatMessage[]);
+        setWelcomeDone(true);
         // Mark all loaded message IDs as processed to prevent re-adding
         msgs.forEach((m) => {
           processedResponseIds.current.add(m.id);
-          // Mark content keys to prevent duplicate agent responses
           if (m.agentId && m.text) {
             processedResponseIds.current.add(`${m.agentId}-${m.text}`);
           }
@@ -442,6 +445,9 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           if (m.id.startsWith("tweet-preview-")) processedResponseIds.current.add(m.id.replace("tweet-preview-", ""));
           if (m.id.startsWith("tweeted-")) processedResponseIds.current.add(m.id);
         });
+      } else {
+        // Only welcome messages or empty — welcome sequence will replay
+        setWelcomeDone(false);
       }
       // Scroll to bottom after initial load
       setTimeout(() => chatEndRef.current?.scrollIntoView(), 100);
@@ -745,14 +751,13 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           </button>
         )}
 
-        {/* Welcome sequence: show only when DB loaded and truly empty */}
-        {historyLoaded && chatHistory.length === 0 && configured.length > 0 && (
+        {/* Welcome sequence: show when no real (non-welcome) messages exist */}
+        {historyLoaded && !welcomeDone && configured.length > 0 && (
           <WelcomeSequence
             agents={configured}
             onMessageShown={(msg) => {
               const ts = Date.now();
               const id = `welcome-${ts}-${Math.random().toString(36).slice(2, 6)}`;
-              saveChatMessage({ id, type: "agent" as const, text: msg.text, agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId, timestamp: ts }, roomId);
               welcomeMsgsRef.current.push({
                 id, type: "agent",
                 agentName: msg.agentName, agentAvatar: msg.agentAvatar,
@@ -760,8 +765,13 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               });
             }}
             onComplete={() => {
-              setChatHistory(welcomeMsgsRef.current);
+              const msgs = [...welcomeMsgsRef.current];
               welcomeMsgsRef.current = [];
+              setWelcomeDone(true);
+              setChatHistory(msgs);
+              msgs.forEach((m) => {
+                saveChatMessage({ id: m.id, type: "agent" as const, text: m.text, agentName: m.agentName, agentAvatar: m.agentAvatar, agentId: m.agentId, timestamp: m.timestamp }, roomId);
+              });
             }}
           />
         )}
