@@ -138,10 +138,13 @@ export default function IntegrationsPage() {
           </p>
           {googleCalendarConnected && (
             <div className="flex items-center justify-between mt-3">
-              <span className="text-[13px] text-[var(--muted)]">Morning schedule delivery (7:00 JST)</span>
+              <div>
+                <span className="text-[13px] text-[var(--muted)]">Morning schedule delivery</span>
+                <p className="text-[11px] text-[var(--muted)] opacity-70 mt-0.5">Time can be set via chat with your agents</p>
+              </div>
               <button
                 onClick={handleToggleSchedule}
-                className={`relative w-11 h-6 rounded-full transition-colors ${scheduleDeliveryEnabled ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${scheduleDeliveryEnabled ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
               >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${scheduleDeliveryEnabled ? "translate-x-5" : ""}`} />
               </button>
