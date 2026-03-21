@@ -75,6 +75,8 @@ export interface AgentResponse {
   tweetPending: boolean;
   tweetId?: string;
   roomId?: string;
+  emailAction?: { to: string; subject: string; body: string };
+  emailSent?: boolean;
 }
 
 export interface Conversation {

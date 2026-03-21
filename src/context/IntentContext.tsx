@@ -219,6 +219,7 @@ interface IntentContextType {
   agentResponses: AgentResponse[];
   clearAgentResponses: () => void;
   approveTweet: (agentId: string) => void;
+  sendEmail: (agentId: string) => Promise<boolean>;
   // Actions
   postIntent: (text: string, options?: { mentionAgentId?: string; requestTweet?: boolean; roomId?: string }) => void;
   postReply: (intentId: string, text: string) => void;
@@ -535,6 +536,30 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   const clearAgentResponses = useCallback(() => setAgentResponses([]), []);
 
+  // Send email after user confirmation
+  const sendEmail = useCallback(async (agentId: string): Promise<boolean> => {
+    const resp = agentResponses.find((r) => r.agentId === agentId && r.emailAction);
+    if (!resp?.emailAction) return false;
+    const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
+    if (!deviceId) return false;
+    try {
+      const res = await fetch("/api/gmail/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId, to: resp.emailAction.to, subject: resp.emailAction.subject, body: resp.emailAction.body }),
+      });
+      if (res.ok) {
+        setAgentResponses((prev) => prev.map((r) =>
+          r.agentId === agentId && r.emailAction ? { ...r, emailSent: true, emailAction: undefined } : r
+        ));
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [agentResponses]);
+
   // Approve tweet: actually send to Twitter
   const approveTweet = useCallback((agentId: string) => {
     const resp = agentResponses.find((r) => r.agentId === agentId && r.tweetPending);
@@ -709,6 +734,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     }).then((data): string => {
       const toOwner = (data.toOwner || "了解。").replace(/\\n/g, "\n");
       const toTimeline = data.toTimeline || "";
+      const emailAction = data.emailAction || undefined;
 
       setTimeout(() => {
         setAgentResponses((prev) => {
@@ -719,6 +745,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             updated[existing] = {
               ...updated[existing], toOwner, toTimeline, timestamp: Date.now(),
               tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
+              emailAction,
             };
             return updated;
           }
@@ -726,7 +753,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
             toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
             tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
-            roomId,
+            roomId, emailAction,
           }];
         });
       }, delay);
@@ -1013,7 +1040,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, restAgent, encourageAgent, revertDrift,
       internalChats, sendChatMessage,
       myAgentConfig, myAgentStats,
-      agentResponses, clearAgentResponses, approveTweet,
+      agentResponses, clearAgentResponses, approveTweet, sendEmail,
       postIntent, postReply,
       getConversation: useCallback((id: string) => conversations.get(id), [conversations]),
       loadConversation,

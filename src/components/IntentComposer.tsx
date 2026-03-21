@@ -411,7 +411,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const isComposing = useRef(false);
-  const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, approveTweet, restAgent } = useIntents();
+  const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, approveTweet, sendEmail, restAgent } = useIntents();
   const { t } = useLocale();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const processedResponseIds = useRef<Set<string>>(new Set());
@@ -511,6 +511,36 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         text: resp.toOwner,
         timestamp: resp.timestamp,
       });
+
+      // Email preview as a follow-up message
+      if (resp.emailAction) {
+        enqueueMessage({
+          id: `email-preview-${key}`,
+          type: "agent",
+          agentName: resp.agentName,
+          agentAvatar: resp.agentAvatar,
+          agentId: resp.agentId,
+          text: `メールを作成しました。送信してよろしいですか？\n\n宛先: ${resp.emailAction.to}\n件名: ${resp.emailAction.subject}\n\n${resp.emailAction.body}`,
+          timestamp: resp.timestamp + 1,
+        });
+      }
+
+      // Email sent confirmation
+      if (resp.emailSent) {
+        const emailSentKey = `email-sent-${resp.agentId}`;
+        if (!processedResponseIds.current.has(emailSentKey)) {
+          processedResponseIds.current.add(emailSentKey);
+          enqueueMessage({
+            id: emailSentKey,
+            type: "agent",
+            agentName: resp.agentName,
+            agentAvatar: resp.agentAvatar,
+            agentId: resp.agentId,
+            text: "メールを送信しました。",
+            timestamp: Date.now(),
+          });
+        }
+      }
 
       // Tweet preview as a follow-up message
       if (resp.tweetPending) {
@@ -869,11 +899,34 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                   <span className="text-[10px] text-[var(--muted)] opacity-50">{new Date(msg.timestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
                 <div className={`mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm ${
-                  msg.tweetPreview
+                  msg.tweetPreview || msg.id.startsWith("email-preview-")
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
                     : "bg-[var(--search-bg)]"
                 }`}>
                   <ChatMessageText text={msg.text.replace(/\\n/g, "\n").replace(/<cite[^>]*>|<\/cite>/g, "")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
+                  {msg.id.startsWith("email-preview-") && msg.agentId && (
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={async () => {
+                          const ok = await sendEmail(msg.agentId!);
+                          if (!ok) {
+                            enqueueMessage({ id: `email-err-${Date.now()}`, type: "agent", agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId, text: "メール送信に失敗しました。Gmail連携を確認してください。", timestamp: Date.now() });
+                          }
+                        }}
+                        className="px-3 py-1 bg-[var(--accent)] text-white text-[12px] font-bold rounded-lg hover:bg-[var(--accent-hover)]"
+                      >
+                        送信する
+                      </button>
+                      <button
+                        onClick={() => {
+                          enqueueMessage({ id: `email-cancel-${Date.now()}`, type: "agent", agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId, text: "メール送信をキャンセルしました。", timestamp: Date.now() });
+                        }}
+                        className="px-3 py-1 border border-[var(--card-border)] text-[12px] rounded-lg hover:bg-[var(--hover-bg)]"
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 mt-1 ml-1 flex items-center gap-3">
                   <button

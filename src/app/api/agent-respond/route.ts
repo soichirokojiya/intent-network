@@ -251,31 +251,7 @@ export async function POST(req: NextRequest) {
 
     const parsed = parseAgentJSON(finalText);
 
-    // Auto-send email if emailAction is present
-    if (parsed.emailAction && deviceId) {
-      try {
-        const emailRes = await fetch(new URL("/api/gmail/send", req.url).toString(), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            deviceId,
-            to: parsed.emailAction.to,
-            subject: parsed.emailAction.subject,
-            body: parsed.emailAction.body,
-          }),
-        });
-        if (emailRes.ok) {
-          parsed.toOwner = (parsed.toOwner || "") + "\n\nメールを送信しました。";
-        } else {
-          const errData = await emailRes.json().catch(() => ({}));
-          parsed.toOwner = (parsed.toOwner || "") + `\n\nメール送信に失敗しました: ${errData.error || "不明なエラー"}`;
-        }
-      } catch {
-        parsed.toOwner = (parsed.toOwner || "") + "\n\nメール送信中にエラーが発生しました。";
-      }
-      delete parsed.emailAction;
-    }
-
+    // emailAction is returned to frontend for user confirmation (not auto-sent)
     return NextResponse.json(parsed);
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
