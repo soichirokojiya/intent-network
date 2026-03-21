@@ -208,11 +208,11 @@ export async function POST(req: NextRequest) {
     if (factsInserted > 0) {
       const { data: notionProfile } = await supabase
         .from("profiles")
-        .select("notion_connected")
+        .select("notion_connected, notion_auto_save")
         .eq("id", deviceId)
         .single();
 
-      if (notionProfile?.notion_connected) {
+      if (notionProfile?.notion_connected && notionProfile?.notion_auto_save) {
         try {
           const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
           const validFacts = newFacts.filter((f: { category: string; content: string }) => f.category && f.content);

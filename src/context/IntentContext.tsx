@@ -831,9 +831,12 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     // メンションなし → 直近の会話相手 or 全員に応答
     setAgentResponses([]);
 
+    // /post command → treat as tweet request
+    const isPostCommand = text.startsWith("/post");
+    const requestTweet = options?.requestTweet || isPostCommand;
+
     if (mentionedAgent) {
       // --- DIRECT FLOW: メンション指定のエージェントだけ応答 ---
-      const requestTweet = options?.requestTweet || false;
       directAgentRespond(mentionedAgent, text, requestTweet, 0, roomId);
       return;
     }
@@ -869,7 +872,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         if (action === "self" || delegateNames.length === 0) {
           // Step 2A: オーケストレーターが直接回答
           const responder = orchestrator || allConfigured[0];
-          await directAgentRespond(responder, text, false, 0, roomId, "moderate");
+          await directAgentRespond(responder, text, requestTweet, 0, roomId, "moderate");
         } else {
           // Step 2B: 振り先エージェントが回答
           const delegates = delegateNames
@@ -879,14 +882,14 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           if (delegates.length === 0) {
             // 振り先が見つからない → オーケストレーターが回答
             const responder = orchestrator || allConfigured[0];
-            await directAgentRespond(responder, text, false, 0, roomId, "moderate");
+            await directAgentRespond(responder, text, requestTweet, 0, roomId, "moderate");
           } else {
             // 各振り先が順番に回答
             const results: Record<string, string> = {};
             for (const agent of delegates) {
               try {
                 const response = await Promise.race([
-                  directAgentRespond(agent, text, false, 0, roomId, "moderate"),
+                  directAgentRespond(agent, text, requestTweet, 0, roomId, "moderate"),
                   new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
                 ]);
                 results[agent.config.name] = response || "";

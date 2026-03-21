@@ -174,6 +174,7 @@ export default function IntegrationsPage() {
     google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false,
   });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [notionAutoSave, setNotionAutoSave] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -191,6 +192,7 @@ export default function IntegrationsPage() {
         }
         setConnected(newConn as Record<IntegrationKey, boolean>);
         setScheduleEnabled(data.scheduleDeliveryEnabled);
+        setNotionAutoSave(data.notionAutoSave);
       }
     } catch {}
     setLoading(false);
@@ -290,13 +292,35 @@ export default function IntegrationsPage() {
                     </div>
                     <p className="text-[12px] text-[var(--muted)] mb-3">{integration.description}</p>
                     {connected[integration.key] ? (
-                      <button
-                        onClick={() => handleDisconnect(integration)}
-                        disabled={loading}
-                        className="px-4 py-1.5 border border-[var(--card-border)] rounded-xl text-[13px] hover:bg-[var(--hover-bg)] disabled:opacity-50"
-                      >
-                        Disconnect
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleDisconnect(integration)}
+                          disabled={loading}
+                          className="px-4 py-1.5 border border-[var(--card-border)] rounded-xl text-[13px] hover:bg-[var(--hover-bg)] disabled:opacity-50"
+                        >
+                          Disconnect
+                        </button>
+                        {integration.key === "notion" && (
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="text-[13px]">決定事項をNotionに自動保存</span>
+                            <button
+                              onClick={async () => {
+                                const newVal = !notionAutoSave;
+                                setNotionAutoSave(newVal);
+                                const deviceId = localStorage.getItem("musu_device_id") || "";
+                                await fetch("/api/notion/toggle-auto-save", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ deviceId, enabled: newVal }),
+                                });
+                              }}
+                              className={`w-10 h-6 rounded-full transition-colors relative ${notionAutoSave ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
+                            >
+                              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notionAutoSave ? "translate-x-4" : "translate-x-0.5"}`} />
+                            </button>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <button
                         onClick={() => handleConnect(integration)}
