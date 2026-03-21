@@ -100,6 +100,9 @@ export function Sidebar() {
         <Link href="/contact" className="text-[12px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
           {t("nav.contact")}
         </Link>
+        <Link href="/help" className="text-[12px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+          ヘルプ
+        </Link>
       </div>
 
       {/* Profile card removed */}
