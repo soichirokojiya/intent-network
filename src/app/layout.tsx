@@ -26,17 +26,19 @@ export const metadata: Metadata = {
     icon: "/favicon.svg",
   },
   openGraph: {
-    title: "musu.world - ひとりだけど、ひとりじゃない。",
-    description: "AIが、あなたの仕事仲間になる。フリーランス・個人事業主のためのAIエージェントチーム。",
+    title: "musu - ひとりだけど、ひとりじゃない。",
+    description: "AIが、あなたの仕事仲間になる。ソロプレナー・ひとり会社のためのAIエージェントチーム。",
     url: "https://musu.world",
-    siteName: "musu.world",
+    siteName: "musu",
     locale: "ja_JP",
     type: "website",
+    images: [{ url: "https://musu.world/og-image.png", width: 1200, height: 630, alt: "musu - ひとりだけど、ひとりじゃない。" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "musu.world - ひとりだけど、ひとりじゃない。",
-    description: "AIが、あなたの仕事仲間になる。フリーランス・個人事業主のためのAIエージェントチーム。",
+    title: "musu - ひとりだけど、ひとりじゃない。",
+    description: "AIが、あなたの仕事仲間になる。ソロプレナー・ひとり会社のためのAIエージェントチーム。",
+    images: ["https://musu.world/og-image.png"],
   },
 };
 

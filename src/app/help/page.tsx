@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "ヘルプセンター - musu.world",
-  description: "musu.worldの使い方、よくある質問、トラブルシューティング",
+  title: "ヘルプセンター - musu",
+  description: "musuの使い方、よくある質問、トラブルシューティング。チームの使い方、コマンド、アプリ連携、料金について。",
+  openGraph: {
+    title: "ヘルプセンター - musu",
+    description: "musuの使い方、よくある質問、トラブルシューティング。",
+    images: [{ url: "https://musu.world/og-image.png", width: 1200, height: 630 }],
+  },
 };
 
 const faqs = [

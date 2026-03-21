@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "musu.worldについて - ひとりだけど、ひとりじゃない。",
+  title: "musuについて - ひとりだけど、ひとりじゃない。",
   description: "AIエージェントチームがあなたの仕事仲間になる。ソロプレナー・ひとり会社のためのAIワークスペース。",
+  openGraph: {
+    title: "musuについて - ひとりだけど、ひとりじゃない。",
+    description: "AIエージェントチームがあなたの仕事仲間になる。ソロプレナー・ひとり会社のためのAIワークスペース。",
+    images: [{ url: "https://musu.world/og-image.png", width: 1200, height: 630 }],
+  },
 };
 
 export default function AboutPage() {
