@@ -6,7 +6,7 @@ import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function IntegrationsPage() {
-  const { googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, updateScheduleDelivery } = useAuth();
+  const { googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, updateScheduleDelivery, refreshProfile } = useAuth();
   const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -18,6 +18,8 @@ export default function IntegrationsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  // Refresh profile from DB on mount to get latest connection status
+  useEffect(() => { refreshProfile(); }, []);
   useEffect(() => { setGcalConnected(googleCalendarConnected); }, [googleCalendarConnected]);
   useEffect(() => { setTrelloConn(trelloConnected); }, [trelloConnected]);
   useEffect(() => { setScheduleEnabled(scheduleDeliveryEnabled); }, [scheduleDeliveryEnabled]);

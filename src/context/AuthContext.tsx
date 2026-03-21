@@ -25,6 +25,7 @@ interface AuthContextType {
   updateBusinessInfo: (info: string) => Promise<{ error: string | null }>;
   updateNewsSettings: (enabled: boolean, time: string, times?: string[]) => Promise<{ error: string | null }>;
   updateScheduleDelivery: (enabled: boolean) => Promise<{ error: string | null }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -206,8 +207,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message || null };
   }, [user]);
 
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    await loadProfile(user.id, user.email || "");
+  }, [user, loadProfile]);
+
   return (
-    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, newsTimes, googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings, updateScheduleDelivery }}>
+    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, newsTimes, googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings, updateScheduleDelivery, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
