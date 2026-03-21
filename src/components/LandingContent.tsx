@@ -99,7 +99,7 @@ export function LandingContent() {
             </h1>
             <p className="text-lg text-gray-500">
               AIが、あなたの仕事仲間になる。<br />
-              ソロプレナー・ひとり会社のための<br className="hidden md:inline" />AIエージェントチーム。
+              フリーランス・ソロプレナーのための<br className="hidden md:inline" />AIエージェントチーム。
             </p>
           </div>
 
