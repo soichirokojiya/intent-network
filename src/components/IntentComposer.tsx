@@ -25,7 +25,7 @@ function LinkifyText({ text }: { text: string }) {
   const urlRegex = /(https?:\/\/[^\s<>]+)/g;
   const parts = text.split(urlRegex);
   return (
-    <p className="text-[14px] leading-relaxed whitespace-pre-wrap">
+    <p className="text-[14px] leading-snug whitespace-pre-wrap">
       {parts.map((part, i) =>
         urlRegex.test(part) ? (
           <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline break-all">{part}</a>
@@ -221,7 +221,7 @@ function WelcomeSequence({ agents, onMessageShown }: { agents: { id: string; con
             <div className="max-w-[75%]">
               <span className="text-[11px] text-[var(--muted)]">{orchestrator.config.name}</span>
               <div className="mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-[var(--search-bg)]">
-                <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg}</p>
+                <p className="text-[14px] leading-snug whitespace-pre-wrap">{msg}</p>
               </div>
             </div>
           </div>
