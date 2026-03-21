@@ -754,7 +754,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                 timestamp: Date.now(),
               };
               setChatHistory((prev) => [...prev, chatMsg]);
-              saveChatMessage(chatMsg, roomId);
+              saveChatMessage({ id: chatMsg.id, type: "agent", text: chatMsg.text, agentName: chatMsg.agentName, agentAvatar: chatMsg.agentAvatar, agentId: chatMsg.agentId, timestamp: chatMsg.timestamp }, roomId);
             }}
           />
         )}
