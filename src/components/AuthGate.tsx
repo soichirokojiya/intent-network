@@ -1,11 +1,10 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { AuthScreen } from "./AuthScreen";
 import { usePathname } from "next/navigation";
 import { LandingContent } from "./LandingContent";
 
-const PUBLIC_PATHS = ["/terms", "/privacy", "/lp", "/contact", "/admin"];
+const PUBLIC_PATHS = ["/terms", "/privacy", "/contact", "/admin"];
 
 export function AuthGate({ children, publicChildren }: { children: React.ReactNode; publicChildren: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -23,9 +22,9 @@ export function AuthGate({ children, publicChildren }: { children: React.ReactNo
     );
   }
 
-  // Unauthenticated → show auth screen
+  // Unauthenticated → show landing page
   if (!user) {
-    return <AuthScreen />;
+    return <LandingContent />;
   }
 
   return <>{children}</>;
