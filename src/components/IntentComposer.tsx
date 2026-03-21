@@ -152,7 +152,7 @@ function TypingBubble({ avatar, name }: { avatar: string; name: string }) {
   );
 }
 
-function WelcomeSequence({ agents, onMessageShown }: { agents: { id: string; config: { name: string; avatar: string; role: string; expertise: string } }[]; onMessageShown?: (msg: { text: string; agentName: string; agentAvatar: string; agentId: string }) => void }) {
+function WelcomeSequence({ agents, onMessageShown, onComplete }: { agents: { id: string; config: { name: string; avatar: string; role: string; expertise: string } }[]; onMessageShown?: (msg: { text: string; agentName: string; agentAvatar: string; agentId: string }) => void; onComplete?: () => void }) {
   const [step, setStep] = useState(-1);
   const [shown, setShown] = useState<number[]>([]);
   const [typing, setTyping] = useState(false);
@@ -194,7 +194,11 @@ function WelcomeSequence({ agents, onMessageShown }: { agents: { id: string; con
             agentId: orchestrator.id,
           });
         }
-        setStep(step + 1);
+        const nextStep = step + 1;
+        setStep(nextStep);
+        if (nextStep >= messages.length && onComplete) {
+          onComplete();
+        }
       }, typingDelay);
       return () => clearTimeout(t2);
     }, pauseDelay);
@@ -451,6 +455,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const justPosted = useRef(false);
+  const welcomeMsgsRef = useRef<ChatMessage[]>([]);
 
   // Auto-scroll: always after posting, otherwise only if near bottom
   useEffect(() => {
@@ -747,13 +752,16 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             onMessageShown={(msg) => {
               const ts = Date.now();
               const id = `welcome-${ts}-${Math.random().toString(36).slice(2, 6)}`;
-              const chatMsg: ChatMessage = {
+              saveChatMessage({ id, type: "agent" as const, text: msg.text, agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId, timestamp: ts }, roomId);
+              welcomeMsgsRef.current.push({
                 id, type: "agent",
                 agentName: msg.agentName, agentAvatar: msg.agentAvatar,
                 agentId: msg.agentId, text: msg.text, timestamp: ts,
-              };
-              setChatHistory((prev) => [...prev, chatMsg]);
-              saveChatMessage({ id, type: "agent" as const, text: msg.text, agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId, timestamp: ts }, roomId);
+              });
+            }}
+            onComplete={() => {
+              setChatHistory(welcomeMsgsRef.current);
+              welcomeMsgsRef.current = [];
             }}
           />
         )}
