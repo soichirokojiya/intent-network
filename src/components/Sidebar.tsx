@@ -53,18 +53,7 @@ export function Sidebar() {
           </span>
         </Link>
 
-        <Link href="/todo"
-          className={`flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={pathname === "/todo" ? 2.5 : 1.5}>
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-            <rect x="14" y="14" width="7" height="7" rx="1" />
-          </svg>
-          <span className={`text-[15px] ${pathname === "/todo" ? "font-bold" : ""}`}>
-            {t("nav.todo")}
-          </span>
-        </Link>
+
 
         <Link href="/settings"
           className={`flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>

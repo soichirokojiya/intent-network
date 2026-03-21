@@ -8,7 +8,6 @@ export function MobileNav() {
 
   const items = [
     { href: "/", label: "ホーム", icon: "home" },
-    { href: "/todo", label: "TODO", icon: "todo" },
     { href: "/settings", label: "プロフィール", icon: "profile" },
     { href: "/integrations", label: "連携", icon: "integrations" },
     { href: "/settings/account", label: "設定", icon: "settings" },
