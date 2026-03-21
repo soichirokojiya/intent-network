@@ -9,6 +9,7 @@ export function MobileNav() {
   const items = [
     { href: "/", label: "ホーム", icon: "home" },
     { href: "/settings", label: "プロフィール", icon: "profile" },
+    { href: "/billing", label: "料金", icon: "billing" },
     { href: "/integrations", label: "連携", icon: "integrations" },
     { href: "/settings/account", label: "設定", icon: "settings" },
   ];
@@ -49,6 +50,11 @@ export function MobileNav() {
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={isActive ? 2.5 : 1.5}>
                     <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                     <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                  </svg>
+                ) : item.icon === "billing" ? (
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={isActive ? 2.5 : 1.5}>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v12M9 8.5h4.5a2.5 2.5 0 010 5H9h5a2.5 2.5 0 010 5H9" />
                   </svg>
                 ) : item.icon === "settings" ? (
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={isActive ? 2.5 : 1.5}>
