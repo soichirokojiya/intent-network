@@ -744,17 +744,15 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           <WelcomeSequence
             agents={configured}
             onMessageShown={(msg) => {
+              const ts = Date.now();
+              const id = `welcome-${ts}-${Math.random().toString(36).slice(2, 6)}`;
               const chatMsg: ChatMessage = {
-                id: `welcome-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                type: "agent",
-                agentName: msg.agentName,
-                agentAvatar: msg.agentAvatar,
-                agentId: msg.agentId,
-                text: msg.text,
-                timestamp: Date.now(),
+                id, type: "agent",
+                agentName: msg.agentName, agentAvatar: msg.agentAvatar,
+                agentId: msg.agentId, text: msg.text, timestamp: ts,
               };
               setChatHistory((prev) => [...prev, chatMsg]);
-              saveChatMessage({ id: chatMsg.id, type: "agent", text: chatMsg.text, agentName: chatMsg.agentName, agentAvatar: chatMsg.agentAvatar, agentId: chatMsg.agentId, timestamp: chatMsg.timestamp }, roomId);
+              saveChatMessage({ id, type: "agent" as const, text: msg.text, agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId, timestamp: ts }, roomId);
             }}
           />
         )}
