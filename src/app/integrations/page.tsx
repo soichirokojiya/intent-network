@@ -11,32 +11,26 @@ export default function IntegrationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [gcalConnected, setGcalConnected] = useState(googleCalendarConnected);
-  const [trelloConn, setTrelloConn] = useState(trelloConnected);
-  const [scheduleEnabled, setScheduleEnabled] = useState(scheduleDeliveryEnabled);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Refresh profile from DB on mount to get latest connection status
+  // Always refresh profile from DB on mount to get latest connection status
   useEffect(() => { refreshProfile(); }, []);
-  useEffect(() => { setGcalConnected(googleCalendarConnected); }, [googleCalendarConnected]);
-  useEffect(() => { setTrelloConn(trelloConnected); }, [trelloConnected]);
-  useEffect(() => { setScheduleEnabled(scheduleDeliveryEnabled); }, [scheduleDeliveryEnabled]);
 
   // Handle OAuth callback redirect
   useEffect(() => {
     const googleParam = searchParams.get("google");
     if (googleParam === "connected") {
-      setGcalConnected(true);
       setMessage("Google Calendar connected!");
+      refreshProfile();
     } else if (googleParam === "error") {
       setError("Google Calendar connection failed.");
     }
     const trelloParam = searchParams.get("trello");
     if (trelloParam === "connected") {
-      setTrelloConn(true);
       setMessage("Trello connected!");
+      refreshProfile();
     } else if (trelloParam === "error") {
       setError("Trello connection failed.");
     }
@@ -64,7 +58,7 @@ export default function IntegrationsPage() {
       body: JSON.stringify({ deviceId }),
     });
     if (res.ok) {
-      setTrelloConn(false);
+      await refreshProfile();
       showMsg("Trello disconnected.");
     } else {
       showErr("Failed to disconnect Trello.");
@@ -81,7 +75,7 @@ export default function IntegrationsPage() {
       body: JSON.stringify({ deviceId }),
     });
     if (res.ok) {
-      setGcalConnected(false);
+      await refreshProfile();
       showMsg("Google Calendar disconnected.");
     } else {
       showErr("Failed to disconnect.");
@@ -90,9 +84,7 @@ export default function IntegrationsPage() {
   };
 
   const handleToggleSchedule = async () => {
-    const newVal = !scheduleEnabled;
-    setScheduleEnabled(newVal);
-    await updateScheduleDelivery(newVal);
+    await updateScheduleDelivery(!scheduleDeliveryEnabled);
   };
 
   return (
@@ -122,7 +114,7 @@ export default function IntegrationsPage() {
             </svg>
             Google Calendar
           </h2>
-          {gcalConnected ? (
+          {googleCalendarConnected ? (
             <div className="flex items-center justify-between">
               <span className="text-[14px] text-[var(--green)]">Connected</span>
               <button
@@ -144,14 +136,14 @@ export default function IntegrationsPage() {
           <p className="text-[12px] text-[var(--muted)] mt-2">
             Connect to let your agents see today&apos;s schedule.
           </p>
-          {gcalConnected && (
+          {googleCalendarConnected && (
             <div className="flex items-center justify-between mt-3">
               <span className="text-[13px] text-[var(--muted)]">Morning schedule delivery (7:00 JST)</span>
               <button
                 onClick={handleToggleSchedule}
-                className={`relative w-11 h-6 rounded-full transition-colors ${scheduleEnabled ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
+                className={`relative w-11 h-6 rounded-full transition-colors ${scheduleDeliveryEnabled ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${scheduleEnabled ? "translate-x-5" : ""}`} />
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${scheduleDeliveryEnabled ? "translate-x-5" : ""}`} />
               </button>
             </div>
           )}
@@ -167,7 +159,7 @@ export default function IntegrationsPage() {
             </svg>
             Trello
           </h2>
-          {trelloConn ? (
+          {trelloConnected ? (
             <div className="flex items-center justify-between">
               <span className="text-[14px] text-[var(--green)]">Connected</span>
               <button
