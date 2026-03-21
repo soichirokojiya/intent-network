@@ -88,8 +88,13 @@ export async function GET(req: Request) {
         });
 
         const textBlocks = response.content.filter((b) => b.type === "text");
-        const newsText = textBlocks.length > 0 ? (textBlocks[textBlocks.length - 1] as { type: "text"; text: string }).text : "";
+        let newsText = textBlocks.length > 0 ? (textBlocks[textBlocks.length - 1] as { type: "text"; text: string }).text : "";
         if (!newsText) continue;
+
+        // Convert cite tags to plain URLs: <cite source="URL">text</cite> → text (URL)
+        newsText = newsText.replace(/<cite\s+source="([^"]*)"[^>]*>([\s\S]*?)<\/cite>/g, "$2 ($1)");
+        // Remove any remaining cite tags
+        newsText = newsText.replace(/<cite[^>]*>|<\/cite>/g, "");
 
         await supabase.from("owner_chats").insert({
           device_id: deviceId,
