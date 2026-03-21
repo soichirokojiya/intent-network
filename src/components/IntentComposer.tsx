@@ -430,12 +430,13 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     loadChatHistory(roomId).then((rawMsgs) => {
       const msgs = rawMsgs;
       setHasMore(rawMsgs.length >= 30);
-      // Filter out incomplete welcome messages so sequence can replay cleanly
+      const welcomeMsgs = msgs.filter((m) => m.id.startsWith("welcome-"));
       const realMsgs = msgs.filter((m) => !m.id.startsWith("welcome-"));
-      if (realMsgs.length > 0) {
+
+      if (realMsgs.length > 0 || welcomeMsgs.length >= 3) {
+        // Has real messages or complete welcome sequence — show as-is
         setChatHistory(msgs as ChatMessage[]);
         setWelcomeDone(true);
-        // Mark all loaded message IDs as processed to prevent re-adding
         msgs.forEach((m) => {
           processedResponseIds.current.add(m.id);
           if (m.agentId && m.text) {
@@ -446,10 +447,9 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           if (m.id.startsWith("tweeted-")) processedResponseIds.current.add(m.id);
         });
       } else {
-        // Only welcome messages or empty — welcome sequence will replay
+        // No real messages and incomplete welcome — replay sequence from scratch
         setWelcomeDone(false);
       }
-      // Scroll to bottom after initial load
       setTimeout(() => chatEndRef.current?.scrollIntoView(), 100);
       setHistoryLoaded(true);
     });
@@ -769,8 +769,16 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               welcomeMsgsRef.current = [];
               setWelcomeDone(true);
               setChatHistory(msgs);
-              msgs.forEach((m) => {
-                saveChatMessage({ id: m.id, type: "agent" as const, text: m.text, agentName: m.agentName, agentAvatar: m.agentAvatar, agentId: m.agentId, timestamp: m.timestamp }, roomId);
+              // Delete old incomplete welcome messages, then save new ones
+              const deviceId = localStorage.getItem("musu_device_id") || "";
+              fetch("/api/chat", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ deviceId, roomId }),
+              }).then(() => {
+                msgs.forEach((m) => {
+                  saveChatMessage({ id: m.id, type: "agent" as const, text: m.text, agentName: m.agentName, agentAvatar: m.agentAvatar, agentId: m.agentId, timestamp: m.timestamp }, roomId);
+                });
               });
             }}
           />

@@ -88,3 +88,18 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+// DELETE: Remove welcome messages (for re-running welcome sequence)
+export async function DELETE(req: NextRequest) {
+  const { deviceId, roomId } = await req.json();
+  if (!deviceId) return NextResponse.json({ error: "Missing deviceId" }, { status: 400 });
+
+  await supabase
+    .from("owner_chats")
+    .delete()
+    .eq("device_id", deviceId)
+    .eq("room_id", roomId || "general")
+    .like("id", "welcome-%");
+
+  return NextResponse.json({ ok: true });
+}
