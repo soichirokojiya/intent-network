@@ -6,18 +6,20 @@ import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function IntegrationsPage() {
-  const { googleCalendarConnected, scheduleDeliveryEnabled, updateScheduleDelivery } = useAuth();
+  const { googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, updateScheduleDelivery } = useAuth();
   const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [gcalConnected, setGcalConnected] = useState(googleCalendarConnected);
+  const [trelloConn, setTrelloConn] = useState(trelloConnected);
   const [scheduleEnabled, setScheduleEnabled] = useState(scheduleDeliveryEnabled);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => { setGcalConnected(googleCalendarConnected); }, [googleCalendarConnected]);
+  useEffect(() => { setTrelloConn(trelloConnected); }, [trelloConnected]);
   useEffect(() => { setScheduleEnabled(scheduleDeliveryEnabled); }, [scheduleDeliveryEnabled]);
 
   // Handle OAuth callback redirect
@@ -29,6 +31,13 @@ export default function IntegrationsPage() {
     } else if (googleParam === "error") {
       setError("Google Calendar connection failed.");
     }
+    const trelloParam = searchParams.get("trello");
+    if (trelloParam === "connected") {
+      setTrelloConn(true);
+      setMessage("Trello connected!");
+    } else if (trelloParam === "error") {
+      setError("Trello connection failed.");
+    }
   }, [searchParams]);
 
   const showMsg = (msg: string) => { setMessage(msg); setError(""); setTimeout(() => setMessage(""), 3000); };
@@ -37,6 +46,28 @@ export default function IntegrationsPage() {
   const handleConnectGoogle = () => {
     const deviceId = localStorage.getItem("musu_device_id") || "";
     window.location.href = `/api/google/auth?deviceId=${deviceId}`;
+  };
+
+  const handleConnectTrello = () => {
+    const deviceId = localStorage.getItem("musu_device_id") || "";
+    window.location.href = `/api/trello/auth?deviceId=${deviceId}`;
+  };
+
+  const handleDisconnectTrello = async () => {
+    const deviceId = localStorage.getItem("musu_device_id") || "";
+    setLoading(true);
+    const res = await fetch("/api/trello/disconnect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId }),
+    });
+    if (res.ok) {
+      setTrelloConn(false);
+      showMsg("Trello disconnected.");
+    } else {
+      showErr("Failed to disconnect Trello.");
+    }
+    setLoading(false);
   };
 
   const handleDisconnectGoogle = async () => {
@@ -111,6 +142,33 @@ export default function IntegrationsPage() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Trello */}
+        <div>
+          <h2 className="text-[15px] font-bold mb-3">Trello</h2>
+          {trelloConn ? (
+            <div className="flex items-center justify-between">
+              <span className="text-[14px] text-[var(--green)]">Connected</span>
+              <button
+                onClick={handleDisconnectTrello}
+                disabled={loading}
+                className="px-4 py-2 border border-[var(--card-border)] rounded-xl text-sm hover:bg-[var(--hover-bg)] disabled:opacity-50"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleConnectTrello}
+              className="w-full py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-xl hover:bg-[var(--accent-hover)]"
+            >
+              Connect Trello
+            </button>
+          )}
+          <p className="text-[12px] text-[var(--muted)] mt-2">
+            Connect to let your agents see your Trello boards and tasks.
+          </p>
         </div>
 
       </div>

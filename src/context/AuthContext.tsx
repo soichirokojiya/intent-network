@@ -13,6 +13,7 @@ interface AuthContextType {
   newsEnabled: boolean;
   newsTime: string;
   googleCalendarConnected: boolean;
+  trelloConnected: boolean;
   scheduleDeliveryEnabled: boolean;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: string | null; isExisting?: boolean }>;
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [newsEnabled, setNewsEnabled] = useState(false);
   const [newsTime, setNewsTime] = useState("07:00");
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
+  const [trelloConnected, setTrelloConnected] = useState(false);
   const [scheduleDeliveryEnabled, setScheduleDeliveryEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load profile from profiles table
   const loadProfile = useCallback(async (userId: string, email: string) => {
     bindDeviceId(userId);
-    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, google_calendar_connected, schedule_delivery_enabled").eq("id", userId).single();
+    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
     setDisplayName(data?.display_name || email.split("@")[0]);
     setAvatarUrl(data?.avatar_url || "");
     setBusinessInfo(data?.business_info || "");
@@ -68,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setNewsEnabled(data?.news_enabled ?? false);
     setNewsTime(data?.news_time || "07:00");
     setGoogleCalendarConnected(data?.google_calendar_connected ?? false);
+    setTrelloConnected(data?.trello_connected ?? false);
     setScheduleDeliveryEnabled(data?.schedule_delivery_enabled ?? false);
     if (data?.business_info) localStorage.setItem("musu_business_info", data.business_info);
     if (data?.memory_summary) localStorage.setItem("musu_memory_summary", data.memory_summary);
@@ -125,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setNewsEnabled(false);
     setNewsTime("07:00");
     setGoogleCalendarConnected(false);
+    setTrelloConnected(false);
     setScheduleDeliveryEnabled(false);
     // セキュリティ: 他のユーザーのデータにアクセスしないようdevice_idをクリア
     localStorage.removeItem("musu_device_id");
@@ -191,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, googleCalendarConnected, scheduleDeliveryEnabled, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings, updateScheduleDelivery }}>
+    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings, updateScheduleDelivery }}>
       {children}
     </AuthContext.Provider>
   );

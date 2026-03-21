@@ -646,18 +646,29 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
     // Fetch Google Calendar events if connected
     let calendarEvents: { title: string; start: string; end: string; location: string }[] | undefined;
+    // Fetch Trello boards/cards if connected
+    let trelloData: { boards: { name: string; url: string; cards: { name: string; list: string; due: string | null }[] }[] } | undefined;
     try {
       const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
       if (deviceId) {
-        const calRes = await fetch(`/api/google/calendar?deviceId=${deviceId}`);
-        if (calRes.ok) {
+        const [calRes, trelloRes] = await Promise.all([
+          fetch(`/api/google/calendar?deviceId=${deviceId}`).catch(() => null),
+          fetch(`/api/trello/boards?deviceId=${deviceId}`).catch(() => null),
+        ]);
+        if (calRes?.ok) {
           const calData = await calRes.json();
           if (calData.connected && calData.events?.length > 0) {
             calendarEvents = calData.events;
           }
         }
+        if (trelloRes?.ok) {
+          const tData = await trelloRes.json();
+          if (tData.connected && tData.boards?.length > 0) {
+            trelloData = tData;
+          }
+        }
       }
-    } catch { /* ignore calendar errors */ }
+    } catch { /* ignore integration errors */ }
 
     return fetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -676,6 +687,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         memorySummary: typeof window !== "undefined" ? localStorage.getItem("musu_memory_summary") || "" : "",
         projectFacts: facts,
         calendarEvents,
+        trelloData,
       }),
     }).then(async (r) => {
       const text = await r.text();
