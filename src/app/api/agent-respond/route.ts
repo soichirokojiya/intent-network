@@ -147,9 +147,8 @@ export async function POST(req: NextRequest) {
       },
     ];
 
-    // Detect email send request
-    const emailKeywords = ["メール送", "メールを送", "メールして", "メールしたい", "メール作成", "メールを作成", "メールを書", "メールに", "mail", "メール出", "メールを出", "にメール"];
-    const wantsEmail = emailKeywords.some((kw) => intentText.includes(kw));
+    // Detect email send request: /mail command or keywords
+    const wantsEmail = intentText.startsWith("/mail") || ["メール送", "メールを送", "メールして", "メールしたい", "メール作成", "メールを作成", "メールを書", "メールに", "メール出", "メールを出", "にメール"].some((kw) => intentText.includes(kw));
 
     const userPrompt = requestTweet
       ? `オーナーがツイートの作成を依頼しました:\n「${intentText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "オーナーへの返事（1-2文）", "toTimeline": "ツイート文（140文字以内）"}`
