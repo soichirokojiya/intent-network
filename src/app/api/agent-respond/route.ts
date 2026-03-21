@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
     ];
 
     // Detect email send request
-    const emailKeywords = ["メール送", "メールを送", "メールして", "メール作成", "メールを作成", "メールを書", "mail", "メール出", "メールを出"];
+    const emailKeywords = ["メール送", "メールを送", "メールして", "メールしたい", "メール作成", "メールを作成", "メールを書", "メールに", "mail", "メール出", "メールを出", "にメール"];
     const wantsEmail = emailKeywords.some((kw) => intentText.includes(kw));
 
     const userPrompt = requestTweet
