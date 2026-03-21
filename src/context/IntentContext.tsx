@@ -795,52 +795,78 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (allConfigured.length > 0) {
-      // --- AUTO FLOW: 直近の会話相手がいればその人、いなければ全員 ---
+      // --- ORCHESTRATOR FLOW: オーケストレーターが受けてルーティング ---
       const nonOrchestrator = allConfigured.filter((a) => !a.config.isOrchestrator);
 
-      // Find the last agent who spoke in agentResponses or chatHistory
-      const lastAgentResponse = [...(agentResponses || [])].reverse().find((r) => r.agentId && !r.toOwner.startsWith("エラー"));
-      const lastAgent = lastAgentResponse ? nonOrchestrator.find((a) => a.id === lastAgentResponse.agentId) : null;
-      const agents = lastAgent ? [lastAgent] : (nonOrchestrator.length > 0 ? nonOrchestrator : allConfigured);
-
       (async () => {
-        const results: Record<string, string> = {};
-        for (const agent of agents) {
-          const prevEntries = Object.entries(results);
-          const prevText = prevEntries.length > 0
-            ? `これまでのチームの結果:\n${prevEntries.map(([n, r]) => `・${n}: ${r}`).join("\n")}\n\n`
-            : "";
-          try {
-            const response = await Promise.race([
-              directAgentRespond(agent, `${prevText}${text}`, false, 0, roomId, "moderate"),
-              new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
-            ]);
-            results[agent.config.name] = response || "";
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
-            console.error(`Agent ${agent.config.name} failed:`, msg);
-            setAgentResponses((prev) => [...prev, {
-              agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-              toOwner: `エラー: ${msg}`, toTimeline: "", timestamp: Date.now(), posted: false, tweeted: false, tweetPending: false, roomId,
-            }]);
+        // Step 1: ルーティング判定（Haikuで安く判定）
+        let action = "self";
+        let delegateNames: string[] = [];
+        try {
+          const history = await getRoomConversation(roomId, 10).catch(() => []);
+          const routeRes = await fetch("/api/orchestrator-route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: text,
+              agents: nonOrchestrator.map((a) => ({ name: a.config.name, role: a.config.role || a.config.expertise || "" })),
+              conversationHistory: history,
+            }),
+          });
+          if (routeRes.ok) {
+            const routeData = await routeRes.json();
+            action = routeData.action || "self";
+            delegateNames = routeData.delegates || [];
           }
+        } catch {
+          // Fallback: orchestrator answers directly
         }
-        // Orchestrator summary if multiple agents responded
-        if (Object.keys(results).length > 1 && orchestrator) {
-          const summary = Object.entries(results).map(([n, r]) => `${n}: ${r.slice(0, 300)}`).join("\n");
-          try {
-            await directAgentRespond(orchestrator, `チームの意見をまとめて。\n\n${summary}\n\n結論と次のアクションを簡潔に。`, false, 0, roomId, "complex");
-          } catch { /* skip */ }
+
+        if (action === "self" || delegateNames.length === 0) {
+          // Step 2A: オーケストレーターが直接回答
+          const responder = orchestrator || allConfigured[0];
+          await directAgentRespond(responder, text, false, 0, roomId, "moderate");
+        } else {
+          // Step 2B: 振り先エージェントが回答
+          const delegates = delegateNames
+            .map((name) => nonOrchestrator.find((a) => a.config.name === name))
+            .filter(Boolean) as MyAgent[];
+
+          if (delegates.length === 0) {
+            // 振り先が見つからない → オーケストレーターが回答
+            const responder = orchestrator || allConfigured[0];
+            await directAgentRespond(responder, text, false, 0, roomId, "moderate");
+          } else {
+            // 各振り先が順番に回答
+            const results: Record<string, string> = {};
+            for (const agent of delegates) {
+              try {
+                const response = await Promise.race([
+                  directAgentRespond(agent, text, false, 0, roomId, "moderate"),
+                  new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
+                ]);
+                results[agent.config.name] = response || "";
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e);
+                console.error(`Agent ${agent.config.name} failed:`, msg);
+              }
+            }
+            // 複数のエージェントが回答した場合、オーケストレーターがまとめる
+            if (Object.keys(results).length > 1 && orchestrator) {
+              const summary = Object.entries(results).map(([n, r]) => `${n}: ${r.slice(0, 300)}`).join("\n");
+              try {
+                await directAgentRespond(orchestrator, `チームの意見をまとめて。\n\n${summary}\n\n結論と次のアクションを簡潔に。`, false, 0, roomId, "complex");
+              } catch { /* skip */ }
+            }
+          }
         }
       })();
     }
 
     if (false as boolean) {
       const orchestrator = allConfigured[0]; // dead code
-      // --- ORCHESTRATION FLOW ---
+      // --- OLD ORCHESTRATION FLOW (unused) ---
       const otherAgents = allConfigured.filter((a) => !a.config.isOrchestrator);
-
-      // Get full room conversation for orchestrator context
       getRoomConversation(roomId, 15).catch(() => []).then((history) => {
       fetch("/api/orchestrator-plan", {
         method: "POST", headers: { "Content-Type": "application/json" },
