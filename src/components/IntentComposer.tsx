@@ -407,6 +407,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const roomLoadTime = useRef<number>(0);
   const { user } = useAuth();
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [replyTo, setReplyTo] = useState<{ agentName: string; text: string } | null>(null);
@@ -422,8 +423,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     processedResponseIds.current.clear();
     clearAgentResponses();
     loadChatHistory(roomId).then((rawMsgs) => {
-      // Filter out old welcome messages (now handled by UI)
-      const msgs = rawMsgs.filter((m) => !m.text?.startsWith("はじめまして！チームリーダー"));
+      const msgs = rawMsgs;
       setHasMore(rawMsgs.length >= 30);
       if (msgs.length > 0) {
         setChatHistory(msgs as ChatMessage[]);
@@ -441,6 +441,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       }
       // Scroll to bottom after initial load
       setTimeout(() => chatEndRef.current?.scrollIntoView(), 100);
+      setHistoryLoaded(true);
     });
   }, [roomId]);
 
@@ -739,8 +740,8 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           </button>
         )}
 
-        {/* Welcome sequence: show when no chat history */}
-        {chatHistory.length === 0 && configured.length > 0 && (
+        {/* Welcome sequence: show only when DB loaded and truly empty */}
+        {historyLoaded && chatHistory.length === 0 && configured.length > 0 && (
           <WelcomeSequence
             agents={configured}
             onMessageShown={(msg) => {
