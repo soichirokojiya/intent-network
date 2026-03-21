@@ -21,6 +21,20 @@ function formatDateLabel(timestamp: number): string {
   return date.toLocaleDateString();
 }
 
+function LinkifyText({ text }: { text: string }) {
+  const urlRegex = /(https?:\/\/[^\s<>]+)/g;
+  const parts = text.split(urlRegex);
+  return (
+    <p className="text-[14px] leading-relaxed whitespace-pre-wrap">
+      {parts.map((part, i) =>
+        urlRegex.test(part) ? (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline break-all">{part}</a>
+        ) : part
+      )}
+    </p>
+  );
+}
+
 function CollapsibleText({ text, readMoreLabel = "Read more", closeLabel = "Close" }: { text: string; readMoreLabel?: string; closeLabel?: string }) {
   const [expanded, setExpanded] = useState(false);
   const lines = text.split("\n");
@@ -29,7 +43,7 @@ function CollapsibleText({ text, readMoreLabel = "Read more", closeLabel = "Clos
   if (!shouldCollapse || expanded) {
     return (
       <>
-        <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{text}</p>
+        <LinkifyText text={text} />
         {shouldCollapse && (
           <button onClick={() => setExpanded(false)} className="text-[12px] text-[var(--accent)] mt-1 hover:underline">
             {closeLabel}
@@ -42,7 +56,7 @@ function CollapsibleText({ text, readMoreLabel = "Read more", closeLabel = "Clos
   const preview = lines.slice(0, COLLAPSE_LINES).join("\n");
   return (
     <>
-      <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{preview}...</p>
+      <LinkifyText text={preview + "..."} />
       <button onClick={() => setExpanded(true)} className="text-[12px] text-[var(--accent)] mt-1 hover:underline">
         {readMoreLabel}
       </button>
