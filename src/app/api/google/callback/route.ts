@@ -12,11 +12,11 @@ export async function GET(req: NextRequest) {
   const error = req.nextUrl.searchParams.get("error");
 
   if (error) {
-    return NextResponse.redirect(new URL("/settings/account?google=error", req.url));
+    return NextResponse.redirect(new URL("/integrations?google=error", req.url));
   }
 
   if (!code || !state) {
-    return NextResponse.redirect(new URL("/settings/account?google=error", req.url));
+    return NextResponse.redirect(new URL("/integrations?google=error", req.url));
   }
 
   const deviceId = state;
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     if (!tokens.access_token) {
       console.error("Google token exchange failed:", tokens);
-      return NextResponse.redirect(new URL("/settings/account?google=error", req.url));
+      return NextResponse.redirect(new URL("/integrations?google=error", req.url));
     }
 
     // Save tokens to profiles table (deviceId = user id)
@@ -55,12 +55,12 @@ export async function GET(req: NextRequest) {
 
     if (dbError) {
       console.error("Failed to save Google tokens:", dbError);
-      return NextResponse.redirect(new URL("/settings/account?google=error", req.url));
+      return NextResponse.redirect(new URL("/integrations?google=error", req.url));
     }
 
-    return NextResponse.redirect(new URL("/settings/account?google=connected", req.url));
+    return NextResponse.redirect(new URL("/integrations?google=connected", req.url));
   } catch (err) {
     console.error("Google callback error:", err);
-    return NextResponse.redirect(new URL("/settings/account?google=error", req.url));
+    return NextResponse.redirect(new URL("/integrations?google=error", req.url));
   }
 }

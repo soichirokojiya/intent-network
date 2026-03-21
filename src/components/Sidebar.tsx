@@ -77,6 +77,17 @@ export function Sidebar() {
           </span>
         </Link>
 
+        <Link href="/integrations"
+          className={`flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={pathname === "/integrations" ? 2.5 : 1.5}>
+            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+          </svg>
+          <span className={`text-[15px] ${pathname === "/integrations" ? "font-bold" : ""}`}>
+            {t("nav.integrations")}
+          </span>
+        </Link>
+
         <Link href="/settings/account"
           className={`flex items-center gap-4 px-3 py-2.5 rounded-full hover:bg-[var(--hover-bg)] transition-colors`}>
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--foreground)" strokeWidth={pathname.startsWith("/settings/account") ? 2.5 : 1.5}>

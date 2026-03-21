@@ -10,8 +10,8 @@ export function MobileNav() {
     { href: "/", label: "ホーム", icon: "home" },
     { href: "/todo", label: "TODO", icon: "todo" },
     { href: "/settings", label: "プロフィール", icon: "profile" },
+    { href: "/integrations", label: "連携", icon: "integrations" },
     { href: "/settings/account", label: "設定", icon: "settings" },
-    { href: "/billing", label: "料金", icon: "billing" },
   ];
 
   return (
@@ -45,6 +45,11 @@ export function MobileNav() {
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={isActive ? 2.5 : 1.5}>
                     <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
+                  </svg>
+                ) : item.icon === "integrations" ? (
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={isActive ? 2.5 : 1.5}>
+                    <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                   </svg>
                 ) : item.icon === "settings" ? (
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={isActive ? 2.5 : 1.5}>

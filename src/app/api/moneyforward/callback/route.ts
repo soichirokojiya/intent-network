@@ -12,11 +12,11 @@ export async function GET(req: NextRequest) {
   const error = req.nextUrl.searchParams.get("error");
 
   if (error) {
-    return NextResponse.redirect(new URL("/settings/account?mf=error", req.url));
+    return NextResponse.redirect(new URL("/integrations?mf=error", req.url));
   }
 
   if (!code || !state) {
-    return NextResponse.redirect(new URL("/settings/account?mf=error", req.url));
+    return NextResponse.redirect(new URL("/integrations?mf=error", req.url));
   }
 
   const deviceId = state;
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     if (!tokens.access_token) {
       console.error("MoneyForward token exchange failed:", JSON.stringify(tokens));
       const errorMsg = encodeURIComponent(tokens.error_description || tokens.error || "token_failed");
-      return NextResponse.redirect(new URL(`/settings/account?mf=error&mf_detail=${errorMsg}`, req.url));
+      return NextResponse.redirect(new URL(`/integrations?mf=error&mf_detail=${errorMsg}`, req.url));
     }
 
     // Save tokens to profiles table
@@ -56,12 +56,12 @@ export async function GET(req: NextRequest) {
 
     if (dbError) {
       console.error("Failed to save MoneyForward tokens:", dbError);
-      return NextResponse.redirect(new URL("/settings/account?mf=error", req.url));
+      return NextResponse.redirect(new URL("/integrations?mf=error", req.url));
     }
 
-    return NextResponse.redirect(new URL("/settings/account?mf=connected", req.url));
+    return NextResponse.redirect(new URL("/integrations?mf=connected", req.url));
   } catch (err) {
     console.error("MoneyForward callback error:", err);
-    return NextResponse.redirect(new URL("/settings/account?mf=error", req.url));
+    return NextResponse.redirect(new URL("/integrations?mf=error", req.url));
   }
 }

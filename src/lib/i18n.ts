@@ -388,6 +388,7 @@ const translations: Record<string, Record<Locale, string>> = {
   // UI labels
   "nav.workspace": { en: "Workspace", ja: "ワークスペース", zh: "工作区", es: "Espacio de trabajo", ko: "워크스페이스" },
   "nav.profile": { en: "Profile", ja: "プロフィール", zh: "个人资料", es: "Perfil", ko: "프로필" },
+  "nav.integrations": { en: "Integrations", ja: "アプリ連携", zh: "应用集成", es: "Integraciones", ko: "앱 연동" },
   "nav.settings": { en: "Settings", ja: "設定", zh: "设置", es: "Configuración", ko: "설정" },
   "nav.billing": { en: "Billing", ja: "料金", zh: "计费", es: "Facturación", ko: "요금" },
   "chat.today": { en: "Today", ja: "今日", zh: "今天", es: "Hoy", ko: "오늘" },
