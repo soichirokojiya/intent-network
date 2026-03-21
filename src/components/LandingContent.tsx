@@ -99,7 +99,7 @@ export function LandingContent() {
             </h1>
             <p className="text-lg text-gray-500">
               AIが、あなたの仕事仲間になる。<br />
-              フリーランス・個人事業主のための<br className="hidden md:inline" />AIエージェントチーム。
+              ソロプレナー・ひとり会社のための<br className="hidden md:inline" />AIエージェントチーム。
             </p>
           </div>
 
@@ -196,7 +196,7 @@ export function LandingContent() {
             <Link href="/terms" className="hover:underline">利用規約</Link>
             <Link href="/privacy" className="hover:underline">プライバシーポリシー</Link>
             <Link href="/contact" className="hover:underline">お問い合わせ</Link>
-            <Link href="/lp" className="hover:underline">musuについて</Link>
+            <Link href="/about" className="hover:underline">musuについて</Link>
           </div>
           {/* Copyright */}
           <p className="text-[12px] text-gray-400 pt-3">&copy; 2026 musu.world</p>
