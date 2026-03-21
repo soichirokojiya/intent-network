@@ -6,6 +6,7 @@ export function parseAgentJSON(raw: string): Record<string, unknown> {
   let text = raw
     .replace(/^```(?:json)?\s*\n?/gm, "")
     .replace(/\n?```\s*$/gm, "")
+    .replace(/<cite[^>]*>|<\/cite>/g, "")
     .trim();
 
   // Try direct parse

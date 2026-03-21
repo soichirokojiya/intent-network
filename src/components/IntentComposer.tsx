@@ -590,7 +590,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
                     : "bg-[var(--search-bg)]"
                 }`}>
-                  <ChatMessageText text={msg.text.replace(/\\n/g, "\n")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
+                  <ChatMessageText text={msg.text.replace(/\\n/g, "\n").replace(/<cite[^>]*>|<\/cite>/g, "")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 mt-1 ml-1 flex items-center gap-3">
                   <button
