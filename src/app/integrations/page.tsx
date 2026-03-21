@@ -173,20 +173,6 @@ export default function IntegrationsPage() {
           <p className="text-[12px] text-[var(--muted)] mt-2">
             Connect to let your agents see today&apos;s schedule.
           </p>
-          {gcalConnected && (
-            <div className="flex items-center justify-between mt-3">
-              <div>
-                <span className="text-[13px] text-[var(--muted)]">Morning schedule delivery</span>
-                <p className="text-[11px] text-[var(--muted)] opacity-70 mt-0.5">Time can be set via chat with your agents</p>
-              </div>
-              <button
-                onClick={handleToggleSchedule}
-                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${scheduleEnabled ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
-              >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${scheduleEnabled ? "translate-x-5" : ""}`} />
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Trello */}

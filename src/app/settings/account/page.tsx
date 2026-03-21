@@ -22,6 +22,7 @@ export default function AccountSettingsPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [newTimeInput, setNewTimeInput] = useState("12:00");
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
 
   // Fetch news settings from server API
   const fetchNewsSettings = useCallback(async () => {
@@ -39,6 +40,16 @@ export default function AccountSettingsPage() {
   }, []);
 
   useEffect(() => { fetchNewsSettings(); }, [fetchNewsSettings]);
+
+  // Fetch schedule delivery status
+  useEffect(() => {
+    const deviceId = localStorage.getItem("musu_device_id") || "";
+    if (!deviceId) return;
+    fetch(`/api/integration-status?deviceId=${deviceId}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.scheduleDeliveryEnabled !== undefined) setScheduleEnabled(d.scheduleDeliveryEnabled); })
+      .catch(() => {});
+  }, []);
 
   const updateNewsSettings = async (enabled: boolean, time: string, times: string[]) => {
     const deviceId = localStorage.getItem("musu_device_id") || "";
@@ -199,6 +210,37 @@ export default function AccountSettingsPage() {
               </p>
             </div>
           )}
+        </div>
+
+        <hr className="border-[var(--card-border)]" />
+
+        {/* Schedule Delivery */}
+        <div>
+          <h2 className="text-[15px] font-bold mb-3">{locale === "ja" ? "予定配信" : "Schedule Delivery"}</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-[13px] text-[var(--muted)]">{locale === "ja" ? "秘書から予定を配信" : "Schedule delivery from secretary"}</span>
+              <p className="text-[11px] text-[var(--muted)] opacity-70 mt-0.5">
+                {locale === "ja" ? "時間はエージェントにチャットで伝えてください" : "Time can be set via chat with your agents"}
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                const deviceId = localStorage.getItem("musu_device_id") || "";
+                if (!deviceId) return;
+                const newVal = !scheduleEnabled;
+                setScheduleEnabled(newVal);
+                await fetch("/api/delivery-settings", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ deviceId, action: newVal ? "enable_schedule" : "disable_schedule" }),
+                });
+              }}
+              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${scheduleEnabled ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${scheduleEnabled ? "translate-x-5" : ""}`} />
+            </button>
+          </div>
         </div>
 
         <hr className="border-[var(--card-border)]" />
