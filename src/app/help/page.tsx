@@ -199,7 +199,6 @@ export default function HelpPage() {
 
       <footer className="px-5 py-8 border-t border-gray-100 text-center text-[12px] text-gray-400 space-y-3">
         <div className="flex justify-center gap-4">
-          <Link href="/about" className="hover:underline">musuについて</Link>
           <Link href="/terms" className="hover:underline">利用規約</Link>
           <Link href="/privacy" className="hover:underline">プライバシーポリシー</Link>
           <a href="https://www.cfac.co.jp/" target="_blank" rel="noopener noreferrer" className="hover:underline">運営会社</a>
