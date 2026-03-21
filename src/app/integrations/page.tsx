@@ -110,7 +110,18 @@ export default function IntegrationsPage() {
 
         {/* Google Calendar */}
         <div>
-          <h2 className="text-[15px] font-bold mb-3">Google Calendar</h2>
+          <h2 className="text-[15px] font-bold mb-3 flex items-center gap-2">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path d="M18.316 5.684H24v12.632h-5.684V5.684z" fill="#1a73e8"/>
+              <path d="M5.684 24l-5.684-5.684V5.684L5.684 0v24z" fill="#ea4335"/>
+              <path d="M18.316 5.684L24 0H5.684l12.632 5.684z" fill="#4285f4"/>
+              <path d="M5.684 24h12.632v-5.684H5.684V24z" fill="#0d652d"/>
+              <path d="M0 5.684h5.684v12.632H0V5.684z" fill="#188038"/>
+              <path d="M5.684 5.684h12.632v12.632H5.684V5.684z" fill="#fff"/>
+              <path d="M9.2 16.4l-.9-.7c-.3-.3-.5-.6-.5-1s.3-.8.5-1l.9-.7-.5-.7-.9.5c-.5.4-.9.9-.9 1.6s.3 1.2.9 1.6l.9.5.5-.7zm2.8-5.6h-1.5v5.6h1.2v-2.1h.3c.8 0 1.5-.3 1.9-.8.2-.3.4-.7.4-1.1 0-.4-.1-.8-.4-1.1-.4-.3-1-.5-1.9-.5zm.1 2.4h-.4v-1.5h.4c.5 0 .9.1 1 .4.1.1.1.2.1.4 0 .1 0 .3-.1.4-.2.2-.5.3-1 .3z" fill="#1a73e8"/>
+            </svg>
+            Google Calendar
+          </h2>
           {gcalConnected ? (
             <div className="flex items-center justify-between">
               <span className="text-[14px] text-[var(--green)]">Connected</span>
@@ -148,7 +159,14 @@ export default function IntegrationsPage() {
 
         {/* Trello */}
         <div>
-          <h2 className="text-[15px] font-bold mb-3">Trello</h2>
+          <h2 className="text-[15px] font-bold mb-3 flex items-center gap-2">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <rect width="24" height="24" rx="4" fill="#0079bf"/>
+              <rect x="4" y="4" width="6.5" height="14" rx="1.2" fill="#fff"/>
+              <rect x="13.5" y="4" width="6.5" height="9" rx="1.2" fill="#fff"/>
+            </svg>
+            Trello
+          </h2>
           {trelloConn ? (
             <div className="flex items-center justify-between">
               <span className="text-[14px] text-[var(--green)]">Connected</span>
