@@ -14,8 +14,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "deviceId required" }, { status: 400 });
     }
 
-    if (!["set_times", "set_topics", "enable", "disable"].includes(action)) {
+    if (!["set_times", "set_topics", "enable", "disable", "set_schedule_times", "disable_schedule"].includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    if (action === "set_schedule_times") {
+      if (!Array.isArray(times) || times.length === 0) {
+        return NextResponse.json({ error: "times array required" }, { status: 400 });
+      }
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          schedule_times: JSON.stringify(times),
+          schedule_delivery_enabled: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", deviceId);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: true, times });
+    }
+
+    if (action === "disable_schedule") {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ schedule_delivery_enabled: false, updated_at: new Date().toISOString() })
+        .eq("id", deviceId);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: true, enabled: false });
     }
 
     if (action === "set_topics") {

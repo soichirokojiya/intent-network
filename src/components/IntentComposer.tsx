@@ -298,6 +298,35 @@ function detectNewsTopicIntent(text: string): { action: "set_topics"; topics: st
   return null;
 }
 
+// Detect schedule delivery time setting from chat message
+function detectScheduleIntent(text: string): { action: "set_schedule_times"; times: string[] } | { action: "disable_schedule" } | null {
+  if (/予定.*(止め|やめ|停止|オフ|off)|スケジュール.*(止め|やめ|停止|オフ|off)/i.test(text)) {
+    return { action: "disable_schedule" };
+  }
+  const timeMatches: string[] = [];
+  const hourRegex = /(\d{1,2})時/g;
+  let match;
+  while ((match = hourRegex.exec(text)) !== null) {
+    const hour = parseInt(match[1], 10);
+    if (hour >= 0 && hour <= 23) {
+      timeMatches.push(hour.toString().padStart(2, "0") + ":00");
+    }
+  }
+  const hmRegex = /(\d{1,2}):(\d{2})/g;
+  while ((match = hmRegex.exec(text)) !== null) {
+    const hour = parseInt(match[1], 10);
+    const min = parseInt(match[2], 10);
+    if (hour >= 0 && hour <= 23 && min >= 0 && min <= 59) {
+      timeMatches.push(hour.toString().padStart(2, "0") + ":" + min.toString().padStart(2, "0"));
+    }
+  }
+  if (timeMatches.length > 0 && /(予定|スケジュール|カレンダー)/i.test(text)) {
+    const unique = [...new Set(timeMatches)];
+    return { action: "set_schedule_times", times: unique };
+  }
+  return null;
+}
+
 // Detect @mention in message text
 function detectMention(text: string, agents: { id: string; config: { name: string } }[]): string | null {
   const match = text.match(/@(\S+)/);
@@ -595,6 +624,43 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       setText("");
       setReplyTo(null);
       return;
+    }
+
+    // Detect schedule delivery time setting from chat
+    const scheduleIntent = detectScheduleIntent(userText);
+    if (scheduleIntent) {
+      const deviceId = localStorage.getItem("musu_device_id") || "";
+      if (deviceId) {
+        try {
+          const body = scheduleIntent.action === "disable_schedule"
+            ? { deviceId, action: "disable_schedule" }
+            : { deviceId, action: "set_schedule_times", times: (scheduleIntent as { action: "set_schedule_times"; times: string[] }).times };
+          const res = await fetch("/api/delivery-settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          const firstAgent = configured[0];
+          const confirmText = scheduleIntent.action === "disable_schedule"
+            ? "予定配信をオフにしました。"
+            : `予定の配信時間を ${(scheduleIntent as { action: "set_schedule_times"; times: string[] }).times.join("、")} に設定しました。`;
+          if (firstAgent) {
+            enqueueMessage({
+              id: `schedule-confirm-${Date.now()}`,
+              type: "agent",
+              agentName: firstAgent.config.name,
+              agentAvatar: firstAgent.config.avatar,
+              agentId: firstAgent.id,
+              text: data.ok ? confirmText : `設定エラー: ${data.error || "不明"}`,
+              timestamp: Date.now(),
+            });
+          }
+        } catch {}
+        setText("");
+        setReplyTo(null);
+        return;
+      }
     }
 
     // Detect news topic customization from chat

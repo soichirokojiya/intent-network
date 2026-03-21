@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { anthropic } from "@/lib/anthropicClient";
 import { NextResponse } from "next/server";
 
 export const maxDuration = 300;
@@ -27,23 +28,22 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
   }
 }
 
-async function fetchTodayEvents(profile: {
+async function fetchEvents(profile: {
   id: string;
   google_access_token: string;
   google_refresh_token: string | null;
-}): Promise<{ title: string; start: string; end: string; location: string }[]> {
+}, dayOffset: number = 0): Promise<{ title: string; start: string; end: string; location: string }[]> {
   let accessToken = profile.google_access_token;
 
-  // Build time range for today (JST)
   const now = new Date();
   const jstOffset = 9 * 60 * 60 * 1000;
   const jstNow = new Date(now.getTime() + jstOffset);
-  const todayStart = new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()) - jstOffset);
-  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+  const targetDate = new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate() + dayOffset) - jstOffset);
+  const targetEnd = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
 
   const calendarParams = new URLSearchParams({
-    timeMin: todayStart.toISOString(),
-    timeMax: todayEnd.toISOString(),
+    timeMin: targetDate.toISOString(),
+    timeMax: targetEnd.toISOString(),
     singleEvents: "true",
     orderBy: "startTime",
     maxResults: "20",
@@ -54,7 +54,6 @@ async function fetchTodayEvents(profile: {
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
-  // If 401, try refresh
   if (calRes.status === 401 && profile.google_refresh_token) {
     const newToken = await refreshAccessToken(profile.google_refresh_token);
     if (newToken) {
@@ -90,22 +89,91 @@ async function fetchTodayEvents(profile: {
   }));
 }
 
-function formatScheduleMessage(events: { title: string; start: string; end: string; location: string }[]): string {
-  if (events.length === 0) {
-    return "おはようございます。今日は予定がありません。集中して作業できる日ですね。";
-  }
-
-  const eventLines = events.map((e) => {
+function formatEventList(events: { title: string; start: string; end: string; location: string }[]): string {
+  if (events.length === 0) return "予定はありません。";
+  return events.map((e) => {
     const startTime = e.start
       ? (e.start.includes("T")
         ? new Date(e.start).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" })
         : "終日")
       : "終日";
+    const endTime = e.end && e.end.includes("T")
+      ? new Date(e.end).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" })
+      : "";
     const loc = e.location ? ` (${e.location})` : "";
-    return `${startTime} ${e.title}${loc}`;
-  });
+    return `${startTime}${endTime ? "〜" + endTime : ""} ${e.title}${loc}`;
+  }).join("\n");
+}
 
-  return `おはようございます。今日の予定です。\n\n${eventLines.join("\n")}`;
+async function generateScheduleMessage(
+  todayEvents: { title: string; start: string; end: string; location: string }[],
+  tomorrowEvents: { title: string; start: string; end: string; location: string }[],
+  businessInfo: string,
+  isEvening: boolean
+): Promise<string> {
+  const todayList = formatEventList(todayEvents);
+  const tomorrowList = formatEventList(tomorrowEvents);
+
+  const now = new Date();
+  const todayStr = now.toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short", timeZone: "Asia/Tokyo" });
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const tomorrowStr = tomorrow.toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short", timeZone: "Asia/Tokyo" });
+
+  const prompt = isEvening
+    ? `あなたは秘書です。夜の予定確認として、明日の予定を伝えてください。
+
+明日（${tomorrowStr}）の予定:
+${tomorrowList}
+
+事業情報: ${businessInfo || "なし"}
+
+以下の形式でプレーンテキストのみで出力してください。Markdown禁止。
+
+1. 挨拶（「お疲れさまでした」など夜向け、1文）
+2. 明日の予定一覧（時間・タイトル・場所）
+3. 有用な指摘（1-3個）。例：
+   - 準備が必要なもの（資料、持ち物など）
+   - 移動時間の注意
+   - 予定の間隔が短い場合の警告
+   - 早朝の予定がある場合の注意
+予定がない場合は「明日は予定がありません。ゆっくり休んでください。」`
+    : `あなたは秘書です。朝の予定確認として、今日の予定を伝えてください。
+
+今日（${todayStr}）の予定:
+${todayList}
+
+事業情報: ${businessInfo || "なし"}
+
+以下の形式でプレーンテキストのみで出力してください。Markdown禁止。
+
+1. 挨拶（「おはようございます」など朝向け、1文）
+2. 今日の予定一覧（時間・タイトル・場所）
+3. 有用な指摘（1-3個）。例：
+   - 準備が必要なもの（資料、持ち物など）
+   - 移動時間の注意
+   - 予定の間隔が短い場合の警告
+   - 集中作業できる空き時間の提案
+予定がない場合は「今日は予定がありません。集中して作業できる日ですね。」`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 512,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = response.content.find((b) => b.type === "text");
+    return text ? (text as { type: "text"; text: string }).text : formatEventList(todayEvents);
+  } catch {
+    // Fallback to simple format
+    if (isEvening) {
+      return tomorrowEvents.length === 0
+        ? "お疲れさまでした。明日は予定がありません。ゆっくり休んでください。"
+        : `お疲れさまでした。明日の予定です。\n\n${tomorrowList}`;
+    }
+    return todayEvents.length === 0
+      ? "おはようございます。今日は予定がありません。集中して作業できる日ですね。"
+      : `おはようございます。今日の予定です。\n\n${todayList}`;
+  }
 }
 
 export async function GET(req: Request) {
@@ -117,7 +185,7 @@ export async function GET(req: Request) {
   try {
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, google_access_token, google_refresh_token, google_calendar_connected, schedule_delivery_enabled")
+      .select("id, business_info, google_access_token, google_refresh_token, google_calendar_connected, schedule_delivery_enabled, schedule_times")
       .eq("google_calendar_connected", true)
       .eq("schedule_delivery_enabled", true);
 
@@ -125,12 +193,29 @@ export async function GET(req: Request) {
       return NextResponse.json({ processed: 0, total: 0 });
     }
 
+    // Current hour in JST
+    const now = new Date();
+    const currentHHMM = now.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Tokyo" });
+    const currentHour = currentHHMM.split(":")[0];
+
     let processed = 0;
     const errors: string[] = [];
 
     for (const profile of profiles) {
       try {
+        // Check if current hour matches user's schedule times
+        let scheduleTimes: string[] = [];
+        if (profile.schedule_times) {
+          try { scheduleTimes = JSON.parse(profile.schedule_times); } catch { scheduleTimes = []; }
+        }
+        if (scheduleTimes.length === 0) scheduleTimes = ["07:00"]; // default
+
+        const matchingTime = scheduleTimes.find((t: string) => t.split(":")[0] === currentHour);
+        if (!matchingTime) continue;
+
         const deviceId = profile.id;
+        const matchHour = parseInt(matchingTime.split(":")[0], 10);
+        const isEvening = matchHour >= 17; // 17時以降は夜モード（明日の予定）
 
         // Find user's agents
         const { data: agents } = await supabase
@@ -141,21 +226,29 @@ export async function GET(req: Request) {
 
         if (!agents || agents.length === 0) continue;
 
-        // Prefer secretary agent as sender
+        // Prefer secretary agent
         const senderAgent = agents.find((a) =>
-          (a.config?.role || "").match(/秘書|secretary/i)
+          /秘書|secretary/i.test(a.config?.role || "")
         ) || agents[0];
 
-        // Fetch today's events directly from Google Calendar API
-        const events = await fetchTodayEvents(profile);
-        const messageText = formatScheduleMessage(events);
+        // Fetch events
+        const todayEvents = await fetchEvents(profile, 0);
+        const tomorrowEvents = isEvening ? await fetchEvents(profile, 1) : [];
+
+        // Generate message with AI analysis
+        const messageText = await generateScheduleMessage(
+          todayEvents,
+          tomorrowEvents,
+          profile.business_info || "",
+          isEvening
+        );
 
         await supabase.from("owner_chats").insert({
           device_id: deviceId,
           user_id: deviceId,
           room_id: "general",
           type: "agent",
-          agent_name: senderAgent.config?.name || "Sora",
+          agent_name: senderAgent.config?.name || "Mio",
           agent_avatar: senderAgent.config?.avatar || "",
           agent_id: senderAgent.id,
           text: messageText,
