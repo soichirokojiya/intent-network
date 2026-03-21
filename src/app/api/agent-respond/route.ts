@@ -147,8 +147,14 @@ export async function POST(req: NextRequest) {
       },
     ];
 
+    // Detect email send request
+    const emailKeywords = ["メール送", "メールを送", "メールして", "メール作成", "メールを作成", "メールを書", "mail", "メール出", "メールを出"];
+    const wantsEmail = emailKeywords.some((kw) => intentText.includes(kw));
+
     const userPrompt = requestTweet
       ? `オーナーがツイートの作成を依頼しました:\n「${intentText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "オーナーへの返事（1-2文）", "toTimeline": "ツイート文（140文字以内）"}`
+      : wantsEmail
+      ? `オーナーのメッセージ:\n「${intentText}」\n\nオーナーがメール送信を依頼しています。メールの内容を作成してください。\nJSON（コードブロック不要）:\n{"toOwner": "オーナーへの返事（メール作成した旨を伝える）", "emailAction": {"to": "宛先メールアドレス", "subject": "件名", "body": "本文"}}\n\n注意:\n- 宛先・件名・本文はオーナーのメッセージから推測して埋める\n- 宛先が不明な場合はtoOwnerで宛先を聞く（emailActionは含めない）\n- 本文はビジネスメールとして丁寧に作成する`
       : `オーナーのメッセージ:\n「${intentText}」\n\n必要十分な長さで回答して。短すぎず長すぎず、要点を押さえて。チャットなのでレポート形式は禁止だが、考えを伝えるのに必要な分量は使ってよい。Markdown禁止。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "返事"}`;
 
     // Smart model routing - check task + conversation history for search triggers
@@ -243,7 +249,34 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(parseAgentJSON(finalText));
+    const parsed = parseAgentJSON(finalText);
+
+    // Auto-send email if emailAction is present
+    if (parsed.emailAction && deviceId) {
+      try {
+        const emailRes = await fetch(new URL("/api/gmail/send", req.url).toString(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deviceId,
+            to: parsed.emailAction.to,
+            subject: parsed.emailAction.subject,
+            body: parsed.emailAction.body,
+          }),
+        });
+        if (emailRes.ok) {
+          parsed.toOwner = (parsed.toOwner || "") + "\n\nメールを送信しました。";
+        } else {
+          const errData = await emailRes.json().catch(() => ({}));
+          parsed.toOwner = (parsed.toOwner || "") + `\n\nメール送信に失敗しました: ${errData.error || "不明なエラー"}`;
+        }
+      } catch {
+        parsed.toOwner = (parsed.toOwner || "") + "\n\nメール送信中にエラーが発生しました。";
+      }
+      delete parsed.emailAction;
+    }
+
+    return NextResponse.json(parsed);
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("Agent respond error:", msg);
