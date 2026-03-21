@@ -203,7 +203,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, summaryLength: summary.length, hasChangelog: !!changelogEntry, factsInserted });
+    // Auto-save to Notion if connected
+    let notionSaved = false;
+    if (factsInserted > 0) {
+      const { data: notionProfile } = await supabase
+        .from("profiles")
+        .select("notion_connected")
+        .eq("id", deviceId)
+        .single();
+
+      if (notionProfile?.notion_connected) {
+        try {
+          const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+          const validFacts = newFacts.filter((f: { category: string; content: string }) => f.category && f.content);
+          const notionContent = validFacts
+            .map((f: { category: string; content: string }) => `[${f.category}] ${f.content}`)
+            .join("\n");
+
+          const baseUrl = new URL(req.url).origin;
+          const notionRes = await fetch(`${baseUrl}/api/notion/save`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              deviceId,
+              title: `musu メモ - ${today}`,
+              content: notionContent,
+            }),
+          });
+          notionSaved = notionRes.ok;
+        } catch { /* ignore */ }
+      }
+    }
+
+    return NextResponse.json({ ok: true, summaryLength: summary.length, hasChangelog: !!changelogEntry, factsInserted, notionSaved });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("summarize-memory error:", msg);

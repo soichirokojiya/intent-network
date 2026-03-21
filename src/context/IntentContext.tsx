@@ -572,20 +572,29 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       r.agentId === agentId ? { ...r, tweetPending: false } : r
     ));
 
-    fetch("/api/twitter/tweet", {
+    const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
+
+    // Try X OAuth first (user's own account), fallback to app Twitter
+    const postUrl = deviceId ? "/api/x/post" : "/api/twitter/tweet";
+    const postBody = deviceId
+      ? { deviceId, text: resp.toTimeline }
+      : { text: resp.toTimeline };
+
+    fetch(postUrl, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: resp.toTimeline }),
+      body: JSON.stringify(postBody),
     }).then((r) => {
       if (!r.ok) throw new Error("Tweet API error");
       return r.json();
     }).then((tweetData) => {
-      if (tweetData.success && tweetData.tweetId) {
+      const tweetId = tweetData.tweetId || tweetData.id;
+      if (tweetId) {
         setAgentResponses((prev) => prev.map((r) =>
-          r.agentId === agentId ? { ...r, tweeted: true, tweetId: tweetData.tweetId } : r
+          r.agentId === agentId ? { ...r, tweeted: true, tweetId } : r
         ));
         updateAgentStats(agentId, (s) => ({
           ...s, xp: s.xp + 5, level: calcLevel(s.xp + 5),
-          activityLog: [{ message: "Posted to Twitter", type: "tweet" as const, targetId: tweetData.tweetId, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
+          activityLog: [{ message: "Posted to X", type: "tweet" as const, targetId: tweetId, timestamp: Date.now() }, ...s.activityLog].slice(0, 30),
         }));
       }
     }).catch(() => {
