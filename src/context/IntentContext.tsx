@@ -277,13 +277,14 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           // No agents anywhere → create default agents from presets (only once)
           if (localStorage.getItem("musu_defaults_created")) return;
           localStorage.setItem("musu_defaults_created", "1");
+          const ts = Date.now();
           const defaults: MyAgent[] = DEFAULT_AGENT_PRESETS.map((preset, i) => ({
-            id: `agent-default-${i}-${Date.now()}`,
+            id: `agent-default-${i}-${ts}-${Math.random().toString(36).slice(2, 6)}`,
             config: {
               ...EMPTY_CONFIG,
               isConfigured: true,
               name: preset.name,
-              avatar: `px-agent-${i}`,
+              avatar: `px-agent-${i % 10}`,
               role: preset.role,
               expertise: preset.role,
               character: preset.character || "",
@@ -298,7 +299,12 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           }));
           setMyAgents(defaults);
           setActiveAgentIds(new Set(defaults.map((a) => a.id)));
-          defaults.forEach((a) => saveAgent(a, true));
+          // Save sequentially to avoid RLS/concurrency issues
+          (async () => {
+            for (const agent of defaults) {
+              await saveAgent(agent, true);
+            }
+          })();
           // Welcome messages are shown via UI (IntentComposer) when chatHistory is empty
         }
       }
