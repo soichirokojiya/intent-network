@@ -187,6 +187,7 @@ export default function AboutPage() {
       {/* Footer */}
       <footer className="px-5 py-8 border-t border-gray-100 text-center text-[12px] text-gray-400 space-y-3">
         <div className="flex justify-center gap-4">
+          <Link href="/help" className="hover:underline">ヘルプ</Link>
           <Link href="/terms" className="hover:underline">利用規約</Link>
           <Link href="/privacy" className="hover:underline">プライバシーポリシー</Link>
           <Link href="/contact" className="hover:underline">お問い合わせ</Link>
