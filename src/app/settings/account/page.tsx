@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
@@ -8,10 +8,13 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function AccountSettingsPage() {
-  const { user, signOut, newsEnabled, newsTime, newsTimes, updateNewsSettings } = useAuth();
+  const { user, signOut } = useAuth();
   const { locale, setLocale, t } = useLocale();
   const router = useRouter();
 
+  const [newsEnabled, setNewsEnabled] = useState(false);
+  const [newsTime, setNewsTime] = useState("07:00");
+  const [newsTimes, setNewsTimes] = useState<string[]>(["07:00"]);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,6 +22,42 @@ export default function AccountSettingsPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [newTimeInput, setNewTimeInput] = useState("12:00");
+
+  // Fetch news settings from server API
+  const fetchNewsSettings = useCallback(async () => {
+    const deviceId = localStorage.getItem("musu_device_id") || "";
+    if (!deviceId) return;
+    try {
+      const res = await fetch(`/api/news-settings?deviceId=${deviceId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNewsEnabled(data.newsEnabled);
+        setNewsTime(data.newsTime);
+        setNewsTimes(data.newsTimes);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchNewsSettings(); }, [fetchNewsSettings]);
+
+  const updateNewsSettings = async (enabled: boolean, time: string, times: string[]) => {
+    const deviceId = localStorage.getItem("musu_device_id") || "";
+    if (!deviceId) return;
+    // Optimistic UI update
+    setNewsEnabled(enabled);
+    setNewsTime(time);
+    setNewsTimes(times);
+    try {
+      await fetch("/api/news-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId, enabled, time, times }),
+      });
+    } catch {
+      // Revert on failure
+      fetchNewsSettings();
+    }
+  };
 
   const showMsg = (msg: string) => { setMessage(msg); setError(""); setTimeout(() => setMessage(""), 3000); };
   const showErr = (msg: string) => { setError(msg); setMessage(""); };
