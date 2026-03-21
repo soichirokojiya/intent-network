@@ -235,13 +235,22 @@ export async function GET(req: Request) {
         const todayEvents = await fetchEvents(profile, 0);
         const tomorrowEvents = isEvening ? await fetchEvents(profile, 1) : [];
 
-        // Generate message with AI analysis
-        const messageText = await generateScheduleMessage(
-          todayEvents,
-          tomorrowEvents,
-          profile.business_info || "",
-          isEvening
-        );
+        // Skip AI call if no events — use simple static message
+        const relevantEvents = isEvening ? tomorrowEvents : todayEvents;
+        let messageText: string;
+        if (relevantEvents.length === 0) {
+          messageText = isEvening
+            ? "お疲れさまでした。明日は予定がありません。ゆっくり休んでください。"
+            : "おはようございます。今日は予定がありません。集中して作業できる日ですね。";
+        } else {
+          // Generate message with AI analysis only when events exist
+          messageText = await generateScheduleMessage(
+            todayEvents,
+            tomorrowEvents,
+            profile.business_info || "",
+            isEvening
+          );
+        }
 
         await supabase.from("owner_chats").insert({
           device_id: deviceId,
