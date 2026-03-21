@@ -12,9 +12,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "deviceId required" }, { status: 400 });
   }
 
+  // Select only columns that definitely exist (core + well-established integrations)
+  // Use wildcard select to avoid "column does not exist" errors when new columns haven't been migrated yet
   const { data, error } = await supabase
     .from("profiles")
-    .select("google_calendar_connected, trello_connected, schedule_delivery_enabled, google_drive_connected, notion_connected, notion_auto_save, x_connected, gmail_connected, slack_connected, line_connected")
+    .select("*")
     .eq("id", deviceId)
     .single();
 
