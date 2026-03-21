@@ -12,6 +12,7 @@ interface AuthContextType {
   memorySummary: string;
   newsEnabled: boolean;
   newsTime: string;
+  newsTimes: string[];
   googleCalendarConnected: boolean;
   trelloConnected: boolean;
   scheduleDeliveryEnabled: boolean;
@@ -22,7 +23,7 @@ interface AuthContextType {
   updateDisplayName: (name: string) => Promise<{ error: string | null }>;
   updateAvatarUrl: (url: string) => Promise<{ error: string | null }>;
   updateBusinessInfo: (info: string) => Promise<{ error: string | null }>;
-  updateNewsSettings: (enabled: boolean, time: string) => Promise<{ error: string | null }>;
+  updateNewsSettings: (enabled: boolean, time: string, times?: string[]) => Promise<{ error: string | null }>;
   updateScheduleDelivery: (enabled: boolean) => Promise<{ error: string | null }>;
 }
 
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [memorySummary, setMemorySummary] = useState("");
   const [newsEnabled, setNewsEnabled] = useState(false);
   const [newsTime, setNewsTime] = useState("07:00");
+  const [newsTimes, setNewsTimes] = useState<string[]>(["07:00"]);
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
   const [trelloConnected, setTrelloConnected] = useState(false);
   const [scheduleDeliveryEnabled, setScheduleDeliveryEnabled] = useState(false);
@@ -62,13 +64,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load profile from profiles table
   const loadProfile = useCallback(async (userId: string, email: string) => {
     bindDeviceId(userId);
-    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
+    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
     setDisplayName(data?.display_name || email.split("@")[0]);
     setAvatarUrl(data?.avatar_url || "");
     setBusinessInfo(data?.business_info || "");
     setMemorySummary(data?.memory_summary || "");
     setNewsEnabled(data?.news_enabled ?? false);
     setNewsTime(data?.news_time || "07:00");
+    try {
+      const parsed = data?.news_times ? JSON.parse(data.news_times) : null;
+      setNewsTimes(Array.isArray(parsed) && parsed.length > 0 ? parsed : [data?.news_time || "07:00"]);
+    } catch {
+      setNewsTimes([data?.news_time || "07:00"]);
+    }
     setGoogleCalendarConnected(data?.google_calendar_connected ?? false);
     setTrelloConnected(data?.trello_connected ?? false);
     setScheduleDeliveryEnabled(data?.schedule_delivery_enabled ?? false);
@@ -127,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMemorySummary("");
     setNewsEnabled(false);
     setNewsTime("07:00");
+    setNewsTimes(["07:00"]);
     setGoogleCalendarConnected(false);
     setTrelloConnected(false);
     setScheduleDeliveryEnabled(false);
@@ -170,16 +179,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message || null };
   }, [user]);
 
-  const updateNewsSettings = useCallback(async (enabled: boolean, time: string) => {
+  const updateNewsSettings = useCallback(async (enabled: boolean, time: string, times?: string[]) => {
     if (!user) return { error: "Not logged in" };
+    const effectiveTimes = times || [time];
     const { error } = await supabase.from("profiles").update({
       news_enabled: enabled,
       news_time: time,
+      news_times: JSON.stringify(effectiveTimes),
       updated_at: new Date().toISOString(),
     }).eq("id", user.id);
     if (!error) {
       setNewsEnabled(enabled);
       setNewsTime(time);
+      setNewsTimes(effectiveTimes);
     }
     return { error: error?.message || null };
   }, [user]);
@@ -195,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings, updateScheduleDelivery }}>
+    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, newsTimes, googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings, updateScheduleDelivery }}>
       {children}
     </AuthContext.Provider>
   );

@@ -166,6 +166,11 @@ export const DEFAULT_AGENT_PRESETS = [
   { name: "Sora", role: "リサーチ", character: "好奇心旺盛で分析的。曖昧な情報は許さない。データで証明する。落ち着いた仕事仲間の口調。", speakingStyle: "", coreValue: "" },
   { name: "Hana", role: "哲学者", character: "前提を疑う。本質的な問いを投げかける。短期的な利益より長期的な意味を問う。穏やかだが鋭い口調。", speakingStyle: "", coreValue: "" },
   { name: "Leo", role: "ストラテジスト", character: "大局を見る。競争優位を追求。実行可能性と市場タイミングを重視。落ち着いた仕事仲間の口調。", speakingStyle: "", coreValue: "" },
+  { name: "Mio", role: "秘書", character: "きめ細やかで先回りして動く。スケジュール管理とタスク整理が得意。明るく丁寧な仕事仲間の口調。", speakingStyle: "", coreValue: "" },
+  { name: "Riku", role: "クリエイティブ", character: "発想が柔軟で常識にとらわれない。ビジュアルや表現にこだわる。カジュアルだが的確な口調。", speakingStyle: "", coreValue: "" },
+  { name: "Yui", role: "ファイナンス", character: "数字に強く冷静沈着。コスト意識が高い。感情論より根拠を重視。落ち着いた仕事仲間の口調。", speakingStyle: "", coreValue: "" },
+  { name: "Toru", role: "開発者", character: "論理的で効率重視。技術的な実現可能性を常に考える。簡潔で無駄のない仕事仲間の口調。", speakingStyle: "", coreValue: "" },
+  { name: "Nao", role: "データサイエンティスト", character: "データから本質を見抜く。仮説と検証を重視。客観的で落ち着いた仕事仲間の口調。", speakingStyle: "", coreValue: "" },
 ];
 
 // Max agents based on highest agent level
@@ -272,7 +277,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           // No agents anywhere → create default agents from presets (only once)
           if (localStorage.getItem("musu_defaults_created")) return;
           localStorage.setItem("musu_defaults_created", "1");
-          const defaults: MyAgent[] = DEFAULT_AGENT_PRESETS.slice(0, 5).map((preset, i) => ({
+          const defaults: MyAgent[] = DEFAULT_AGENT_PRESETS.map((preset, i) => ({
             id: `agent-default-${i}-${Date.now()}`,
             config: {
               ...EMPTY_CONFIG,

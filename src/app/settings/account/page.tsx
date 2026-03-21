@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function AccountSettingsPage() {
-  const { user, signOut, newsEnabled, newsTime, updateNewsSettings } = useAuth();
+  const { user, signOut, newsEnabled, newsTime, newsTimes, updateNewsSettings } = useAuth();
   const { locale, setLocale, t } = useLocale();
   const router = useRouter();
 
@@ -18,6 +18,7 @@ export default function AccountSettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [newTimeInput, setNewTimeInput] = useState("12:00");
 
   const showMsg = (msg: string) => { setMessage(msg); setError(""); setTimeout(() => setMessage(""), 3000); };
   const showErr = (msg: string) => { setError(msg); setMessage(""); };
@@ -102,7 +103,7 @@ export default function AccountSettingsPage() {
           <div className="flex items-center justify-between mb-3">
             <span className="text-[13px] text-[var(--muted)]">{t("settings.newsEnabled")}</span>
             <button
-              onClick={() => updateNewsSettings(!newsEnabled, newsTime)}
+              onClick={() => updateNewsSettings(!newsEnabled, newsTime, newsTimes)}
               className={`relative w-11 h-6 rounded-full transition-colors ${newsEnabled ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
             >
               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${newsEnabled ? "translate-x-5" : ""}`} />
@@ -110,13 +111,53 @@ export default function AccountSettingsPage() {
           </div>
           {newsEnabled && (
             <div>
-              <label className="text-[13px] text-[var(--muted)] block mb-1">{t("settings.newsTime")}</label>
-              <input
-                type="time"
-                defaultValue={newsTime}
-                onBlur={(e) => updateNewsSettings(newsEnabled, e.target.value)}
-                className="bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-[15px] outline-none focus:border-[var(--accent)]"
-              />
+              <label className="text-[13px] text-[var(--muted)] block mb-2">{t("settings.newsTime")}</label>
+              {/* Current delivery times as chips */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {newsTimes.map((time) => (
+                  <span
+                    key={time}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[var(--search-bg)] border border-[var(--card-border)] rounded-full text-[14px]"
+                  >
+                    {time}
+                    {newsTimes.length > 1 && (
+                      <button
+                        onClick={() => {
+                          const updated = newsTimes.filter((t) => t !== time);
+                          updateNewsSettings(newsEnabled, updated[0], updated);
+                        }}
+                        className="ml-1 text-[var(--muted)] hover:text-[var(--danger)] transition-colors"
+                      >
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+              {/* Add new time */}
+              <div className="flex gap-2">
+                <input
+                  type="time"
+                  value={newTimeInput}
+                  onChange={(e) => setNewTimeInput(e.target.value)}
+                  className="bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2.5 text-[15px] outline-none focus:border-[var(--accent)]"
+                />
+                <button
+                  onClick={() => {
+                    if (newTimeInput && !newsTimes.includes(newTimeInput)) {
+                      const updated = [...newsTimes, newTimeInput].sort();
+                      updateNewsSettings(newsEnabled, updated[0], updated);
+                    }
+                  }}
+                  disabled={!newTimeInput || newsTimes.includes(newTimeInput)}
+                  className="px-4 py-2.5 bg-[var(--accent)] text-white font-bold text-sm rounded-xl hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                >
+                  +
+                </button>
+              </div>
+              <p className="text-[12px] text-[var(--muted)] mt-2">
+                {locale === "ja" ? "チャットで「ニュースを7時と18時に送って」のように設定もできます" : "You can also set times by chatting, e.g. \"Send news at 7am and 6pm\""}
+              </p>
             </div>
           )}
         </div>

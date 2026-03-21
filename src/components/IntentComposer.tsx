@@ -127,30 +127,62 @@ const INTRO_MAP: Record<string, (name: string) => string> = {
   "ストラテジスト": (n) => `${n}です。目先の施策より「半年後にどうなっていたいか」から考えるタイプです。よろしく。`,
   "クリエイティブ": (n) => `${n}です！ぱっと見で伝わる表現とか、意外な切り口を考えるの得意です。`,
   "ファイナンス": (n) => `${n}です。いい話には必ず数字の裏付けをつけます。`,
+  "秘書": (n) => `${n}です。スケジュールやタスクの整理、お任せください。先回りして動きます。`,
+  "開発者": (n) => `${n}です。技術的にどう実現するか、一緒に考えましょう。`,
+  "データサイエンティスト": (n) => `${n}です。データから答えを見つけるのが得意です。よろしくお願いします。`,
 };
 
+function TypingBubble({ avatar, name }: { avatar: string; name: string }) {
+  return (
+    <div className="flex gap-2 animate-fade-in">
+      <div className="flex-shrink-0 mt-1">
+        <AgentAvatarDisplay avatar={avatar} size={32} />
+      </div>
+      <div>
+        <span className="text-[11px] text-[var(--muted)] ml-1">{name}</span>
+        <div className="mt-0.5 bg-[var(--search-bg)] px-4 py-2.5 rounded-2xl rounded-bl-sm inline-block">
+          <div className="flex gap-1 items-center h-[20px]">
+            <span className="w-2 h-2 bg-[var(--muted)] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-2 h-2 bg-[var(--muted)] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-2 h-2 bg-[var(--muted)] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WelcomeSequence({ agents }: { agents: { id: string; config: { name: string; avatar: string; role: string; expertise: string } }[] }) {
-  const [step, setStep] = useState(-1); // -1 = not started, 0..n = showing typing for agent i
-  const [shown, setShown] = useState<number[]>([]); // indices of agents whose messages are visible
+  const [step, setStep] = useState(-1);
+  const [shown, setShown] = useState<number[]>([]);
+  const [typing, setTyping] = useState(false);
+
+  // Build orientation messages from the orchestrator (Ren)
+  const orchestrator = agents.find((a) => a.config.role === "オーケストレーター" || a.config.expertise === "オーケストレーター") || agents[0];
+  const otherAgents = agents.filter((a) => a.id !== orchestrator.id);
+
+  const memberList = otherAgents.map((a) => {
+    const role = a.config.role || a.config.expertise || "";
+    return `${a.config.name}（${role}）`;
+  }).join("、");
+
+  const messages = [
+    `はじめまして、${orchestrator.config.name}です。チームのまとめ役をやってます。\n\nあなた専属のチームを紹介しますね。`,
+    `メンバー紹介です。\n\n${memberList}\n\nの${otherAgents.length}名が揃ってます。それぞれ得意分野が違うので、うまく使い分けてください。`,
+    `使い方のコツです。\n\n- 何でも気軽に投げてもらえればチーム全員で考えます\n- @をつければ特定のメンバーに直接話せます\n- プロフィールに事業情報を入れるとチーム全員が理解します\n- チーム編成は自由にカスタマイズできます\n\nでは、何から始めましょうか？`,
+  ];
 
   useEffect(() => {
-    // Start after 500ms
     const t0 = setTimeout(() => setStep(0), 500);
     return () => clearTimeout(t0);
   }, []);
 
-  const [typing, setTyping] = useState(false);
-
   useEffect(() => {
-    if (step < 0 || step >= agents.length) return;
-    // Wait before showing typing indicator (varies a lot)
-    const pauses = [300, 800, 500, 1500, 600]; // different pause per agent
-    const pauseDelay = (pauses[step % pauses.length] || 500) + Math.random() * 700;
+    if (step < 0 || step >= messages.length) return;
+    const pauseDelay = step === 0 ? 400 : 800 + Math.random() * 500;
     const t1 = setTimeout(() => {
       setTyping(true);
-      // Typing duration varies by message length feel
-      const typingDurations = [1000, 700, 1400, 900, 1100];
-      const typingDelay = (typingDurations[step % typingDurations.length] || 1000) + Math.random() * 800;
+      const typingDelay = 1200 + Math.random() * 800;
       const t2 = setTimeout(() => {
         setTyping(false);
         setShown((prev) => [...prev, step]);
@@ -159,34 +191,29 @@ function WelcomeSequence({ agents }: { agents: { id: string; config: { name: str
       return () => clearTimeout(t2);
     }, pauseDelay);
     return () => clearTimeout(t1);
-  }, [step, agents.length]);
+  }, [step, messages.length]);
 
   return (
     <div className="space-y-3 py-4">
-      {agents.map((agent, i) => {
-        const role = agent.config.role || agent.config.expertise || "";
-        const introFn = INTRO_MAP[role];
-        const intro = introFn ? introFn(agent.config.name) : `${agent.config.name}です。${role}担当です。よろしくお願いします。`;
-        const isLast = i === agents.length - 1;
-        const lastMsg = isLast ? "\n\n@をつければ特定のメンバーに直接話せます。チーム編成は自由にカスタマイズできます。プロフィールに事業情報を入れるとチーム全員が理解します。気軽にどうぞ！" : "";
+      {messages.map((msg, i) => {
         const isTyping = step === i && typing;
         const isVisible = shown.includes(i);
 
         if (!isTyping && !isVisible) return null;
 
+        if (isTyping) {
+          return <TypingBubble key={`typing-${i}`} avatar={orchestrator.config.avatar} name={orchestrator.config.name} />;
+        }
+
         return (
-          <div key={agent.id} className="flex gap-2 animate-fade-in">
+          <div key={`welcome-${i}`} className="flex gap-2 animate-fade-in">
             <div className="flex-shrink-0 mt-1">
-              <AgentAvatarDisplay avatar={agent.config.avatar} size={32} />
+              <AgentAvatarDisplay avatar={orchestrator.config.avatar} size={32} />
             </div>
             <div className="max-w-[75%]">
-              <span className="text-[11px] text-[var(--muted)]">{agent.config.name}</span>
+              <span className="text-[11px] text-[var(--muted)]">{orchestrator.config.name}</span>
               <div className="mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-[var(--search-bg)]">
-                {isTyping ? (
-                  <span className="text-[14px] text-[var(--muted)] animate-pulse">...</span>
-                ) : (
-                  <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{intro + lastMsg}</p>
-                )}
+                <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg}</p>
               </div>
             </div>
           </div>
@@ -217,6 +244,58 @@ function detectIntent(text: string): "approve" | "reject" | "tweet" | "message" 
   if (approveWords.some((w) => lower === w || lower.includes(w))) return "approve";
   if (rejectWords.some((w) => lower === w || lower.includes(w))) return "reject";
   return "message";
+}
+
+// Detect delivery time setting intent from chat message
+function detectDeliveryIntent(text: string): { action: "set_times"; times: string[] } | { action: "disable" } | null {
+  // Check for disable/stop patterns
+  if (/ニュース.*(止め|やめ|停止|オフ|off)|配信.*(止め|やめ|停止|オフ|off)|ニュース.*なし/i.test(text)) {
+    return { action: "disable" };
+  }
+  // Extract times like "7時" "18時" "07:00"
+  const timeMatches: string[] = [];
+  // Match patterns like "7時", "18時", "朝7時", "夜8時"
+  const hourRegex = /(\d{1,2})時/g;
+  let match;
+  while ((match = hourRegex.exec(text)) !== null) {
+    const hour = parseInt(match[1], 10);
+    if (hour >= 0 && hour <= 23) {
+      timeMatches.push(hour.toString().padStart(2, "0") + ":00");
+    }
+  }
+  // Match HH:MM patterns
+  const hmRegex = /(\d{1,2}):(\d{2})/g;
+  while ((match = hmRegex.exec(text)) !== null) {
+    const hour = parseInt(match[1], 10);
+    const min = parseInt(match[2], 10);
+    if (hour >= 0 && hour <= 23 && min >= 0 && min <= 59) {
+      timeMatches.push(hour.toString().padStart(2, "0") + ":" + min.toString().padStart(2, "0"));
+    }
+  }
+  // Only trigger if message mentions news/delivery context
+  if (timeMatches.length > 0 && /(ニュース|配信|送って|届けて|通知)/i.test(text)) {
+    // Deduplicate
+    const unique = [...new Set(timeMatches)];
+    return { action: "set_times", times: unique };
+  }
+  return null;
+}
+
+// Detect news topic customization from chat message
+function detectNewsTopicIntent(text: string): { action: "set_topics"; topics: string } | null {
+  // Match patterns like "ニュースは〜にして", "〜のニュースを送って", "ニュースのジャンルを〜に"
+  const patterns = [
+    /ニュース.*(?:を|は|の)(.+?)(?:にして|に変えて|にしたい|がいい|が欲しい|を送って|を届けて|多めに|中心に|メインで|重視して)/,
+    /(.+?)(?:のニュース|関連ニュース|系のニュース).*(?:送って|届けて|欲しい|にして|多めに|中心に)/,
+    /ニュース.*(?:ジャンル|トピック|テーマ|カテゴリ).*(?:を|は)(.+?)(?:に|で)/,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m && m[1]) {
+      return { action: "set_topics", topics: m[1].trim() };
+    }
+  }
+  return null;
 }
 
 // Detect @mention in message text
@@ -481,6 +560,72 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     }
 
     if (false) { // rest feature removed
+    }
+
+    // Detect delivery time setting from chat
+    const deliveryIntent = detectDeliveryIntent(userText);
+    if (deliveryIntent && user) {
+      const deviceId = user.id;
+      try {
+        const res = await fetch("/api/delivery-settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId, ...deliveryIntent }),
+        });
+        const data = await res.json();
+        // Show confirmation as a system-like agent message
+        const firstAgent = configured[0];
+        const confirmText = deliveryIntent.action === "disable"
+          ? "ニュース配信をオフにしました。"
+          : `ニュース配信時間を ${(deliveryIntent as { action: "set_times"; times: string[] }).times.join("、")} に設定しました。`;
+        if (firstAgent) {
+          enqueueMessage({
+            id: `delivery-confirm-${Date.now()}`,
+            type: "agent",
+            agentName: firstAgent.config.name,
+            agentAvatar: firstAgent.config.avatar,
+            agentId: firstAgent.id,
+            text: data.ok ? confirmText : `設定エラー: ${data.error || "不明"}`,
+            timestamp: Date.now(),
+          });
+        }
+      } catch {
+        // Silently fail, user can retry
+      }
+      setText("");
+      setReplyTo(null);
+      return;
+    }
+
+    // Detect news topic customization from chat
+    const topicIntent = detectNewsTopicIntent(userText);
+    if (topicIntent && user) {
+      const deviceId = user.id;
+      try {
+        const res = await fetch("/api/delivery-settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId, ...topicIntent }),
+        });
+        const data = await res.json();
+        const firstAgent = configured[0];
+        if (firstAgent) {
+          enqueueMessage({
+            id: `topic-confirm-${Date.now()}`,
+            type: "agent",
+            agentName: firstAgent.config.name,
+            agentAvatar: firstAgent.config.avatar,
+            agentId: firstAgent.id,
+            text: data.ok ? `ニュースのトピックを「${topicIntent.topics}」に設定しました。次回の配信から反映されます。` : `設定エラー: ${data.error || "不明"}`,
+            timestamp: Date.now(),
+          });
+        }
+      } catch {
+        // Silently fail
+      }
+      setText("");
+      setReplyTo(null);
+      return;
     }
 
     // Detect @mention and tweet request
