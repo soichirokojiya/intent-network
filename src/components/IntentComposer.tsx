@@ -731,7 +731,10 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           </button>
         )}
 
-        {/* Welcome sequence removed */}
+        {/* Welcome sequence: show when no chat history */}
+        {chatHistory.length === 0 && configured.length > 0 && (
+          <WelcomeSequence agents={configured} />
+        )}
 
         {chatHistory.map((msg, idx) => {
           const prevMsg = idx > 0 ? chatHistory[idx - 1] : null;
