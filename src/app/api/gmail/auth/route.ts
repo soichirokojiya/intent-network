@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   const redirectUri = "https://musu.world/api/gmail/callback";
-  const scope = "https://www.googleapis.com/auth/gmail.readonly";
+  const scope = "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send";
   const state = deviceId;
 
   const params = new URLSearchParams({
