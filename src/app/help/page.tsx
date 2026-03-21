@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "ヘルプセンター - musu",
-  description: "musuの使い方、よくある質問、トラブルシューティング。チームの使い方、コマンド、アプリ連携、料金について。",
+  title: "ヘルプセンター - AIエージェントチームの使い方ガイド",
+  description: "musuの使い方、コマンド一覧（/mail、/post）、アプリ連携設定、料金・チャージ方法、よくある質問をまとめています。ソロプレナー・フリーランスのためのAIワークスペース活用ガイド。",
   openGraph: {
-    title: "ヘルプセンター - musu",
-    description: "musuの使い方、よくある質問、トラブルシューティング。",
-    images: [{ url: "https://musu.world/og-image.png", width: 1200, height: 630 }],
+    title: "ヘルプセンター - musu AIエージェントチーム",
+    description: "musuの使い方、コマンド、アプリ連携、料金についてのFAQ。",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
 };
 

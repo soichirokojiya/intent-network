@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "musuについて - ひとりだけど、ひとりじゃない。",
-  description: "AIエージェントチームがあなたの仕事仲間になる。ソロプレナー・ひとり会社のためのAIワークスペース。",
+  title: "ソロプレナー向けAIエージェントチームの特徴と使い方",
+  description: "musuは専属AIチームを作れるワークスペース。10種類のAIエージェントが事業戦略・市場調査・メール作成・SNS運用をサポート。Google Calendar・Gmail・Notion・Slack連携対応。",
   openGraph: {
-    title: "musuについて - ひとりだけど、ひとりじゃない。",
+    title: "ひとりだけど、ひとりじゃない。- musu",
     description: "AIエージェントチームがあなたの仕事仲間になる。ソロプレナー・ひとり会社のためのAIワークスペース。",
-    images: [{ url: "https://musu.world/og-image.png", width: 1200, height: 630 }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
 };
 

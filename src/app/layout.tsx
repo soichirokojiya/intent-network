@@ -20,25 +20,43 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "musu.world - ひとりだけど、ひとりじゃない。",
-  description: "AIが、あなたの仕事仲間になる。フリーランス・個人事業主のためのAIエージェントチーム。",
+  metadataBase: new URL("https://musu.world"),
+  title: {
+    default: "AIエージェントチーム×ソロプレナー向けAIワークスペース | musu",
+    template: "%s | musu",
+  },
+  description: "musuはソロプレナー・ひとり会社・フリーランスのための専属AIチーム。AI秘書・マーケティング・リサーチ・戦略のエージェントがチームで仕事をサポート。Gmail・Notion・Slack・X連携。月額固定費なし。",
   icons: {
     icon: "/favicon.svg",
   },
   openGraph: {
-    title: "musu - ひとりだけど、ひとりじゃない。",
-    description: "AIが、あなたの仕事仲間になる。ソロプレナー・ひとり会社のためのAIエージェントチーム。",
+    title: "ひとりだけど、ひとりじゃない。- musu",
+    description: "AIエージェントチームと一緒に、ひとり会社を回そう。musuはソロプレナーのためのAIワークスペースです。",
     url: "https://musu.world",
     siteName: "musu",
     locale: "ja_JP",
     type: "website",
-    images: [{ url: "https://musu.world/og-image.png", width: 1200, height: 630, alt: "musu - ひとりだけど、ひとりじゃない。" }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "musu - ひとりだけど、ひとりじゃない。" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "musu - ひとりだけど、ひとりじゃない。",
-    description: "AIが、あなたの仕事仲間になる。ソロプレナー・ひとり会社のためのAIエージェントチーム。",
-    images: ["https://musu.world/og-image.png"],
+    title: "ひとりだけど、ひとりじゃない。- musu",
+    description: "AIエージェントチームと一緒に、ひとり会社を回そう。musuはソロプレナーのためのAIワークスペースです。",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large" as const,
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "https://musu.world",
   },
 };
 
@@ -47,8 +65,32 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "musu",
+    url: "https://musu.world",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "All",
+    description: "ソロプレナー・ひとり会社・フリーランスのためのAIエージェントワークスペース",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "JPY",
+      description: "初回クレジット付き。月額固定費なし。",
+    },
+    creator: {
+      "@type": "Organization",
+      name: "株式会社CFAC",
+      url: "https://www.cfac.co.jp/",
+    },
+  };
+
   return (
     <html lang="ja">
+      <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
