@@ -870,16 +870,23 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   }, [updateAgentStats, fetchProjectFacts]);
 
   // --- Post intent: direct or orchestrated ---
+  const lastPostRef = useRef<{ text: string; time: number }>({ text: "", time: 0 });
   const postIntent = useCallback((text: string, options?: { mentionAgentId?: string; requestTweet?: boolean; roomId?: string }) => {
     const roomId = options?.roomId || "general";
+
+    // 重複投稿防止: 5秒以内に同じ or 類似メッセージが来たら無視
+    const now = Date.now();
+    const lastPost = lastPostRef.current;
+    const isSimilar = text === lastPost.text || (text.length > 3 && lastPost.text.includes(text)) || (lastPost.text.length > 3 && text.includes(lastPost.text));
+    if (isSimilar && now - lastPost.time < 5000) return;
+    lastPostRef.current = { text, time: now };
+
     const allConfigured = myAgents.filter((a) => a.config.isConfigured && a.stats.mood !== "dead" && activeAgentIds.has(a.id));
     if (allConfigured.length === 0) return;
 
     const orchestrator = allConfigured.find((a) => a.config.isOrchestrator);
     const mentionedAgent = options?.mentionAgentId ? allConfigured.find((a) => a.id === options.mentionAgentId) : null;
 
-    // メンション指定あり → そのエージェントだけ応答
-    // メンションなし → 直近の会話相手 or 全員に応答
     setAgentResponses([]);
 
     // /post command → treat as tweet request

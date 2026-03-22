@@ -483,13 +483,24 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     if (isNearBottom) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
-  // Auto-scroll during streaming
+  // Auto-scroll during streaming (stable: only scroll if already at bottom, no smooth to avoid jitter)
+  const streamScrollLock = useRef(false);
   useEffect(() => {
-    if (!streamingMessage) return;
+    if (!streamingMessage) {
+      streamScrollLock.current = false;
+      return;
+    }
     const el = chatAreaRef.current;
     if (!el) return;
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
-    if (isNearBottom) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // On first streaming chunk, check if user is near bottom
+    if (!streamScrollLock.current) {
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+      streamScrollLock.current = isNearBottom;
+    }
+    // Only auto-scroll if user was at bottom when streaming started
+    if (streamScrollLock.current) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [streamingMessage]);
 
   // Show/hide scroll-to-bottom button
