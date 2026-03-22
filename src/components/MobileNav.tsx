@@ -16,7 +16,7 @@ export function MobileNav() {
     { href: "/", label: "ホーム", icon: "home" },
     { href: "#team", label: "チーム", icon: "team" },
     { href: "/integrations", label: "連携", icon: "integrations" },
-    { href: "/settings", label: "設定", icon: "settings" },
+    { href: "/settings/account", label: "設定", icon: "settings" },
   ];
 
   return (
