@@ -483,14 +483,21 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   // Auto-scroll: always after posting, otherwise only if near bottom
   useEffect(() => {
     if (justPosted.current) {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
       justPosted.current = false;
+      // Wait for DOM update then scroll
+      requestAnimationFrame(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      });
       return;
     }
     const el = chatAreaRef.current;
     if (!el) return;
     const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
-    if (isNearBottom) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isNearBottom) {
+      requestAnimationFrame(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      });
+    }
   }, [chatHistory]);
 
   // Auto-scroll during streaming (stable: only scroll if already at bottom, no smooth to avoid jitter)
