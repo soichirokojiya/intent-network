@@ -481,18 +481,7 @@ export default function AboutPage() {
             <h3 className="text-sm font-bold text-[#4A99E9] mb-4 tracking-wider">2026</h3>
             <div className="space-y-0 border-l-2 border-gray-200 ml-2">
               {[
-                { date: "2026.03.23", text: "musu lab（活用事例メディア）を公開しました" },
-                { date: "2026.03.23", text: "Square・freee・Chatwork連携を追加しました" },
-                { date: "2026.03.22", text: "Google スプレッドシート連携を追加しました" },
-                { date: "2026.03.22", text: "Gmail × スプレッドシートの自動化機能をリリースしました" },
-                { date: "2026.03.22", text: "エージェントの記憶システムを改善しました" },
-                { date: "2026.03.21", text: "Slack・X（Twitter）・LINE連携を追加しました" },
-                { date: "2026.03.20", text: "Notion自動保存機能を追加しました" },
-                { date: "2026.03.19", text: "毎朝のスケジュール配信機能を追加しました" },
-                { date: "2026.03.18", text: "デイリーニュース配信機能を追加しました" },
-                { date: "2026.03.15", text: "Gmail・Google カレンダー・Trello連携を追加しました" },
-                { date: "2026.03.10", text: "ストリーミング応答に対応しました" },
-                { date: "2026.03.01", text: "musu.world 正式リリース" },
+                { date: "2026.03.23", text: "musu ベータ版をローンチしました" },
               ].map((news, i) => (
                 <div key={i} className="flex gap-4 pl-6 py-3 relative">
                   <div className="absolute -left-[5px] top-4 w-2 h-2 rounded-full bg-gray-300" />
