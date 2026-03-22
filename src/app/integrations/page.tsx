@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line" | "sheets";
+type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line" | "sheets" | "chatwork";
 
 interface Integration {
   key: IntegrationKey;
@@ -34,6 +34,7 @@ const LOGO_MAP: Record<IntegrationKey, string> = {
   line: "/logos/line.svg",
   x: "/logos/x.svg",
   sheets: "/logos/google-sheets.png",
+  chatwork: "/logos/chatwork.png",
 };
 
 const integrations: Integration[] = [
@@ -110,6 +111,15 @@ const integrations: Integration[] = [
     icon: <img src={LOGO_MAP.line} alt="LINE" width={20} height={20} className="rounded" />,
   },
   {
+    key: "chatwork",
+    name: "Chatwork",
+    description: "チームがChatworkのメッセージを読み書きできるようになります。",
+    authPath: "/api/chatwork/auth",
+    disconnectPath: "/api/chatwork/disconnect",
+    category: "communication",
+    icon: <img src={LOGO_MAP.chatwork} alt="Chatwork" width={20} height={20} className="rounded" />,
+  },
+  {
     key: "x",
     name: "X (Twitter)",
     description: "チームがXに投稿できるようになります。",
@@ -130,6 +140,7 @@ const STATUS_MAP: Record<IntegrationKey, string> = {
   slack: "slackConnected",
   line: "lineConnected",
   sheets: "sheetsConnected",
+  chatwork: "chatworkConnected",
 };
 
 export default function IntegrationsPage() {
@@ -139,7 +150,7 @@ export default function IntegrationsPage() {
   const searchParams = useSearchParams();
 
   const [connected, setConnected] = useState<Record<IntegrationKey, boolean>>({
-    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false, sheets: false,
+    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false, sheets: false, chatwork: false,
   });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [notionAutoSave, setNotionAutoSave] = useState(false);
@@ -170,7 +181,7 @@ export default function IntegrationsPage() {
 
   // Handle all OAuth callbacks
   useEffect(() => {
-    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line", "sheets"];
+    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line", "sheets", "chatwork"];
     for (const key of callbackKeys) {
       const param = searchParams.get(key);
       if (param === "connected") {
