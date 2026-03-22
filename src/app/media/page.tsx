@@ -68,8 +68,8 @@ export default function MediaPage() {
       <div className="max-w-5xl mx-auto px-5 mb-8">
         <Link href={`/media/${featured.slug}`} className="block group">
           <article className="bg-white rounded-2xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all md:flex">
-            <div className={`bg-gradient-to-br ${featured.color} md:w-2/5 h-48 md:h-auto flex items-center justify-center`}>
-              <span className="text-6xl md:text-7xl">{featured.emoji}</span>
+            <div className="md:w-2/5 h-48 md:h-auto relative overflow-hidden">
+              <img src={featured.image} alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
             </div>
             <div className="p-6 md:p-8 md:w-3/5 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-3">
@@ -95,8 +95,8 @@ export default function MediaPage() {
           {rest.map((article) => (
             <Link key={article.slug} href={`/media/${article.slug}`} className="block group">
               <article className="bg-white rounded-2xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all h-full">
-                <div className={`bg-gradient-to-br ${article.color} h-40 flex items-center justify-center`}>
-                  <span className="text-5xl">{article.emoji}</span>
+                <div className="h-40 relative overflow-hidden">
+                  <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 </div>
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-2">

@@ -5,8 +5,7 @@ export interface Article {
   date: string;
   label: string;
   tags: string[];
-  color: string; // gradient for card thumbnail
-  emoji: string; // visual icon
+  image: string;
 }
 
 export const articles: Article[] = [
@@ -18,8 +17,7 @@ export const articles: Article[] = [
     date: "2026-03-22",
     label: "lab",
     tags: ["Gmail", "Sheets", "自動化"],
-    color: "from-blue-500 to-cyan-400",
-    emoji: "📊",
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=400&fit=crop",
   },
   {
     slug: "gmail-inventory-management",
@@ -29,8 +27,7 @@ export const articles: Article[] = [
     date: "2026-03-22",
     label: "lab",
     tags: ["Gmail", "Sheets", "在庫管理"],
-    color: "from-emerald-500 to-teal-400",
-    emoji: "📦",
+    image: "https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&h=400&fit=crop",
   },
   {
     slug: "inquiry-automation",
@@ -40,8 +37,7 @@ export const articles: Article[] = [
     date: "2026-03-23",
     label: "lab",
     tags: ["Gmail", "Slack", "Notion"],
-    color: "from-violet-500 to-purple-400",
-    emoji: "💬",
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=400&fit=crop",
   },
   {
     slug: "morning-briefing",
@@ -51,8 +47,7 @@ export const articles: Article[] = [
     date: "2026-03-23",
     label: "lab",
     tags: ["Calendar", "Gmail", "ニュース"],
-    color: "from-amber-500 to-orange-400",
-    emoji: "☀️",
+    image: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&h=400&fit=crop",
   },
   {
     slug: "sales-tracking",
@@ -62,7 +57,6 @@ export const articles: Article[] = [
     date: "2026-03-23",
     label: "lab",
     tags: ["Square", "Sheets", "売上管理"],
-    color: "from-rose-500 to-pink-400",
-    emoji: "💰",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop",
   },
 ];
