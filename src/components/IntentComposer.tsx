@@ -470,6 +470,35 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       }
       setTimeout(() => chatEndRef.current?.scrollIntoView(), 100);
       setHistoryLoaded(true);
+
+      // Trigger proactive insight on login (general room only, fire-and-forget)
+      if (roomId === "general" && realMsgs.length > 0) {
+        const did = localStorage.getItem("device_id");
+        if (did) {
+          fetch("/api/proactive-insight", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ deviceId: did }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.sent && data.message) {
+                const m = data.message;
+                const proactiveMsg: ChatMessage = {
+                  id: m.id,
+                  type: "agent",
+                  agentName: m.agent_name,
+                  agentAvatar: m.agent_avatar || "",
+                  agentId: m.agent_id,
+                  text: m.text,
+                  timestamp: new Date(m.created_at).getTime(),
+                };
+                setChatHistory((prev) => [...prev, proactiveMsg]);
+              }
+            })
+            .catch(() => {});
+        }
+      }
     });
   }, [roomId]);
 
