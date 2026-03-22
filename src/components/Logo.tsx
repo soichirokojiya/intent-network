@@ -24,7 +24,7 @@ export function LogoFull({ size = 36, className = "" }: { size?: number; classNa
     <div className={`flex items-center gap-2 ${className}`}>
       <LogoMark size={size} />
       <span className="font-extrabold tracking-tight" style={{ fontSize, lineHeight: 1 }}>
-        musu
+        musu <span className="font-normal text-[0.6em] opacity-60">β</span>
       </span>
     </div>
   );

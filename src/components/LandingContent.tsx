@@ -92,7 +92,7 @@ export function LandingContent() {
                   <path d="M12 28c0-8 4-14 8-14s8 6 8 14" />
                 </svg>
               </div>
-              <span className="text-3xl font-extrabold tracking-tight text-gray-900">musu</span>
+              <span className="text-3xl font-extrabold tracking-tight text-gray-900">musu <span className="font-normal text-lg opacity-60">β</span></span>
             </div>
             <h1 className="text-2xl md:text-4xl font-bold leading-snug text-gray-800 mb-3">
               ひとりだけど、<br />ひとりじゃない。
