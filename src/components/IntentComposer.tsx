@@ -480,24 +480,13 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const justPosted = useRef(false);
   const welcomeMsgsRef = useRef<ChatMessage[]>([]);
 
-  // Auto-scroll: always after posting, otherwise only if near bottom
+  // Auto-scroll: only after user posts (not on agent responses)
   useEffect(() => {
-    if (justPosted.current) {
-      justPosted.current = false;
-      // Wait for DOM update then scroll
-      requestAnimationFrame(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      });
-      return;
-    }
-    const el = chatAreaRef.current;
-    if (!el) return;
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
-    if (isNearBottom) {
-      requestAnimationFrame(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      });
-    }
+    if (!justPosted.current) return;
+    justPosted.current = false;
+    requestAnimationFrame(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
   }, [chatHistory]);
 
   // Auto-scroll during streaming (stable: only scroll if already at bottom, no smooth to avoid jitter)
