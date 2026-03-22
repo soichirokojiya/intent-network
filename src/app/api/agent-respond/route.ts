@@ -234,8 +234,9 @@ async function processCustomToolUses(
 function getTotalInputTokens(usage: Anthropic.Messages.Usage | undefined): number {
   if (!usage) return 0;
   const base = usage.input_tokens || 0;
-  const cacheCreation = (usage as Record<string, number>).cache_creation_input_tokens || 0;
-  const cacheRead = (usage as Record<string, number>).cache_read_input_tokens || 0;
+  const u = usage as unknown as Record<string, number>;
+  const cacheCreation = u.cache_creation_input_tokens || 0;
+  const cacheRead = u.cache_read_input_tokens || 0;
   return base + cacheCreation + cacheRead;
 }
 
@@ -243,9 +244,10 @@ function getTotalInputTokens(usage: Anthropic.Messages.Usage | undefined): numbe
 // cache_creation = 1.25x normal, cache_read = 0.1x normal
 function getInputCost(usage: Anthropic.Messages.Usage | undefined, pricePerToken: number): number {
   if (!usage) return 0;
+  const u = usage as unknown as Record<string, number>;
   const base = (usage.input_tokens || 0) * pricePerToken;
-  const cacheCreation = ((usage as Record<string, number>).cache_creation_input_tokens || 0) * pricePerToken * 1.25;
-  const cacheRead = ((usage as Record<string, number>).cache_read_input_tokens || 0) * pricePerToken * 0.1;
+  const cacheCreation = (u.cache_creation_input_tokens || 0) * pricePerToken * 1.25;
+  const cacheRead = (u.cache_read_input_tokens || 0) * pricePerToken * 0.1;
   return base + cacheCreation + cacheRead;
 }
 
