@@ -271,9 +271,9 @@ export default function IntegrationsPage() {
                                   body: JSON.stringify({ deviceId, enabled: newVal }),
                                 });
                               }}
-                              className={`w-10 h-6 rounded-full transition-colors relative ${notionAutoSave ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
+                              className={`w-11 h-6 rounded-full transition-colors relative ${notionAutoSave ? "bg-[var(--accent)]" : "bg-[var(--card-border)]"}`}
                             >
-                              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notionAutoSave ? "translate-x-4" : "translate-x-0.5"}`} />
+                              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notionAutoSave ? "translate-x-5" : ""}`} />
                             </button>
                           </div>
                         )}
