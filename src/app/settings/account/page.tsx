@@ -18,6 +18,9 @@ export default function AccountSettingsPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showDeleteSurvey, setShowDeleteSurvey] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteComment, setDeleteComment] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -93,11 +96,21 @@ export default function AccountSettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm(t("settings.cancelConfirm"))) return;
-    if (!confirm(t("settings.cancelConfirm2"))) return;
+    setShowDeleteSurvey(true);
+  };
+
+  const executeDelete = async () => {
     setLoading(true);
     try {
       const deviceId = localStorage.getItem("musu_device_id") || "";
+      // Save churn survey
+      if (deleteReason || deleteComment) {
+        await fetch("/api/admin/churn-survey", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId, userId: user?.id, email: user?.email, reason: deleteReason, comment: deleteComment }),
+        }).catch(() => {});
+      }
       const res = await fetch("/api/delete-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -290,6 +303,66 @@ export default function AccountSettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Churn Survey Modal */}
+      {showDeleteSurvey && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-[var(--background)] rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-[16px] font-bold mb-2">退会前にひとつだけ教えてください</h3>
+            <p className="text-[13px] text-[var(--muted)] mb-4">今後の改善に活用させていただきます。</p>
+
+            <p className="text-[13px] font-bold mb-2">使わなくなった理由は？</p>
+            <div className="space-y-2 mb-4">
+              {[
+                "使い方がわからなかった",
+                "期待した機能がなかった",
+                "料金が合わなかった",
+                "他のサービスに乗り換えた",
+                "そもそも必要なくなった",
+                "その他",
+              ].map((reason) => (
+                <label key={reason} className="flex items-center gap-2 text-[13px] cursor-pointer">
+                  <input
+                    type="radio"
+                    name="deleteReason"
+                    value={reason}
+                    checked={deleteReason === reason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    className="accent-[var(--accent)]"
+                  />
+                  {reason}
+                </label>
+              ))}
+            </div>
+
+            <p className="text-[13px] font-bold mb-2">ご意見があればお聞かせください（任意）</p>
+            <textarea
+              value={deleteComment}
+              onChange={(e) => setDeleteComment(e.target.value)}
+              placeholder="改善できることがあれば..."
+              rows={3}
+              className="w-full bg-[var(--search-bg)] border border-[var(--card-border)] rounded-xl px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)] mb-4 resize-none"
+            />
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowDeleteSurvey(false); setDeleteReason(""); setDeleteComment(""); }}
+                className="flex-1 py-2.5 border border-[var(--card-border)] rounded-xl text-sm font-bold hover:bg-[var(--hover-bg)]"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={executeDelete}
+                disabled={loading}
+                className="flex-1 py-2.5 bg-[var(--danger)] text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50"
+              >
+                {loading ? "処理中..." : "退会する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="h-20" />
     </>
   );
