@@ -12,6 +12,10 @@ interface UserRow {
   total_charged_yen: number;
   message_count: number;
   agent_count: number;
+  last_active_at: string | null;
+  integrations_count: number;
+  days_since_signup: number;
+  is_active_7d: boolean;
 }
 
 interface UsageLogRow {
@@ -24,6 +28,15 @@ interface UsageLogRow {
   created_at: string;
 }
 
+interface IntegrationBreakdown {
+  google_calendar: number;
+  gmail: number;
+  notion: number;
+  trello: number;
+  chatwork: number;
+  square: number;
+}
+
 interface Stats {
   totalUsers: number;
   activeUsersToday: number;
@@ -32,6 +45,13 @@ interface Stats {
   totalRevenue: number;
   totalCharged: number;
   activeAgents: number;
+  wau: number;
+  mau: number;
+  retentionRate: number;
+  avgMessagesPerUser: number;
+  totalIntegrations: number;
+  integrationBreakdown: IntegrationBreakdown;
+  automationCount: number;
   users: UserRow[];
   usageLog: UsageLogRow[];
 }
@@ -44,6 +64,32 @@ function formatYen(n: number): string {
   return `${"\u00A5"}${n.toLocaleString("ja-JP", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
+function relativeTime(dateStr: string | null): string {
+  if (!dateStr) return "-";
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "たった今";
+  if (diffMin < 60) return `${diffMin}分前`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}時間前`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}日前`;
+  const diffMonths = Math.floor(diffDays / 30);
+  return `${diffMonths}ヶ月前`;
+}
+
+function getUserStatus(user: UserRow): { label: string; color: string; bg: string; icon: string } {
+  if (user.days_since_signup < 7) {
+    return { label: "New", color: "#e0a800", bg: "#fef9e7", icon: "\uD83D\uDFE1" };
+  }
+  if (user.is_active_7d) {
+    return { label: "Active", color: "#00ba7c", bg: "#e8f5ee", icon: "\uD83D\uDFE2" };
+  }
+  return { label: "Inactive", color: "#f4212e", bg: "#fde8e8", icon: "\uD83D\uDD34" };
+}
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
@@ -51,7 +97,7 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<"users" | "usage">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "usage" | "kpi">("users");
   const [signupEnabled, setSignupEnabled] = useState(true);
 
   const fetchSettings = useCallback(async (token: string) => {
@@ -190,7 +236,7 @@ export default function AdminPage() {
     );
   }
 
-  const cards: { label: string; value: string; sub?: string }[] = stats
+  const cards: { label: string; value: string; sub?: string; accent?: string }[] = stats
     ? [
         { label: "Total Users", value: formatNumber(stats.totalUsers), sub: "Registered accounts" },
         { label: "Active Today", value: formatNumber(stats.activeUsersToday), sub: "Users with messages today" },
@@ -199,8 +245,18 @@ export default function AdminPage() {
         { label: "Total Revenue", value: formatYen(stats.totalRevenue), sub: "Usage cost (cost_yen)" },
         { label: "Total Charged", value: formatYen(stats.totalCharged), sub: "Charged amount" },
         { label: "Active Agents", value: formatNumber(stats.activeAgents), sub: "Owner agents" },
+        { label: "WAU", value: formatNumber(stats.wau), sub: "Weekly Active Users (7日)", accent: "#6366f1" },
+        { label: "MAU", value: formatNumber(stats.mau), sub: "Monthly Active Users (30日)", accent: "#8b5cf6" },
+        { label: "Retention", value: `${stats.retentionRate}%`, sub: "7日以上前の登録者の継続率", accent: "#0ea5e9" },
+        { label: "Avg Messages", value: formatNumber(stats.avgMessagesPerUser), sub: "ユーザーあたり平均メッセージ数", accent: "#14b8a6" },
+        { label: "Integrations", value: formatNumber(stats.totalIntegrations), sub: "アプリ連携の総接続数", accent: "#f59e0b" },
+        { label: "Automations", value: formatNumber(stats.automationCount), sub: "有効な自動化ルール数", accent: "#ec4899" },
       ]
     : [];
+
+  const activeIn7d = stats ? stats.users.filter((u) => u.is_active_7d).length : 0;
+  const newThisWeek = stats ? stats.users.filter((u) => u.days_since_signup < 7).length : 0;
+  const inactiveCount = stats ? stats.users.length - activeIn7d - newThisWeek : 0;
 
   return (
     <div style={{
@@ -306,8 +362,9 @@ export default function AdminPage() {
                 padding: "24px",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                 border: "1px solid #eff3f4",
+                borderLeft: card.accent ? `4px solid ${card.accent}` : "1px solid #eff3f4",
               }}>
-                <p style={{ fontSize: "13px", color: "#536471", marginBottom: "8px", fontWeight: 500 }}>
+                <p style={{ fontSize: "13px", color: card.accent || "#536471", marginBottom: "8px", fontWeight: 500 }}>
                   {card.label}
                 </p>
                 <p style={{ fontSize: "32px", fontWeight: 700, lineHeight: 1.2 }}>
@@ -327,7 +384,7 @@ export default function AdminPage() {
         {stats && (
           <div style={{ marginTop: "32px" }}>
             <div style={{ display: "flex", gap: "0", borderBottom: "1px solid #eff3f4", marginBottom: "16px" }}>
-              {(["users", "usage"] as const).map((tab) => (
+              {(["users", "usage", "kpi"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -342,7 +399,7 @@ export default function AdminPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {tab === "users" ? "Users" : "Usage Log"}
+                  {tab === "users" ? "Users" : tab === "usage" ? "Usage Log" : "KPI"}
                 </button>
               ))}
             </div>
@@ -352,26 +409,46 @@ export default function AdminPage() {
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid #eff3f4", textAlign: "left" }}>
-                      {["Name", "Email", "Registered", "Balance", "Used", "Charged", "Messages", "Agents"].map((h) => (
+                      {["Status", "Name", "Email", "Last Active", "Registered", "Integrations", "Balance", "Used", "Charged", "Messages", "Agents"].map((h) => (
                         <th key={h} style={{ padding: "12px 16px", fontWeight: 600, color: "#536471", fontSize: "13px", whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.users.map((u) => (
-                      <tr key={u.id} style={{ borderBottom: "1px solid #eff3f4" }}>
-                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap" }}>{u.display_name || "-"}</td>
-                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", color: "#536471" }}>{u.email || "-"}</td>
-                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", color: "#536471" }}>{new Date(u.created_at).toLocaleDateString("ja-JP")}</td>
-                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(u.balance_yen)}</td>
-                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(u.total_used_yen)}</td>
-                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(u.total_charged_yen)}</td>
-                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatNumber(u.message_count)}</td>
-                        <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatNumber(u.agent_count)}</td>
-                      </tr>
-                    ))}
+                    {stats.users.map((u) => {
+                      const status = getUserStatus(u);
+                      return (
+                        <tr key={u.id} style={{ borderBottom: "1px solid #eff3f4" }}>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap" }}>
+                            <span style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "2px 10px",
+                              borderRadius: "9999px",
+                              background: status.bg,
+                              color: status.color,
+                              fontSize: "12px",
+                              fontWeight: 600,
+                            }}>
+                              {status.icon} {status.label}
+                            </span>
+                          </td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap" }}>{u.display_name || "-"}</td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap", color: "#536471" }}>{u.email || "-"}</td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap", color: "#536471" }}>{relativeTime(u.last_active_at)}</td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap", color: "#536471" }}>{new Date(u.created_at).toLocaleDateString("ja-JP")}</td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "center" }}>{u.integrations_count}</td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(u.balance_yen)}</td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(u.total_used_yen)}</td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatYen(u.total_charged_yen)}</td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatNumber(u.message_count)}</td>
+                          <td style={{ padding: "10px 16px", whiteSpace: "nowrap", textAlign: "right" }}>{formatNumber(u.agent_count)}</td>
+                        </tr>
+                      );
+                    })}
                     {stats.users.length === 0 && (
-                      <tr><td colSpan={8} style={{ padding: "24px", textAlign: "center", color: "#536471" }}>No users found</td></tr>
+                      <tr><td colSpan={11} style={{ padding: "24px", textAlign: "center", color: "#536471" }}>No users found</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -405,6 +482,99 @@ export default function AdminPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {activeTab === "kpi" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                {/* Integration Breakdown */}
+                <div style={{
+                  background: "#fff",
+                  borderRadius: "16px",
+                  padding: "24px",
+                  border: "1px solid #eff3f4",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", color: "#0f1419" }}>
+                    Integration Breakdown
+                  </h3>
+                  {[
+                    { label: "Google Calendar", value: stats.integrationBreakdown.google_calendar },
+                    { label: "Gmail", value: stats.integrationBreakdown.gmail },
+                    { label: "Notion", value: stats.integrationBreakdown.notion },
+                    { label: "Trello", value: stats.integrationBreakdown.trello },
+                    { label: "Chatwork", value: stats.integrationBreakdown.chatwork },
+                    { label: "Square", value: stats.integrationBreakdown.square },
+                  ].map((item) => (
+                    <div key={item.label} style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "10px 0",
+                      borderBottom: "1px solid #f7f9f9",
+                    }}>
+                      <span style={{ fontSize: "14px", color: "#536471" }}>{item.label}</span>
+                      <span style={{
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        background: item.value > 0 ? "#e8f5ee" : "#f7f9f9",
+                        color: item.value > 0 ? "#00ba7c" : "#536471",
+                        padding: "2px 12px",
+                        borderRadius: "9999px",
+                      }}>
+                        {item.value}件
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* User Status Breakdown */}
+                <div style={{
+                  background: "#fff",
+                  borderRadius: "16px",
+                  padding: "24px",
+                  border: "1px solid #eff3f4",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", color: "#0f1419" }}>
+                    User Status Breakdown
+                  </h3>
+                  {[
+                    { label: "\uD83D\uDFE2 Active (7日以内にメッセージ)", value: activeIn7d, color: "#00ba7c", bg: "#e8f5ee" },
+                    { label: "\uD83D\uDFE1 New (登録7日以内)", value: newThisWeek, color: "#e0a800", bg: "#fef9e7" },
+                    { label: "\uD83D\uDD34 Inactive (7日以上メッセージなし)", value: inactiveCount, color: "#f4212e", bg: "#fde8e8" },
+                  ].map((item) => (
+                    <div key={item.label} style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "14px 16px",
+                      marginBottom: "8px",
+                      borderRadius: "12px",
+                      background: item.bg,
+                    }}>
+                      <span style={{ fontSize: "14px", color: "#0f1419" }}>{item.label}</span>
+                      <span style={{ fontSize: "20px", fontWeight: 700, color: item.color }}>
+                        {item.value}
+                      </span>
+                    </div>
+                  ))}
+                  <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "14px 16px",
+                    marginTop: "8px",
+                    borderRadius: "12px",
+                    background: "#f7f9f9",
+                    borderTop: "2px solid #eff3f4",
+                  }}>
+                    <span style={{ fontSize: "14px", fontWeight: 600, color: "#0f1419" }}>Total</span>
+                    <span style={{ fontSize: "20px", fontWeight: 700, color: "#0f1419" }}>
+                      {stats.users.length}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
