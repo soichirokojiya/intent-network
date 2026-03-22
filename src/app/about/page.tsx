@@ -416,7 +416,7 @@ export default function AboutPage() {
                 key={i.name}
                 className="bg-white rounded-xl p-5 border border-gray-100 text-center flex flex-col items-center"
               >
-                <img src={i.logo} alt={i.name} width={32} height={32} className="mb-3 rounded-md object-contain" />
+                <img src={i.logo} alt={i.name} className="mb-3 rounded-md object-contain w-8 h-8" />
                 <p className="font-bold text-[14px] mb-1">{i.name}</p>
                 <p className="text-[12px] text-gray-400">{i.desc}</p>
               </div>
