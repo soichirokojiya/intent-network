@@ -742,21 +742,33 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       stream: true,
     });
 
-    // Helper to update or add agent response
+    // Helper to update or add agent response (streaming-safe: match by agentId + roomId)
+    const streamingRef = { started: false };
     const upsertResponse = (toOwner: string, extra?: { toTimeline?: string; emailAction?: { to: string; subject: string; body: string }; tweetPending?: boolean }) => {
       setAgentResponses((prev) => {
-        const existing = prev.findIndex((r) => r.agentId === agent.id && (r.toOwner === "..." || r.toOwner.startsWith("...")));
         const base = {
           agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
           toOwner, toTimeline: extra?.toTimeline || "", timestamp: Date.now(), posted: false, tweeted: false,
           tweetPending: extra?.tweetPending || false, roomId, emailAction: extra?.emailAction,
         };
-        if (existing >= 0) {
+        // Find existing entry for this agent in this room (placeholder or streaming update)
+        const existing = prev.findIndex((r) => r.agentId === agent.id && r.roomId === roomId);
+        if (existing >= 0 && streamingRef.started) {
           const updated = [...prev];
           updated[existing] = { ...updated[existing], ...base };
           return updated;
         }
-        return [...prev, base];
+        if (!streamingRef.started) {
+          streamingRef.started = true;
+          // Replace placeholder "..." if it exists
+          if (existing >= 0 && prev[existing].toOwner === "...") {
+            const updated = [...prev];
+            updated[existing] = { ...updated[existing], ...base };
+            return updated;
+          }
+          return [...prev, base];
+        }
+        return prev;
       });
     };
 
