@@ -150,7 +150,7 @@ export default function AboutPage() {
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/media" className="text-sm text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
-              活用事例
+              musu lab
             </Link>
             <Link href="/help" className="text-sm text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
               ヘルプ
@@ -275,7 +275,7 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-blue-50 text-[#4A99E9] font-bold text-sm px-4 py-2 rounded-full mb-6">
-              活用事例
+              musu lab
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold mb-4">
               話しかけるだけで、仕事が動く。

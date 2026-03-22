@@ -3,7 +3,7 @@ import Link from "next/link";
 import { articles } from "./articles";
 
 export const metadata: Metadata = {
-  title: "活用事例 | musu",
+  title: "musu lab | musu",
   description:
     "musuの活用事例。AIエージェントチームで業務を自動化する方法を紹介します。",
 };
@@ -20,7 +20,7 @@ export default function MediaPage() {
           musu
         </Link>
         <span className="text-xs text-gray-500 border border-gray-200 px-2.5 py-0.5 rounded-full">
-          活用事例
+          lab
         </span>
       </header>
 
@@ -32,7 +32,7 @@ export default function MediaPage() {
           <div className="absolute top-1/2 right-1/4 w-40 h-40 rounded-full bg-white/3" />
         </div>
         <div className="max-w-3xl mx-auto relative">
-          <p className="text-sm text-white/50 tracking-[0.2em] uppercase mb-4">musu media</p>
+          <p className="text-sm text-white/50 tracking-[0.2em] uppercase mb-4">musu lab</p>
           <h1 className="font-serif text-4xl md:text-5xl font-bold mb-5 leading-tight">
             育て方の数だけ、
             <br />

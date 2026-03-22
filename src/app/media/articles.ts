@@ -13,7 +13,7 @@ export const articles: Article[] = [
     description:
       "Gmailに届く売上メールを読んで、Googleスプレッドシートに自動で記録。musuのAIチームに頼んだら、仕様を伝えるだけで動き出した。",
     date: "2026-03-22",
-    label: "活用事例",
+    label: "lab",
   },
   {
     slug: "gmail-inventory-management",
@@ -21,6 +21,6 @@ export const articles: Article[] = [
     description:
       "売上通知メールが届くたびに手動で在庫を更新していた作業を、musuに任せたら完全自動化できた。スプレッドシートで在庫管理システムを作った実例。",
     date: "2026-03-22",
-    label: "活用事例",
+    label: "lab",
   },
 ];

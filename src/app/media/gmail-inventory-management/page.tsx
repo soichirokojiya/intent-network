@@ -19,7 +19,7 @@ export default function GmailInventoryArticle() {
       {/* Header */}
       <header className="px-5 md:px-10 py-5 border-b border-gray-200 flex items-center gap-3">
         <Link href="/" className="text-[22px] font-bold text-[#4A99E9] no-underline font-serif">musu</Link>
-        <Link href="/media" className="text-xs text-gray-500 border border-gray-200 px-2.5 py-0.5 rounded-full no-underline hover:border-[#4A99E9] transition-colors">活用事例</Link>
+        <Link href="/media" className="text-xs text-gray-500 border border-gray-200 px-2.5 py-0.5 rounded-full no-underline hover:border-[#4A99E9] transition-colors">lab</Link>
       </header>
 
       {/* Hero */}
@@ -29,7 +29,7 @@ export default function GmailInventoryArticle() {
           <div className="absolute bottom-10 -left-10 w-60 h-60 rounded-full bg-white/5" />
         </div>
         <div className="max-w-[760px] mx-auto relative">
-          <div className="text-[13px] tracking-[0.15em] text-white/50 mb-5 uppercase">musu 活用事例</div>
+          <div className="text-[13px] tracking-[0.15em] text-white/50 mb-5 uppercase">musu lab</div>
           <h1 className="font-serif text-3xl md:text-[42px] font-bold leading-snug mb-6">
             Gmailの売上メールから
             <br />
