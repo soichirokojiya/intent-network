@@ -112,100 +112,14 @@ const features = [
 ];
 
 const integrations = [
-  {
-    name: "Gmail",
-    desc: "メール送受信",
-    icon: (
-      <svg viewBox="0 0 24 24" width="28" height="28">
-        <path d="M2 6l10 7 10-7v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" fill="#ea4335"/>
-        <path d="M22 6l-10 7L2 6V4a2 2 0 012-2h16a2 2 0 012 2v2z" fill="#c5221f"/>
-        <path d="M2 6l10 7 10-7" fill="none" stroke="#fff" strokeWidth="0.5"/>
-      </svg>
-    ),
-  },
-  {
-    name: "Google Calendar",
-    desc: "予定管理",
-    icon: (
-      <svg viewBox="0 0 24 24" width="28" height="28">
-        <path d="M18.316 5.684H24v12.632h-5.684V5.684z" fill="#1a73e8"/>
-        <path d="M5.684 24l-5.684-5.684V5.684L5.684 0v24z" fill="#ea4335"/>
-        <path d="M18.316 5.684L24 0H5.684l12.632 5.684z" fill="#4285f4"/>
-        <path d="M5.684 24h12.632v-5.684H5.684V24z" fill="#0d652d"/>
-        <path d="M0 5.684h5.684v12.632H0V5.684z" fill="#188038"/>
-        <path d="M5.684 5.684h12.632v12.632H5.684V5.684z" fill="#fff"/>
-        <path d="M9.2 16.4l-.9-.7c-.3-.3-.5-.6-.5-1s.3-.8.5-1l.9-.7-.5-.7-.9.5c-.5.4-.9.9-.9 1.6s.3 1.2.9 1.6l.9.5.5-.7zm2.8-5.6h-1.5v5.6h1.2v-2.1h.3c.8 0 1.5-.3 1.9-.8.2-.3.4-.7.4-1.1 0-.4-.1-.8-.4-1.1-.4-.3-1-.5-1.9-.5zm.1 2.4h-.4v-1.5h.4c.5 0 .9.1 1 .4.1.1.1.2.1.4 0 .1 0 .3-.1.4-.2.2-.5.3-1 .3z" fill="#1a73e8"/>
-      </svg>
-    ),
-  },
-  {
-    name: "Google Drive",
-    desc: "ファイル参照",
-    icon: (
-      <svg viewBox="0 0 24 24" width="28" height="28">
-        <path d="M8 2l8 0 4 7H4L8 2z" fill="#0066da"/>
-        <path d="M16 2l4 7-8 13-4-7L16 2z" fill="#00ac47"/>
-        <path d="M4 9l4 7-8 0 4-7z" fill="#ea4335"/>
-        <path d="M4 9h16l-4 7H0l4-7z" fill="#00832d"/>
-        <path d="M8 16l4-7 8 13H12l-4-6z" fill="#2684fc"/>
-        <path d="M8 2l8 14H4L8 2z" fill="#ffba00"/>
-      </svg>
-    ),
-  },
-  {
-    name: "Notion",
-    desc: "ナレッジ同期",
-    icon: (
-      <svg viewBox="0 0 24 24" width="28" height="28">
-        <rect width="24" height="24" rx="4" fill="#000"/>
-        <path d="M5.5 4.5l9-1.5c.8-.1 1 0 1.5.3l3 2c.3.2.4.4.4.7v12c0 .5-.2.8-.7.9l-10 1.6c-.4.1-.6 0-.9-.3l-2.5-3.2c-.3-.4-.4-.6-.4-1V5.5c0-.5.2-.8.6-1z" fill="#fff"/>
-        <path d="M13 7v9.5l-5 .8V7.8L13 7z" fill="#000"/>
-      </svg>
-    ),
-  },
-  {
-    name: "Slack",
-    desc: "チャット連携",
-    icon: (
-      <svg viewBox="0 0 24 24" width="28" height="28">
-        <path d="M5.5 9.5a2 2 0 110-4 2 2 0 010 4zm3 0h4a2 2 0 100-4h-4a2 2 0 100 4z" fill="#36c5f0"/>
-        <path d="M14.5 5.5a2 2 0 114 0 2 2 0 01-4 0zm0 3v4a2 2 0 104 0v-4a2 2 0 10-4 0z" fill="#2eb67d"/>
-        <path d="M18.5 14.5a2 2 0 110 4 2 2 0 010-4zm-3 0h-4a2 2 0 100 4h4a2 2 0 100-4z" fill="#ecb22e"/>
-        <path d="M9.5 18.5a2 2 0 11-4 0 2 2 0 014 0zm0-3v-4a2 2 0 10-4 0v4a2 2 0 104 0z" fill="#e01e5a"/>
-      </svg>
-    ),
-  },
-  {
-    name: "Trello",
-    desc: "タスク管理",
-    icon: (
-      <svg viewBox="0 0 24 24" width="28" height="28">
-        <rect width="24" height="24" rx="4" fill="#0079bf"/>
-        <rect x="4" y="4" width="6.5" height="14" rx="1.2" fill="#fff"/>
-        <rect x="13.5" y="4" width="6.5" height="9" rx="1.2" fill="#fff"/>
-      </svg>
-    ),
-  },
-  {
-    name: "X (Twitter)",
-    desc: "SNS投稿",
-    icon: (
-      <svg viewBox="0 0 24 24" width="28" height="28">
-        <rect width="24" height="24" rx="4" fill="#000"/>
-        <path d="M13.5 10.5L18.5 5h-1.2l-4.3 4.8L9.5 5H5l5.2 7.6L5 19h1.2l4.5-5.3L14.5 19H19l-5.5-8.5zm-1.6 1.9l-.5-.7L7 6h1.8l3.3 4.7.5.7L17 18h-1.8l-3.3-4.6z" fill="#fff"/>
-      </svg>
-    ),
-  },
-  {
-    name: "LINE",
-    desc: "ログイン連携",
-    icon: (
-      <svg viewBox="0 0 24 24" width="28" height="28">
-        <rect width="24" height="24" rx="4" fill="#06C755"/>
-        <path d="M12 4C7.03 4 3 7.18 3 11.09c0 2.68 1.77 5.02 4.4 6.36-.17.61-.62 2.27-.71 2.62-.12.44.16.44.34.32.14-.1 2.2-1.5 3.1-2.11.28.03.57.05.87.05 4.97 0 9-3.18 9-7.09S16.97 4 12 4z" fill="#fff"/>
-      </svg>
-    ),
-  },
+  { name: "Gmail", desc: "メール送受信", logo: "/logos/gmail.webp" },
+  { name: "Google Calendar", desc: "予定管理", logo: "/logos/google-calendar.jpg" },
+  { name: "Google Drive", desc: "ファイル参照", logo: "/logos/google-drive.jpeg" },
+  { name: "Notion", desc: "ナレッジ同期", logo: "/logos/notion.svg" },
+  { name: "Slack", desc: "チャット連携", logo: "/logos/slack.png" },
+  { name: "Trello", desc: "タスク管理", logo: "/logos/trello.svg" },
+  { name: "X (Twitter)", desc: "SNS投稿", logo: "/logos/x.svg" },
+  { name: "LINE", desc: "ログイン連携", logo: "/logos/line.svg" },
 ];
 
 export default function AboutPage() {
@@ -393,7 +307,7 @@ export default function AboutPage() {
                 key={i.name}
                 className="bg-white rounded-xl p-5 border border-gray-100 text-center flex flex-col items-center"
               >
-                <div className="mb-3">{i.icon}</div>
+                <img src={i.logo} alt={i.name} width={32} height={32} className="mb-3 rounded-md object-contain" />
                 <p className="font-bold text-[14px] mb-1">{i.name}</p>
                 <p className="text-[12px] text-gray-400">{i.desc}</p>
               </div>
