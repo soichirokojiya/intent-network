@@ -63,8 +63,8 @@ export async function GET(req: NextRequest) {
   // Helper: fetch with auto-refresh on 401
   async function gmailFetch(url: string): Promise<Response> {
     let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (res.status === 401 && profile.gmail_refresh_token) {
-      const newToken = await refreshAccessToken(profile.gmail_refresh_token);
+    if (res.status === 401 && profile?.gmail_refresh_token) {
+      const newToken = await refreshAccessToken(profile?.gmail_refresh_token);
       if (newToken) {
         accessToken = newToken;
         await supabase
