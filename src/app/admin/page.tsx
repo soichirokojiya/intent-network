@@ -52,6 +52,29 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<"users" | "usage">("users");
+  const [signupEnabled, setSignupEnabled] = useState(true);
+
+  const fetchSettings = useCallback(async (token: string) => {
+    try {
+      const res = await fetch("/api/admin/settings", { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setSignupEnabled(data.signup_enabled !== "false");
+      }
+    } catch {}
+  }, []);
+
+  const toggleSignup = useCallback(async () => {
+    const token = sessionStorage.getItem("admin_token");
+    if (!token) return;
+    const newValue = !signupEnabled;
+    setSignupEnabled(newValue);
+    await fetch("/api/admin/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ key: "signup_enabled", value: String(newValue) }),
+    });
+  }, [signupEnabled]);
 
   const fetchStats = useCallback(async (token: string) => {
     setLoading(true);
@@ -72,12 +95,13 @@ export default function AdminPage() {
       const data = await res.json();
       setStats(data);
       setLastUpdated(new Date());
+      fetchSettings(token);
     } catch {
       setError("Failed to load stats");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchSettings]);
 
   // Check sessionStorage on mount
   useEffect(() => {
@@ -193,7 +217,28 @@ export default function AdminPage() {
           flexWrap: "wrap",
           gap: "8px",
         }}>
-          <h1 style={{ fontSize: "24px", fontWeight: 700 }}>musu.world Admin</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <h1 style={{ fontSize: "24px", fontWeight: 700 }}>musu.world Admin</h1>
+            <button
+              onClick={toggleSignup}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "6px 14px",
+                borderRadius: "9999px",
+                border: `1px solid ${signupEnabled ? "#00ba7c" : "#f4212e"}`,
+                background: signupEnabled ? "#e8f5ee" : "#fde8e8",
+                color: signupEnabled ? "#00ba7c" : "#f4212e",
+                fontWeight: 600,
+                fontSize: "13px",
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: signupEnabled ? "#00ba7c" : "#f4212e" }} />
+              新規登録: {signupEnabled ? "公開中" : "停止中"}
+            </button>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             {lastUpdated && (
               <span style={{ fontSize: "13px", color: "#536471" }}>

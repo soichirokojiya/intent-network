@@ -118,6 +118,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadProfile]);
 
   const signUp = useCallback(async (email: string, password: string) => {
+    // Check if signup is enabled
+    try {
+      const checkRes = await fetch("/api/signup-check");
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (!checkData.signupEnabled) {
+          return { error: "現在、新規登録を停止しています。" };
+        }
+      }
+    } catch {}
+
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return { error: error.message };
     if (data.user && data.user.identities && data.user.identities.length === 0) {
