@@ -99,7 +99,7 @@ export async function getRoomConversation(roomId: string = "general", limit: num
 
     return data.map((row: Record<string, unknown>) => ({
       role: row.type === "user" ? "オーナー" : (row.agent_name as string) || "Agent",
-      text: (row.text as string).slice(0, 200),
+      text: (row.text as string).slice(0, 400),
     }));
   } catch {
     return [];

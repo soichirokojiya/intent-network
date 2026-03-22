@@ -252,11 +252,11 @@ export async function POST(req: NextRequest) {
 
     const moodContext = getMoodModifier(agentMood || "normal");
 
-    // Build conversation context: keep recent 5 messages (no separate summarization API call)
+    // Build conversation context: keep recent 15 messages for better context
     let contextBlock = "";
-    const history: { role: string; text: string }[] = (conversationHistory || []).slice(-5);
+    const history: { role: string; text: string }[] = (conversationHistory || []).slice(-15);
     if (history.length > 0) {
-      contextBlock = `【直近の会話】\n${history.map((m) => `${m.role}: ${m.text.slice(0, 200)}`).join("\n")}`;
+      contextBlock = `【直近の会話】\n${history.map((m) => `${m.role}: ${m.text.slice(0, 400)}`).join("\n")}`;
     }
 
     // Fetch any URLs found in the task or conversation
