@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line" | "sheets" | "chatwork" | "freee";
+type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line" | "sheets" | "chatwork" | "freee" | "square";
 
 interface Integration {
   key: IntegrationKey;
@@ -37,6 +37,7 @@ const LOGO_MAP: Record<IntegrationKey, string> = {
   sheets: "/logos/google-sheets.png",
   chatwork: "/logos/chatwork.png",
   freee: "/logos/freee.png",
+  square: "/logos/square.png",
 };
 
 const integrations: Integration[] = [
@@ -131,6 +132,15 @@ const integrations: Integration[] = [
     icon: <img src={LOGO_MAP.freee} alt="freee" width={20} height={20} className="rounded" />,
   },
   {
+    key: "square",
+    name: "Square",
+    description: "チームが決済データを確認できるようになります。",
+    authPath: "/api/square/auth",
+    disconnectPath: "/api/square/disconnect",
+    category: "accounting",
+    icon: <img src={LOGO_MAP.square} alt="Square" width={20} height={20} className="rounded" />,
+  },
+  {
     key: "x",
     name: "X (Twitter)",
     description: "チームがXに投稿できるようになります。",
@@ -153,6 +163,7 @@ const STATUS_MAP: Record<IntegrationKey, string> = {
   sheets: "sheetsConnected",
   chatwork: "chatworkConnected",
   freee: "freeeConnected",
+  square: "squareConnected",
 };
 
 export default function IntegrationsPage() {
@@ -162,7 +173,7 @@ export default function IntegrationsPage() {
   const searchParams = useSearchParams();
 
   const [connected, setConnected] = useState<Record<IntegrationKey, boolean>>({
-    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false, sheets: false, chatwork: false, freee: false,
+    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false, sheets: false, chatwork: false, freee: false, square: false,
   });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [notionAutoSave, setNotionAutoSave] = useState(false);
@@ -193,7 +204,7 @@ export default function IntegrationsPage() {
 
   // Handle all OAuth callbacks
   useEffect(() => {
-    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line", "sheets", "chatwork", "freee"];
+    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line", "sheets", "chatwork", "freee", "square"];
     for (const key of callbackKeys) {
       const param = searchParams.get(key);
       if (param === "connected") {

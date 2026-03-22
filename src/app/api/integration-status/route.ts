@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
     sheetsConnected: data?.google_sheets_connected ?? false,
     chatworkConnected: data?.chatwork_connected ?? false,
     freeeConnected: data?.freee_connected ?? false,
+    squareConnected: data?.square_connected ?? false,
     memorySummary: data?.memory_summary || "",
   });
 }
