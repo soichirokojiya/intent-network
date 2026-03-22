@@ -29,7 +29,7 @@ export default function MediaPage() {
         <div className="max-w-3xl mx-auto">
           <p className="text-sm text-white/60 tracking-wider mb-3">musu media</p>
           <h1 className="font-serif text-3xl md:text-4xl font-bold mb-4">
-            使い方は、使う人の数だけある。
+            育て方の数だけ、働き方がある。
           </h1>
           <p className="text-white/80 text-lg">
             musuを活用しているソロプレナーたちのリアルな事例を紹介します。
