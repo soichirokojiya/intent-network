@@ -43,6 +43,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "deviceId required" }, { status: 400 });
   }
 
+  const query = req.nextUrl.searchParams.get("query") || "";
+  const messageId = req.nextUrl.searchParams.get("messageId") || "";
+  const maxResults = req.nextUrl.searchParams.get("maxResults") || "10";
+
   // Get stored tokens
   const { data: profile, error: dbError } = await supabase
     .from("profiles")
@@ -56,38 +60,73 @@ export async function GET(req: NextRequest) {
 
   let accessToken = profile.gmail_access_token;
 
-  // Fetch message list
-  let listRes = await fetch(
-    "https://www.googleapis.com/gmail/v1/users/me/messages?maxResults=10",
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  );
-
-  // If 401, try refresh
-  if (listRes.status === 401 && profile.gmail_refresh_token) {
-    const newToken = await refreshAccessToken(profile.gmail_refresh_token);
-    if (newToken) {
-      accessToken = newToken;
-      // Save new access token
-      await supabase
-        .from("profiles")
-        .update({ gmail_access_token: newToken, updated_at: new Date().toISOString() })
-        .eq("id", deviceId);
-
-      listRes = await fetch(
-        "https://www.googleapis.com/gmail/v1/users/me/messages?maxResults=10",
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-      );
+  // Helper: fetch with auto-refresh on 401
+  async function gmailFetch(url: string): Promise<Response> {
+    let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (res.status === 401 && profile.gmail_refresh_token) {
+      const newToken = await refreshAccessToken(profile.gmail_refresh_token);
+      if (newToken) {
+        accessToken = newToken;
+        await supabase
+          .from("profiles")
+          .update({ gmail_access_token: newToken, updated_at: new Date().toISOString() })
+          .eq("id", deviceId);
+        res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      }
     }
-  }
-
-  if (!listRes.ok) {
-    // Token is invalid, mark as disconnected
-    if (listRes.status === 401) {
+    if (!res.ok && res.status === 401) {
       await supabase
         .from("profiles")
         .update({ gmail_connected: false, updated_at: new Date().toISOString() })
         .eq("id", deviceId);
     }
+    return res;
+  }
+
+  // Single message read mode
+  if (messageId) {
+    const res = await gmailFetch(
+      `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`
+    );
+    if (!res.ok) return NextResponse.json({ error: "Failed to fetch message", connected: true }, { status: 500 });
+    const detail = await res.json();
+    const headers = detail.payload?.headers || [];
+    const getHeader = (name: string) =>
+      headers.find((h: { name: string; value: string }) => h.name.toLowerCase() === name.toLowerCase())?.value || "";
+
+    // Extract body text
+    let bodyText = "";
+    const extractText = (part: { mimeType?: string; body?: { data?: string }; parts?: unknown[] }): void => {
+      if (part.mimeType === "text/plain" && part.body?.data) {
+        bodyText += Buffer.from(part.body.data, "base64url").toString("utf-8");
+      }
+      if (part.parts) {
+        (part.parts as typeof part[]).forEach(extractText);
+      }
+    };
+    if (detail.payload) extractText(detail.payload);
+    if (!bodyText) bodyText = detail.snippet || "";
+
+    return NextResponse.json({
+      message: {
+        id: detail.id,
+        subject: getHeader("Subject"),
+        from: getHeader("From"),
+        to: getHeader("To"),
+        date: getHeader("Date"),
+        body: bodyText.slice(0, 3000),
+      },
+      connected: true,
+    });
+  }
+
+  // List/search mode
+  const listUrl = query
+    ? `https://www.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}&q=${encodeURIComponent(query)}`
+    : `https://www.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}`;
+
+  const listRes = await gmailFetch(listUrl);
+  if (!listRes.ok) {
     return NextResponse.json({ messages: [], connected: false });
   }
 
@@ -97,16 +136,15 @@ export async function GET(req: NextRequest) {
   // Fetch details for each message
   const messages = await Promise.all(
     messageIds.map(async (msg) => {
-      const detailRes = await fetch(
-        `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
-        { headers: { Authorization: `Bearer ${accessToken}` } },
+      const detailRes = await gmailFetch(
+        `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`
       );
       if (!detailRes.ok) return null;
 
       const detail: GmailMessageDetail = await detailRes.json();
-      const headers = detail.payload?.headers || [];
+      const hdrs = detail.payload?.headers || [];
       const getHeader = (name: string) =>
-        headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || "";
+        hdrs.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || "";
 
       return {
         id: detail.id,

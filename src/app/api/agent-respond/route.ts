@@ -295,13 +295,37 @@ export async function POST(req: NextRequest) {
     // Detect X/Twitter post request: /post command or keywords
     const wantsPost = intentText.startsWith("/post") || ["ツイート", "投稿して", "Xに投稿", "tweetして", "ポストして"].some((kw) => intentText.includes(kw));
 
-    const userPrompt = wantsPost
-      ? `オーナーのメッセージ:\n「${intentText}」\n\nオーナーがX（Twitter）への投稿を依頼しています。投稿文を作成してください。\nJSON（コードブロック不要）:\n{"toOwner": "投稿案を作成しました（1文）", "toTimeline": "投稿文（140文字以内、ハッシュタグ含めてOK）"}\n\n注意:\n- /post の後の内容を元に投稿文を作成する\n- 内容が曖昧でも推測して作成する。聞き返さない\n- オーナーの事業情報や文脈に合った投稿にする`
+    // Extract image URLs from the message and build multimodal content
+    const IMAGE_PATTERN = /\[ファイル: .+?\.(png|jpg|jpeg|gif|webp)\]\((.+?)\)/gi;
+    const imageMatches = [...intentText.matchAll(IMAGE_PATTERN)];
+    const imageUrls = imageMatches.map((m) => m[2]);
+    const msgText = intentText.replace(/\[ファイル: .+?\]\(.+?\)/g, "").trim() || intentText;
+
+    const userPromptText = wantsPost
+      ? `オーナーのメッセージ:\n「${msgText}」\n\nオーナーがX（Twitter）への投稿を依頼しています。投稿文を作成してください。\nJSON（コードブロック不要）:\n{"toOwner": "投稿案を作成しました（1文）", "toTimeline": "投稿文（140文字以内、ハッシュタグ含めてOK）"}\n\n注意:\n- /post の後の内容を元に投稿文を作成する\n- 内容が曖昧でも推測して作成する。聞き返さない\n- オーナーの事業情報や文脈に合った投稿にする`
       : requestTweet
-      ? `オーナーがツイートの作成を依頼しました:\n「${intentText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "オーナーへの返事（1-2文）", "toTimeline": "ツイート文（140文字以内）"}`
+      ? `オーナーがツイートの作成を依頼しました:\n「${msgText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "オーナーへの返事（1-2文）", "toTimeline": "ツイート文（140文字以内）"}`
       : wantsEmail
-      ? `オーナーのメッセージ:\n「${intentText}」\n\nオーナーがメール送信を依頼しています。必ずemailAction付きのJSONを出力してください。\n件名や本文が指定されていなくても、文脈やオーナーの事業情報から推測して適切な件名・本文を自分で考えて作成すること。「教えてください」と聞き返すのは禁止。\n\nJSON（コードブロック不要）:\n{"toOwner": "メールを作成しました（1文）", "emailAction": {"to": "宛先メールアドレス", "subject": "件名", "body": "本文（ビジネスメールとして丁寧に）"}}\n\n注意:\n- 宛先が不明な場合のみtoOwnerで宛先を聞く（emailActionは含めない）\n- それ以外は必ずemailActionを含めること`
-      : `オーナーのメッセージ:\n「${intentText}」\n\nこれはチャットです。友達とLINEするくらいの感覚で、3-5文で簡潔に答えて。長文レポート禁止。前置き不要、いきなり本題。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "返事"}`;
+      ? `オーナーのメッセージ:\n「${msgText}」\n\nオーナーがメール送信を依頼しています。必ずemailAction付きのJSONを出力してください。\n件名や本文が指定されていなくても、文脈やオーナーの事業情報から推測して適切な件名・本文を自分で考えて作成すること。「教えてください」と聞き返すのは禁止。\n\nJSON（コードブロック不要）:\n{"toOwner": "メールを作成しました（1文）", "emailAction": {"to": "宛先メールアドレス", "subject": "件名", "body": "本文（ビジネスメールとして丁寧に）"}}\n\n注意:\n- 宛先が不明な場合のみtoOwnerで宛先を聞く（emailActionは含めない）\n- それ以外は必ずemailActionを含めること`
+      : `オーナーのメッセージ:\n「${msgText}」${imageUrls.length > 0 ? "\n\n添付された画像の内容も確認して、返事に反映してください。" : ""}\n\nこれはチャットです。友達とLINEするくらいの感覚で、3-5文で簡潔に答えて。長文レポート禁止。前置き不要、いきなり本題。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "返事"}`;
+
+    // Build user message: text + images (multimodal, base64)
+    const imageBlocks: Anthropic.Messages.ContentBlockParam[] = [];
+    for (const url of imageUrls) {
+      try {
+        const imgRes = await fetch(url);
+        if (imgRes.ok) {
+          const buf = await imgRes.arrayBuffer();
+          const base64 = Buffer.from(buf).toString("base64");
+          const contentType = imgRes.headers.get("content-type") || "image/png";
+          const mediaType = contentType.split(";")[0].trim() as "image/png" | "image/jpeg" | "image/gif" | "image/webp";
+          imageBlocks.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } });
+        }
+      } catch { /* skip failed images */ }
+    }
+    const userPrompt: Anthropic.Messages.ContentBlockParam[] | string = imageBlocks.length > 0
+      ? [...imageBlocks, { type: "text" as const, text: userPromptText }]
+      : userPromptText;
 
     // Smart model routing - check task + conversation history for search triggers
     const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http", "https", ".com", ".jp", ".world", ".io"];
