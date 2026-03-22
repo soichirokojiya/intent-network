@@ -275,11 +275,14 @@ export async function POST(req: NextRequest) {
 
     const moodContext = getMoodModifier(agentMood || "normal");
 
-    // Build conversation context: keep recent 15 messages for better context
+    // Build conversation context: dynamic history size based on complexity
+    const isSimpleQ = (complexity || "moderate") === "simple";
+    const historySize = isSimpleQ ? 5 : 15;
+    const historyTextLimit = isSimpleQ ? 200 : 400;
     let contextBlock = "";
-    const history: { role: string; text: string }[] = (conversationHistory || []).slice(-15);
+    const history: { role: string; text: string }[] = (conversationHistory || []).slice(-historySize);
     if (history.length > 0) {
-      contextBlock = `【直近の会話】\n${history.map((m) => `${m.role}: ${m.text.slice(0, 400)}`).join("\n")}`;
+      contextBlock = `【直近の会話】\n${history.map((m) => `${m.role}: ${m.text.slice(0, historyTextLimit)}`).join("\n")}`;
     }
 
     // Fetch any URLs found in the task or conversation
@@ -356,15 +359,28 @@ export async function POST(req: NextRequest) {
 
     const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 
-    // System prompt with prompt caching
-    const isSimple = (complexity || "moderate") === "simple";
+    // Compress memory_summary for cost optimization (max 300 chars for simple, 600 for complex)
+    const memoryLimit = isSimpleQ ? 300 : 600;
+    const compressedMemory = memorySummary ? memorySummary.slice(0, memoryLimit) : "";
+
+    // System prompt with 3-layer caching for max cache hit rate
     const sheetsWriteRule = sheetsConnected ? "\n- sheets_writeツールを使う前に、必ず書き込み内容をユーザーに提示して確認を求めること。承認を得てから実行すること。" : "";
-    const stableContext = `${STATIC_RULES}${sheetsWriteRule}\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
+
+    // Layer 1: Static rules (same for ALL users & agents → highest cache hit rate)
+    const staticLayer = `${STATIC_RULES}${sheetsWriteRule}`;
+
+    // Layer 2: Agent persona + user memory (same per agent+user combo)
+    const personaLayer = `\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${compressedMemory ? `\n【オーナーの記憶】${compressedMemory}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
 
     const systemPromptParts: Anthropic.Messages.TextBlockParam[] = [
       {
         type: "text" as const,
-        text: stableContext,
+        text: staticLayer,
+        cache_control: { type: "ephemeral" as const },
+      },
+      {
+        type: "text" as const,
+        text: personaLayer,
         cache_control: { type: "ephemeral" as const },
       },
       {
