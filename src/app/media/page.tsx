@@ -25,13 +25,20 @@ export default function MediaPage() {
       </header>
 
       {/* Hero */}
-      <section className="bg-[#4A99E9] text-white px-5 py-16 md:py-24">
-        <div className="max-w-3xl mx-auto">
-          <p className="text-sm text-white/60 tracking-wider mb-3">musu media</p>
-          <h1 className="font-serif text-3xl md:text-4xl font-bold mb-4">
-            育て方の数だけ、働き方がある。
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#4A99E9] via-[#3a7bd5] to-[#2d6bc4] text-white px-5 py-20 md:py-32">
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/5" />
+          <div className="absolute bottom-10 -left-10 w-60 h-60 rounded-full bg-white/5" />
+          <div className="absolute top-1/2 right-1/4 w-40 h-40 rounded-full bg-white/3" />
+        </div>
+        <div className="max-w-3xl mx-auto relative">
+          <p className="text-sm text-white/50 tracking-[0.2em] uppercase mb-4">musu media</p>
+          <h1 className="font-serif text-4xl md:text-5xl font-bold mb-5 leading-tight">
+            育て方の数だけ、
+            <br />
+            働き方がある。
           </h1>
-          <p className="text-white/80 text-lg">
+          <p className="text-white/70 text-lg max-w-lg">
             musuを活用しているソロプレナーたちのリアルな事例を紹介します。
           </p>
         </div>

@@ -34,20 +34,23 @@ export default function EmailToSpreadsheetArticle() {
       </header>
 
       {/* Hero */}
-      <section className="bg-[#4A99E9] text-white px-5 md:px-10 py-12 md:py-20 relative overflow-hidden">
-        <div className="absolute -top-[60px] -right-[60px] w-[300px] h-[300px] rounded-full bg-white/5" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#4A99E9] via-[#3a7bd5] to-[#2d6bc4] text-white px-5 md:px-10 py-16 md:py-24">
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/5" />
+          <div className="absolute bottom-10 -left-10 w-60 h-60 rounded-full bg-white/5" />
+        </div>
         <div className="max-w-[760px] mx-auto relative">
-          <div className="text-[13px] tracking-wider opacity-70 mb-5 uppercase">
+          <div className="text-[13px] tracking-[0.15em] text-white/50 mb-5 uppercase">
             musu 活用事例
           </div>
-          <h1 className="font-serif text-2xl md:text-4xl font-bold leading-snug mb-6">
+          <h1 className="font-serif text-3xl md:text-[42px] font-bold leading-snug mb-6">
             「メールのデータ、
             <br />
             スプレッドシートに入れといて」
             <br />
             が現実になった話
           </h1>
-          <p className="text-base opacity-85 max-w-[560px] leading-loose">
+          <p className="text-base text-white/70 max-w-[560px] leading-loose">
             Gmailに届く売上メールを読んで、Googleスプレッドシートに自動で記録。musuのAIチームに頼んだら、仕様を伝えるだけで動き出した。
           </p>
         </div>
