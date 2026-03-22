@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     key: apiKey,
     return_url: callbackUrl,
     callback_method: "fragment",
-    scope: "read",
+    scope: "read,write",
     expiration: "never",
     name: "musu.world",
   });

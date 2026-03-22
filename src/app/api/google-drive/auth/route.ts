@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   const redirectUri = "https://musu.world/api/google-drive/callback";
-  const scope = "https://www.googleapis.com/auth/drive.readonly";
+  const scope = "https://www.googleapis.com/auth/drive";
   const state = deviceId;
 
   const params = new URLSearchParams({

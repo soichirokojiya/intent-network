@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   const redirectUri = "https://musu.world/api/google/callback";
-  const scope = "https://www.googleapis.com/auth/calendar.readonly";
+  const scope = "https://www.googleapis.com/auth/calendar";
   const state = deviceId;
 
   const params = new URLSearchParams({

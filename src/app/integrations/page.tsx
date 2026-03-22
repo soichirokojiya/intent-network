@@ -304,6 +304,14 @@ export default function IntegrationsPage() {
           );
         })}
       </div>
+      {/* Request message */}
+      <div className="mx-4 mt-8 p-4 rounded-xl bg-[var(--search-bg)] text-center">
+        <p className="text-[13px] text-[var(--muted)]">
+          連携したいアプリがありましたら
+          <br />
+          <a href="/contact" className="text-[var(--accent)] hover:underline">お問い合わせ</a>からご連絡ください
+        </p>
+      </div>
       <div className="h-20" />
     </>
   );
