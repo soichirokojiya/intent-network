@@ -127,11 +127,15 @@ const integrations = [
   { name: "Gmail", desc: "メール送受信", logo: "/logos/gmail.webp" },
   { name: "Google Calendar", desc: "予定管理", logo: "/logos/google-calendar.jpg" },
   { name: "Google Drive", desc: "ファイル参照", logo: "/logos/google-drive.jpeg" },
+  { name: "Google Sheets", desc: "スプレッドシート", logo: "/logos/google-sheets.png" },
   { name: "Notion", desc: "ナレッジ同期", logo: "/logos/notion.png" },
   { name: "Slack", desc: "チャット連携", logo: "/logos/slack.png" },
   { name: "Trello", desc: "タスク管理", logo: "/logos/trello.svg" },
+  { name: "Chatwork", desc: "チャット連携", logo: "/logos/chatwork.png" },
   { name: "X (Twitter)", desc: "SNS投稿", logo: "/logos/x.svg" },
   { name: "LINE", desc: "ログイン連携", logo: "/logos/line.svg" },
+  { name: "freee", desc: "会計データ", logo: "/logos/freee.png" },
+  { name: "Square", desc: "決済データ", logo: "/logos/square.png" },
 ];
 
 export default function AboutPage() {
