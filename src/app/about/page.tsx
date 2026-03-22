@@ -4,11 +4,11 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "musuについて - ソロプレナーのためのAIエージェントチーム",
   description:
-    "musuは、ひとりで事業を回すあなたのためのAIワークスペース。マーケティング・リサーチ・秘書・戦略、専門AIチームがあなたの仕事仲間になります。Gmail・Notion・Slack・X連携対応。",
+    "ひとりだけど、ひとりじゃない。育てるほど、任せられる。あなただけの仲間を持とう。musuはソロプレナーのためのAIワークスペースです。",
   openGraph: {
     title: "ひとりだけど、ひとりじゃない。- musu",
     description:
-      "AIエージェントチームと一緒に、ひとり会社を回そう。musuはソロプレナーのためのAIワークスペースです。",
+      "育てるほど、任せられる。あなただけの仲間を持とう。musuはソロプレナーのためのAIワークスペースです。",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
 };
@@ -161,10 +161,11 @@ export default function AboutPage() {
             <br />
             ひとりじゃない。
           </h1>
+          <p className="text-lg md:text-xl text-gray-500 leading-relaxed mb-4 max-w-xl mx-auto">
+            育てるほど、任せられる。
+          </p>
           <p className="text-lg md:text-xl text-gray-500 leading-relaxed mb-10 max-w-xl mx-auto">
-            マーケティング、リサーチ、秘書、戦略。
-            <br className="hidden md:inline" />
-            AIの専門チームが、あなたの仕事仲間になる。
+            あなただけの仲間を持とう。
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
