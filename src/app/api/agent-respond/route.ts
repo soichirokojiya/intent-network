@@ -23,7 +23,7 @@ function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: b
 }
 
 // Custom tool definitions
-const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read"] as const;
+const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation"] as const;
 
 function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): Anthropic.Messages.Tool[] {
   const tools: Anthropic.Messages.Tool[] = [];
@@ -64,6 +64,25 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
           values: { type: "array", items: { type: "array", items: { type: "string" } }, description: "2D array of values" },
         },
         required: ["spreadsheetId", "range", "values"],
+      },
+    });
+  }
+
+  // Automation tool - available when both gmail and sheets are connected
+  if (sheetsConnected && gmailConnected) {
+    tools.push({
+      name: "create_automation",
+      description: "メール受信をトリガーにスプレッドシートへの自動反映ルールを作成する。ユーザーが「〇〇のメールが来たらシートに反映して」と言った時に使う。",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          name: { type: "string", description: "自動化ルールの名前（例: 売上メール自動反映）" },
+          emailQuery: { type: "string", description: "Gmail検索クエリ（例: from:shop@example.com subject:売上報告）" },
+          spreadsheetId: { type: "string", description: "反映先スプレッドシートID（URLの/d/の後）。新規作成する場合はsheets_createを先に使う。" },
+          sheetName: { type: "string", description: "シート名（デフォルト: Sheet1）" },
+          extractPrompt: { type: "string", description: "メールからどんなデータを抽出するかの指示（例: 商品名、数量、金額を抽出）" },
+        },
+        required: ["name", "emailQuery", "spreadsheetId", "extractPrompt"],
       },
     });
   }
@@ -137,6 +156,26 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
       }
       case "gmail_read": {
         const res = await fetch(`${baseUrl}/api/gmail/messages?deviceId=${deviceId}&messageId=${input.messageId}`);
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "create_automation": {
+        const res = await fetch(`${baseUrl}/api/automations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deviceId,
+            name: input.name,
+            triggerType: "email_match",
+            triggerConfig: { query: input.emailQuery },
+            actionType: "sheets_append",
+            actionConfig: {
+              spreadsheetId: input.spreadsheetId,
+              sheetName: input.sheetName || "Sheet1",
+              extractPrompt: input.extractPrompt,
+            },
+          }),
+        });
         const data = await res.json();
         return JSON.stringify(data);
       }
