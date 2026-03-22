@@ -279,9 +279,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             if (savedActive) try { setActiveAgentIds(new Set(JSON.parse(savedActive))); } catch {}
           } catch {}
         } else {
-          // No agents anywhere → create default agents from presets (only once)
-          if (localStorage.getItem("musu_defaults_created")) return;
-          localStorage.setItem("musu_defaults_created", "1");
+          // No agents anywhere → create default agents from presets (only once per account)
+          const did = localStorage.getItem("musu_device_id") || "";
+          const defaultsKey = `musu_defaults_created_${did}`;
+          if (localStorage.getItem(defaultsKey)) return;
+          localStorage.setItem(defaultsKey, "1");
           const ts = Date.now();
           const defaults: MyAgent[] = DEFAULT_AGENT_PRESETS.map((preset, i) => ({
             id: `agent-default-${i}-${ts}-${Math.random().toString(36).slice(2, 6)}`,
