@@ -229,6 +229,25 @@ async function processCustomToolUses(
 }
 
 
+// Extract all input tokens including cache tokens for accurate billing
+function getTotalInputTokens(usage: Anthropic.Messages.Usage | undefined): number {
+  if (!usage) return 0;
+  const base = usage.input_tokens || 0;
+  const cacheCreation = (usage as Record<string, number>).cache_creation_input_tokens || 0;
+  const cacheRead = (usage as Record<string, number>).cache_read_input_tokens || 0;
+  return base + cacheCreation + cacheRead;
+}
+
+// Calculate actual input cost considering cache pricing
+// cache_creation = 1.25x normal, cache_read = 0.1x normal
+function getInputCost(usage: Anthropic.Messages.Usage | undefined, pricePerToken: number): number {
+  if (!usage) return 0;
+  const base = (usage.input_tokens || 0) * pricePerToken;
+  const cacheCreation = ((usage as Record<string, number>).cache_creation_input_tokens || 0) * pricePerToken * 1.25;
+  const cacheRead = ((usage as Record<string, number>).cache_read_input_tokens || 0) * pricePerToken * 0.1;
+  return base + cacheCreation + cacheRead;
+}
+
 // Context about musu.world (the product these agents serve)
 // Static rules (cached across requests)
 const STATIC_RULES = `重要ルール:
@@ -486,6 +505,7 @@ export async function POST(req: NextRequest) {
             let fullText = "";
             let totalInputTokens = 0;
             let totalOutputTokens = 0;
+            const allUsages: Anthropic.Messages.Usage[] = [];
 
             // First pass: streaming
             try {
@@ -521,7 +541,8 @@ export async function POST(req: NextRequest) {
 
               const finalMessage = await stream.finalMessage();
               assistantContent.push(...finalMessage.content);
-              totalInputTokens += finalMessage.usage?.input_tokens || 0;
+              if (finalMessage.usage) allUsages.push(finalMessage.usage);
+              totalInputTokens += getTotalInputTokens(finalMessage.usage);
               totalOutputTokens += finalMessage.usage?.output_tokens || 0;
 
               // Tool use continuation loop (supports multiple rounds for web_search + custom tools)
@@ -590,7 +611,8 @@ export async function POST(req: NextRequest) {
 
                 const contFinal = await contStream.finalMessage();
                 currentAssistantContent = [...contFinal.content];
-                totalInputTokens += contFinal.usage?.input_tokens || 0;
+                if (contFinal.usage) allUsages.push(contFinal.usage);
+                totalInputTokens += getTotalInputTokens(contFinal.usage);
                 totalOutputTokens += contFinal.usage?.output_tokens || 0;
               }
             } catch (primaryError) {
@@ -615,18 +637,20 @@ export async function POST(req: NextRequest) {
                   }
                 }
                 const fbFinal = await fallbackStream.finalMessage();
-                totalInputTokens += fbFinal.usage?.input_tokens || 0;
+                if (fbFinal.usage) allUsages.push(fbFinal.usage);
+                totalInputTokens += getTotalInputTokens(fbFinal.usage);
                 totalOutputTokens += fbFinal.usage?.output_tokens || 0;
               } else {
                 throw primaryError;
               }
             }
 
-            // Bill
+            // Bill (with cache-aware pricing)
             if (deviceId) {
               const pricing = MODEL_PRICING[actualModel] || MODEL_PRICING["claude-sonnet-4-6"];
               const MARGIN = 1.5;
-              const costUsd = totalInputTokens * pricing.input + totalOutputTokens * pricing.output;
+              const inputCostUsd = allUsages.reduce((sum, u) => sum + getInputCost(u, pricing.input), 0);
+              const costUsd = inputCostUsd + totalOutputTokens * pricing.output;
               const costYen = Math.ceil(costUsd * 150 * MARGIN);
               fetch(new URL("/api/credits", req.url).toString(), {
                 method: "POST",
@@ -662,6 +686,7 @@ export async function POST(req: NextRequest) {
     // === NON-STREAMING MODE (legacy) ===
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
+    const allUsagesNS: Anthropic.Messages.Usage[] = [];
     let actualModel = model;
     let message;
     try {
@@ -688,7 +713,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    totalInputTokens += message.usage?.input_tokens || 0;
+    if (message.usage) allUsagesNS.push(message.usage);
+    totalInputTokens += getTotalInputTokens(message.usage);
     totalOutputTokens += message.usage?.output_tokens || 0;
 
     let finalText = "";
@@ -736,7 +762,8 @@ export async function POST(req: NextRequest) {
         messages,
       });
 
-      totalInputTokens += continuation.usage?.input_tokens || 0;
+      if (continuation.usage) allUsagesNS.push(continuation.usage);
+      totalInputTokens += getTotalInputTokens(continuation.usage);
       totalOutputTokens += continuation.usage?.output_tokens || 0;
 
       const contTextBlocks = continuation.content.filter((b) => b.type === "text");
@@ -748,7 +775,8 @@ export async function POST(req: NextRequest) {
     if (deviceId) {
       const pricing = MODEL_PRICING[actualModel] || MODEL_PRICING["claude-sonnet-4-6"];
       const MARGIN = 1.5;
-      const costUsd = totalInputTokens * pricing.input + totalOutputTokens * pricing.output;
+      const inputCostUsd = allUsagesNS.reduce((sum, u) => sum + getInputCost(u, pricing.input), 0);
+      const costUsd = inputCostUsd + totalOutputTokens * pricing.output;
       const costYen = Math.ceil(costUsd * 150 * MARGIN);
       await fetch(new URL("/api/credits", req.url).toString(), {
         method: "POST",
