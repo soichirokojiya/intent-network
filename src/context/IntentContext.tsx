@@ -303,7 +303,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             stats: defaultStats(),
           }));
           setMyAgents(defaults);
-          setActiveAgentIds(new Set(defaults.map((a) => a.id)));
+          // Activate only core 5: Ren(orchestrator), Sora(research), Kai(marketing), Leo(strategist), Mio(secretary)
+          const coreNames = ["Ren", "Sora", "Kai", "Leo", "Mio"];
+          const activeIds = defaults.filter((a) => coreNames.includes(a.config.name)).map((a) => a.id);
+          setActiveAgentIds(new Set(activeIds));
           // Save sequentially to avoid RLS/concurrency issues
           (async () => {
             for (const agent of defaults) {

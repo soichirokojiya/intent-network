@@ -170,8 +170,8 @@ function WelcomeSequence({ agents, onMessageShown, onComplete }: { agents: { id:
   // Stable ref for messages to avoid stale closures in useEffect
   const messagesRef = useRef([
     `はじめまして、${orchestrator.config.name}です。あなた専属チームのリーダーです。\nここにいる全員があなたの仕事仲間です。何でも気軽に話しかけてください。`,
-    `メンバーを紹介します。\n${memberList}\nチーム編成は自由にカスタマイズできます。メンバーの追加・削除・役割変更はいつでも可能です。`,
-    `まずはプロフィールを完成させてください。事業内容を入れると、チーム全員があなたの事業を理解した上で動けるようになります。\n@をつければ特定のメンバーに直接話せます。\n「ニュースを7時と18時に送って」「予定を毎朝8時に教えて」のように話しかければ、秘書が対応します。\nGoogleカレンダーやTrelloとの連携もできます。アプリ連携から設定してみてください。`,
+    `メンバーを紹介します。\n${memberList}\nチーム編成は自由にカスタマイズできます。右のチーム欄からメンバーのON/OFF・追加・役割変更がいつでもできます。`,
+    `musuはいろんな仕事を任せられます。\n「競合を調べて」→ リサーチ\n「メールして」→ メール作成・送信\n「Gmailの売上データをスプレッドシートに入れて」→ 自動転記\n「今後も自動で反映して」→ 自動化ルール作成\nGmail・Googleカレンダー・スプレッドシート・Trello・Notion・Slackと連携できます。アプリ連携から設定してみてください。`,
   ]);
   const messages = messagesRef.current;
   const onMessageShownRef = useRef(onMessageShown);
