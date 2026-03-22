@@ -915,6 +915,13 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Skip orchestrator if only 1 non-orchestrator agent is active
+    const nonOrch = allConfigured.filter((a) => !a.config.isOrchestrator);
+    if (nonOrch.length === 1) {
+      directAgentRespond(nonOrch[0], text, requestTweet, 0, roomId);
+      return;
+    }
+
     if (allConfigured.length > 0) {
       // --- ORCHESTRATOR FLOW: オーケストレーターが受けてルーティング ---
       const nonOrchestrator = allConfigured.filter((a) => !a.config.isOrchestrator);

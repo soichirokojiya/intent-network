@@ -16,10 +16,9 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "claude-haiku-4-5-20251001": { input: 1 / 1_000_000, output: 5 / 1_000_000 },
 };
 
-// Select model based on complexity (Opus reserved for web search only)
+// Select model: Sonnet for search/tools/complex, Haiku for everything else
 function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: boolean): string {
-  if (needsSearch) return "claude-opus-4-6";
-  if (hasCustomTools || complexity === "complex" || complexity === "moderate") return "claude-sonnet-4-6";
+  if (needsSearch || hasCustomTools || complexity === "complex") return "claude-sonnet-4-6";
   return "claude-haiku-4-5-20251001";
 }
 
@@ -267,8 +266,10 @@ const STATIC_RULES = `重要ルール:
 - プレーンテキストのみ。箇条書きは「・」を使う。強調は「」で囲む
 - 〈〉【】などの装飾括弧も使わない。シンプルに書く
 - 必ず日本語で回答すること。英語は固有名詞のみ許可
-- ユーザーが「忘れて」「もう違う」「その方針は変えた」等と言った場合、forget_factツールを使って該当ファクトを無効化すること
+- ユーザーが「忘れて」「もう違う」「その方針は変えた」等と言った場合、forget_factツールを使って該当ファクトを無効化すること`;
 
+// Extended app info (only included for non-simple queries to save tokens)
+const MUSU_APP_INFO = `
 【musuアプリ情報（ユーザーに案内する時に使う）】
 musuはソロプレナー向けのAIワークスペース。コンセプトは「ひとりだけど、ひとりじゃない。育てるほど、任せられる。」
 
@@ -425,7 +426,9 @@ export async function POST(req: NextRequest) {
     const sheetsWriteRule = sheetsConnected ? "\n- sheets_writeツールを使う前に、必ず書き込み内容をユーザーに提示して確認を求めること。承認を得てから実行すること。" : "";
 
     // Layer 1: Static rules (same for ALL users & agents → highest cache hit rate)
-    const staticLayer = `${STATIC_RULES}${sheetsWriteRule}`;
+    // Include app info only for non-simple queries (saves ~500 tokens on simple)
+    const appInfo = isSimpleQ ? "" : MUSU_APP_INFO;
+    const staticLayer = `${STATIC_RULES}${appInfo}${sheetsWriteRule}`;
 
     // Layer 2: Agent persona + user memory (same per agent+user combo)
     const personaLayer = `\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${compressedMemory ? `\n【オーナーの記憶】${compressedMemory}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
