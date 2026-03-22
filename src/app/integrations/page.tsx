@@ -37,7 +37,7 @@ const LOGO_MAP: Record<IntegrationKey, string> = {
   sheets: "/logos/google-sheets.png",
   chatwork: "/logos/chatwork.png",
   freee: "/logos/freee.png",
-  square: "/logos/square.png",
+  square: "/logos/square.jpg",
 };
 
 const integrations: Integration[] = [

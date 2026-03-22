@@ -135,7 +135,7 @@ const integrations = [
   { name: "X (Twitter)", desc: "SNS投稿", logo: "/logos/x.svg" },
   { name: "LINE", desc: "ログイン連携", logo: "/logos/line.svg" },
   { name: "freee", desc: "会計データ", logo: "/logos/freee.png" },
-  { name: "Square", desc: "決済データ", logo: "/logos/square.png" },
+  { name: "Square", desc: "決済データ", logo: "/logos/square.jpg" },
 ];
 
 export default function AboutPage() {
