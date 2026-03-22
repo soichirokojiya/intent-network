@@ -466,6 +466,45 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* News */}
+      <section className="px-5 py-16 md:py-24 bg-gray-50">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-center mb-4">
+            ニュース
+          </h2>
+          <p className="text-gray-400 text-center mb-10">
+            musuの最新情報をお届けします。
+          </p>
+
+          {/* 2026 */}
+          <div className="mb-8">
+            <h3 className="text-sm font-bold text-[#4A99E9] mb-4 tracking-wider">2026</h3>
+            <div className="space-y-0 border-l-2 border-gray-200 ml-2">
+              {[
+                { date: "2026.03.23", text: "musu lab（活用事例メディア）を公開しました" },
+                { date: "2026.03.23", text: "Square・freee・Chatwork連携を追加しました" },
+                { date: "2026.03.22", text: "Google スプレッドシート連携を追加しました" },
+                { date: "2026.03.22", text: "Gmail × スプレッドシートの自動化機能をリリースしました" },
+                { date: "2026.03.22", text: "エージェントの記憶システムを改善しました" },
+                { date: "2026.03.21", text: "Slack・X（Twitter）・LINE連携を追加しました" },
+                { date: "2026.03.20", text: "Notion自動保存機能を追加しました" },
+                { date: "2026.03.19", text: "毎朝のスケジュール配信機能を追加しました" },
+                { date: "2026.03.18", text: "デイリーニュース配信機能を追加しました" },
+                { date: "2026.03.15", text: "Gmail・Google カレンダー・Trello連携を追加しました" },
+                { date: "2026.03.10", text: "ストリーミング応答に対応しました" },
+                { date: "2026.03.01", text: "musu.world 正式リリース" },
+              ].map((news, i) => (
+                <div key={i} className="flex gap-4 pl-6 py-3 relative">
+                  <div className="absolute -left-[5px] top-4 w-2 h-2 rounded-full bg-gray-300" />
+                  <span className="text-xs text-gray-400 flex-shrink-0 w-20 pt-0.5">{news.date}</span>
+                  <p className="text-sm text-gray-700">{news.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="px-5 py-20 md:py-28 bg-[#4A99E9] text-white text-center">
         <div className="max-w-2xl mx-auto">
