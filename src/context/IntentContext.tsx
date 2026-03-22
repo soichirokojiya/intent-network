@@ -935,26 +935,16 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
             const responder = orchestrator || allConfigured[0];
             await directAgentRespond(responder, text, requestTweet, 0, roomId, "moderate");
           } else {
-            // 各振り先が順番に回答
-            const results: Record<string, string> = {};
-            for (const agent of delegates) {
-              try {
-                const response = await Promise.race([
-                  directAgentRespond(agent, text, requestTweet, 0, roomId, "moderate"),
-                  new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
-                ]);
-                results[agent.config.name] = response || "";
-              } catch (e) {
-                const msg = e instanceof Error ? e.message : String(e);
-                console.error(`Agent ${agent.config.name} failed:`, msg);
-              }
-            }
-            // 複数のエージェントが回答した場合、オーケストレーターがまとめる
-            if (Object.keys(results).length > 1 && orchestrator) {
-              const summary = Object.entries(results).map(([n, r]) => `${n}: ${r.slice(0, 300)}`).join("\n");
-              try {
-                await directAgentRespond(orchestrator, `チームの意見をまとめて。\n\n${summary}\n\n結論と次のアクションを簡潔に。`, false, 0, roomId, "complex");
-              } catch { /* skip */ }
+            // 振り先は1名のみ（最初の1名だけ回答）
+            const agent = delegates[0];
+            try {
+              await Promise.race([
+                directAgentRespond(agent, text, requestTweet, 0, roomId, "moderate"),
+                new Promise<string>((_, reject) => setTimeout(() => reject(new Error("timeout")), 90000)),
+              ]);
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e);
+              console.error(`Agent ${agent.config.name} failed:`, msg);
             }
           }
         }

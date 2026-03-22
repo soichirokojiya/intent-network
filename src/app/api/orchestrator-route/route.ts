@@ -33,9 +33,9 @@ ${recentContext ? `直近の会話:\n${recentContext}\n` : ""}
 
 判断基準:
 - 簡単な質問、雑談、確認、挨拶 → "self"（自分で回答）
-- 専門知識が必要 → "delegate" で該当する1-2名に振る
+- 専門知識が必要 → "delegate" で該当する1名だけに振る
 - 直前の会話の文脈で特定メンバーに向けた内容 → "delegate" でそのメンバーに振る
-- 複数の視点が必要 → "delegate" で2名まで振る（それ以上は不要）`;
+- delegatesには必ず1名だけ入れること。2名以上は禁止`;
 
   try {
     const response = await anthropic.messages.create({
@@ -54,7 +54,7 @@ ${recentContext ? `直近の会話:\n${recentContext}\n` : ""}
         const parsed = JSON.parse(jsonMatch[0]);
         return NextResponse.json({
           action: parsed.action || "self",
-          delegates: Array.isArray(parsed.delegates) ? parsed.delegates.slice(0, 2) : [],
+          delegates: Array.isArray(parsed.delegates) ? parsed.delegates.slice(0, 1) : [],
           reason: parsed.reason || "",
         });
       }
