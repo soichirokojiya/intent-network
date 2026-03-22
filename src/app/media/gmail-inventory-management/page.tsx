@@ -18,7 +18,7 @@ export default function GmailInventoryArticle() {
     <div className="min-h-screen bg-white text-[#111]" style={{ lineHeight: 1.8 }}>
       {/* Header */}
       <header className="px-5 md:px-10 py-5 border-b border-gray-200 flex items-center gap-3">
-        <Link href="/" className="text-[22px] font-bold text-[#4A99E9] no-underline font-serif">musu</Link>
+        <Link href="/" className="text-[22px] font-bold text-gray-900 no-underline font-serif">musu</Link>
         <Link href="/media" className="text-xs text-gray-500 border border-gray-200 px-2.5 py-0.5 rounded-full no-underline hover:border-[#4A99E9] transition-colors">lab</Link>
       </header>
 

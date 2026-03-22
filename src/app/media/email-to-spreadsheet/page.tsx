@@ -21,7 +21,7 @@ export default function EmailToSpreadsheetArticle() {
       <header className="px-5 md:px-10 py-5 border-b border-gray-200 flex items-center gap-3">
         <Link
           href="/"
-          className="text-[22px] font-bold text-[#4A99E9] no-underline font-serif"
+          className="text-[22px] font-bold text-gray-900 no-underline font-serif"
         >
           musu
         </Link>

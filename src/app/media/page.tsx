@@ -15,7 +15,7 @@ export default function MediaPage() {
       <header className="px-5 py-4 border-b border-gray-200 flex items-center gap-3">
         <Link
           href="/"
-          className="text-xl font-extrabold text-[#4A99E9] tracking-tight"
+          className="text-xl font-extrabold text-gray-900 tracking-tight"
         >
           musu
         </Link>
