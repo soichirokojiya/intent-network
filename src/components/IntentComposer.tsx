@@ -7,6 +7,8 @@ import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { AgentResponse } from "@/lib/types";
 import { loadChatHistory, loadOlderMessages, saveChatMessage } from "@/lib/chatStorage";
 import { useAuth } from "@/context/AuthContext";
+import { translateRole } from "@/lib/i18n";
+import { useRouter } from "next/navigation";
 
 const COLLAPSE_LINES = 10;
 
@@ -418,6 +420,14 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const enqueueMessage = useMessageQueue(setChatHistory, roomId);
   const roomLoadTime = useRef<number>(0);
   const { user } = useAuth();
+  const router = useRouter();
+
+  // Helper: get agent role by agentId
+  const getAgentRole = useCallback((agentId?: string) => {
+    if (!agentId) return "";
+    const agent = myAgents.find((a) => a.id === agentId);
+    return agent ? translateRole(agent.config.role || agent.config.expertise || "", "ja") : "";
+  }, [myAgents]);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -934,12 +944,13 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           return (
             <React.Fragment key={msg.id}><DateSep />
             <div className="flex gap-2 animate-fade-in group">
-              <div className="flex-shrink-0 mt-1">
+              <button className="flex-shrink-0 mt-1 cursor-pointer" onClick={() => msg.agentId && router.push(`/agent?id=${msg.agentId}`)}>
                 <AgentAvatarDisplay avatar={msg.agentAvatar || ""} size={32} />
-              </div>
+              </button>
               <div className="max-w-[75%]">
                 <div className="flex items-center gap-2 ml-1">
                   <span className="text-[11px] text-[var(--muted)]">{msg.agentName}</span>
+                  {msg.agentId && <span className="text-[10px] text-[var(--muted)] opacity-50">{getAgentRole(msg.agentId)}</span>}
                   <span className="text-[10px] text-[var(--muted)] opacity-50">{new Date(msg.timestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
                 <div className={`mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm ${
@@ -1035,12 +1046,13 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         {/* Streaming message - real-time display */}
         {streamingMessage && streamingMessage.roomId === roomId && (
           <div className="flex gap-2 animate-fade-in">
-            <div className="flex-shrink-0 mt-1">
+            <button className="flex-shrink-0 mt-1 cursor-pointer" onClick={() => router.push(`/agent?id=${streamingMessage.agentId}`)}>
               <AgentAvatarDisplay avatar={streamingMessage.agentAvatar || ""} size={32} />
-            </div>
+            </button>
             <div className="max-w-[75%]">
               <div className="flex items-center gap-2 ml-1">
                 <span className="text-[11px] text-[var(--muted)]">{streamingMessage.agentName}</span>
+                <span className="text-[10px] text-[var(--muted)] opacity-50">{getAgentRole(streamingMessage.agentId)}</span>
               </div>
               <div className="mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-[var(--search-bg)]">
                 <ChatMessageText text={streamingMessage.text} />
