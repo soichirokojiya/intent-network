@@ -551,7 +551,13 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       // If this agent was streaming, skip the queue animation and add directly
       if (streamedAgentIds.current.has(resp.agentId)) {
         streamedAgentIds.current.delete(resp.agentId);
+        // Preserve scroll position during streaming→history swap
+        const el = chatAreaRef.current;
+        const scrollBefore = el ? el.scrollTop : 0;
         setChatHistory((prev) => [...prev, msg]);
+        if (el) {
+          requestAnimationFrame(() => { el.scrollTop = scrollBefore; });
+        }
         saveChatMessage({
           id: msg.id, type: "agent", text: msg.text,
           agentName: msg.agentName, agentAvatar: msg.agentAvatar,
