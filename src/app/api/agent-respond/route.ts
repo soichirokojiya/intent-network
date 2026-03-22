@@ -16,10 +16,134 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 };
 
 // Select model based on complexity (Opus reserved for web search only)
-function selectModel(complexity: string, needsSearch: boolean): string {
+function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: boolean): string {
   if (needsSearch) return "claude-opus-4-6";
-  if (complexity === "complex" || complexity === "moderate") return "claude-sonnet-4-6";
+  if (hasCustomTools || complexity === "complex" || complexity === "moderate") return "claude-sonnet-4-6";
   return "claude-haiku-4-5-20251001";
+}
+
+// Custom tool definitions
+const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "gmail_search", "gmail_read"] as const;
+
+function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): Anthropic.Messages.Tool[] {
+  const tools: Anthropic.Messages.Tool[] = [];
+
+  if (sheetsConnected) {
+    tools.push({
+      name: "sheets_read",
+      description: "Google スプレッドシートからデータを読み取る。spreadsheetIdはURLの/d/の後の部分。rangeは「シート名!A1:C10」形式。",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          spreadsheetId: { type: "string", description: "スプレッドシートID" },
+          range: { type: "string", description: "読み取り範囲（例: Sheet1!A1:C10）" },
+        },
+        required: ["spreadsheetId", "range"],
+      },
+    });
+    tools.push({
+      name: "sheets_write",
+      description: "Google スプレッドシートにデータを書き込む。実行前に必ずユーザーに確認すること。",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          spreadsheetId: { type: "string", description: "スプレッドシートID" },
+          range: { type: "string", description: "書き込み範囲（例: Sheet1!A1:C3）" },
+          values: { type: "array", items: { type: "array", items: { type: "string" } }, description: "2D array of values" },
+        },
+        required: ["spreadsheetId", "range", "values"],
+      },
+    });
+  }
+
+  if (gmailConnected) {
+    tools.push({
+      name: "gmail_search",
+      description: "Gmailを検索してメール一覧を取得する。queryはGmail検索クエリ形式。",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          query: { type: "string", description: "Gmail検索クエリ（例: from:amazon subject:注文確認 after:2026/03/01）" },
+          maxResults: { type: "number", description: "最大取得件数（デフォルト10）" },
+        },
+        required: ["query"],
+      },
+    });
+    tools.push({
+      name: "gmail_read",
+      description: "特定のメールの全文を読み取る。",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          messageId: { type: "string", description: "メールID" },
+        },
+        required: ["messageId"],
+      },
+    });
+  }
+
+  return tools;
+}
+
+// Execute custom tool by calling internal APIs
+async function executeCustomTool(toolName: string, input: Record<string, unknown>, deviceId: string): Promise<string> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
+
+  try {
+    switch (toolName) {
+      case "sheets_read": {
+        const res = await fetch(`${baseUrl}/api/google-sheets/read`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId, spreadsheetId: input.spreadsheetId, range: input.range }),
+        });
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "sheets_write": {
+        const res = await fetch(`${baseUrl}/api/google-sheets/write`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId, spreadsheetId: input.spreadsheetId, range: input.range, values: input.values }),
+        });
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "gmail_search": {
+        const res = await fetch(`${baseUrl}/api/gmail/messages?deviceId=${deviceId}&query=${encodeURIComponent(input.query as string)}&maxResults=${input.maxResults || 10}`);
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "gmail_read": {
+        const res = await fetch(`${baseUrl}/api/gmail/messages?deviceId=${deviceId}&messageId=${input.messageId}`);
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      default:
+        return JSON.stringify({ error: `Unknown tool: ${toolName}` });
+    }
+  } catch (err) {
+    return JSON.stringify({ error: `Tool execution failed: ${err instanceof Error ? err.message : String(err)}` });
+  }
+}
+
+// Build tool_result entries for custom tool_use blocks
+async function processCustomToolUses(
+  toolUseBlocks: Anthropic.Messages.ToolUseBlock[],
+  deviceId: string
+): Promise<Anthropic.Messages.ToolResultBlockParam[]> {
+  const results: Anthropic.Messages.ToolResultBlockParam[] = [];
+  for (const toolUse of toolUseBlocks) {
+    if ((CUSTOM_TOOL_NAMES as readonly string[]).includes(toolUse.name)) {
+      const result = await executeCustomTool(toolUse.name, toolUse.input as Record<string, unknown>, deviceId);
+      results.push({
+        type: "tool_result" as const,
+        tool_use_id: toolUse.id,
+        content: result,
+      });
+    }
+  }
+  return results;
 }
 
 
@@ -42,7 +166,7 @@ const STATIC_RULES = `重要ルール:
 
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData, gmailData, stream: wantStream } = await req.json();
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData, gmailData, sheetsConnected, gmailConnected, stream: wantStream } = await req.json();
 
     if (!intentText || !agentName) {
       return NextResponse.json({ error: "required" }, { status: 400 });
@@ -151,7 +275,8 @@ export async function POST(req: NextRequest) {
 
     // System prompt with prompt caching
     const isSimple = (complexity || "moderate") === "simple";
-    const stableContext = `${STATIC_RULES}\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${!isSimple && memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${!isSimple ? factsContext : ""}`;
+    const sheetsWriteRule = sheetsConnected ? "\n- sheets_writeツールを使う前に、必ず書き込み内容をユーザーに提示して確認を求めること。承認を得てから実行すること。" : "";
+    const stableContext = `${STATIC_RULES}${sheetsWriteRule}\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${!isSimple && memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${!isSimple ? factsContext : ""}`;
 
     const systemPromptParts: Anthropic.Messages.TextBlockParam[] = [
       {
@@ -182,12 +307,15 @@ export async function POST(req: NextRequest) {
     const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http", "https", ".com", ".jp", ".world", ".io"];
     const allText = intentText + " " + (history || []).map((h: { text: string }) => h.text).join(" ");
     const needsSearch = searchKeywords.some((kw) => allText.includes(kw));
-    const model = selectModel(complexity || "moderate", needsSearch);
-    const maxTokens = requestTweet ? 500 : 800;
+    const customTools = buildCustomTools(!!sheetsConnected, !!gmailConnected);
+    const hasCustomTools = customTools.length > 0;
+    const model = selectModel(complexity || "moderate", needsSearch, hasCustomTools);
+    const maxTokens = requestTweet ? 500 : (hasCustomTools ? 1500 : 800);
 
-    const tools = needsSearch
-      ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }]
-      : [];
+    const tools: (Anthropic.Messages.Tool | { type: "web_search_20250305"; name: "web_search"; max_uses: number })[] = [
+      ...(needsSearch ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }] : []),
+      ...customTools,
+    ];
 
     // === STREAMING MODE ===
     if (wantStream) {
@@ -237,27 +365,50 @@ export async function POST(req: NextRequest) {
               totalInputTokens += finalMessage.usage?.input_tokens || 0;
               totalOutputTokens += finalMessage.usage?.output_tokens || 0;
 
-              // Tool use continuation (web_search)
-              if (needsContinuation) {
+              // Tool use continuation loop (supports multiple rounds for web_search + custom tools)
+              let messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userPrompt }];
+              let currentAssistantContent = assistantContent;
+              let maxToolRounds = 5;
+
+              while (needsContinuation && maxToolRounds > 0) {
+                maxToolRounds--;
                 fullText = ""; // Reset - continuation will have the real answer
-                const toolResults = assistantContent
-                  .filter((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use")
+
+                // Build tool results
+                const toolUseBlocks = currentAssistantContent.filter(
+                  (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use"
+                );
+
+                // web_search tool results (handled automatically by Claude API)
+                const webSearchResults = toolUseBlocks
+                  .filter((b) => b.name === "web_search")
                   .map((b) => ({
                     type: "tool_result" as const,
                     tool_use_id: b.id,
                     content: "Search completed",
                   }));
 
+                // Custom tool results (execute via internal APIs)
+                const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId);
+
+                const allToolResults = [...webSearchResults, ...customToolResults];
+                if (allToolResults.length === 0) break;
+
+                messages = [
+                  ...messages,
+                  { role: "assistant", content: currentAssistantContent },
+                  { role: "user", content: allToolResults },
+                ];
+
+                needsContinuation = false;
+                currentAssistantContent = [];
+
                 const contStream = client.messages.stream({
                   model,
                   max_tokens: maxTokens,
                   system: systemPromptParts,
                   ...(tools.length > 0 ? { tools } : {}),
-                  messages: [
-                    { role: "user", content: userPrompt },
-                    { role: "assistant", content: assistantContent },
-                    { role: "user", content: toolResults },
-                  ],
+                  messages,
                 });
 
                 for await (const event of contStream) {
@@ -267,10 +418,19 @@ export async function POST(req: NextRequest) {
                       fullText += delta.text;
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "delta", text: delta.text })}\n\n`));
                     }
+                  } else if (event.type === "content_block_start") {
+                    if (event.content_block.type === "tool_use") {
+                      needsContinuation = true;
+                    }
+                  } else if (event.type === "message_delta") {
+                    if (event.delta && "stop_reason" in event.delta && event.delta.stop_reason === "tool_use") {
+                      needsContinuation = true;
+                    }
                   }
                 }
 
                 const contFinal = await contStream.finalMessage();
+                currentAssistantContent = [...contFinal.content];
                 totalInputTokens += contFinal.usage?.input_tokens || 0;
                 totalOutputTokens += contFinal.usage?.output_tokens || 0;
               }
@@ -376,25 +536,45 @@ export async function POST(req: NextRequest) {
     const textBlocks = message.content.filter((b) => b.type === "text");
     if (textBlocks.length > 0) finalText = (textBlocks[textBlocks.length - 1] as { type: "text"; text: string }).text;
 
-    if (message.stop_reason === "tool_use") {
-      const toolResults = message.content
-        .filter((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use")
+    // Tool use continuation loop (supports multiple rounds)
+    let currentMessage = message;
+    let messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userPrompt }];
+    let maxToolRounds = 5;
+
+    while (currentMessage.stop_reason === "tool_use" && maxToolRounds > 0) {
+      maxToolRounds--;
+
+      const toolUseBlocks = currentMessage.content.filter(
+        (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use"
+      );
+
+      // web_search tool results
+      const webSearchResults = toolUseBlocks
+        .filter((b) => b.name === "web_search")
         .map((b) => ({
           type: "tool_result" as const,
           tool_use_id: b.id,
           content: "Search completed",
         }));
 
+      // Custom tool results
+      const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId);
+
+      const allToolResults = [...webSearchResults, ...customToolResults];
+      if (allToolResults.length === 0) break;
+
+      messages = [
+        ...messages,
+        { role: "assistant", content: currentMessage.content },
+        { role: "user", content: allToolResults },
+      ];
+
       const continuation = await client.messages.create({
         model,
         max_tokens: maxTokens,
         system: systemPromptParts,
         ...(tools.length > 0 ? { tools } : {}),
-        messages: [
-          { role: "user", content: userPrompt },
-          { role: "assistant", content: message.content },
-          { role: "user", content: toolResults },
-        ],
+        messages,
       });
 
       totalInputTokens += continuation.usage?.input_tokens || 0;
@@ -402,6 +582,8 @@ export async function POST(req: NextRequest) {
 
       const contTextBlocks = continuation.content.filter((b) => b.type === "text");
       if (contTextBlocks.length > 0) finalText = (contTextBlocks[contTextBlocks.length - 1] as { type: "text"; text: string }).text;
+
+      currentMessage = continuation;
     }
 
     if (deviceId) {

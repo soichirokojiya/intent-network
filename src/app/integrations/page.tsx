@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line";
+type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line" | "sheets";
 
 interface Integration {
   key: IntegrationKey;
@@ -33,6 +33,7 @@ const LOGO_MAP: Record<IntegrationKey, string> = {
   slack: "/logos/slack.png",
   line: "/logos/line.svg",
   x: "/logos/x.svg",
+  sheets: "/logos/google-sheets.png",
 };
 
 const integrations: Integration[] = [
@@ -62,6 +63,15 @@ const integrations: Integration[] = [
     disconnectPath: "/api/google-drive/disconnect",
     category: "google",
     icon: <img src={LOGO_MAP.gdrive} alt="Google Drive" width={20} height={20} className="rounded" />,
+  },
+  {
+    key: "sheets",
+    name: "Google Sheets",
+    description: "チームがスプレッドシートの読み書きができるようになります。",
+    authPath: "/api/google-sheets/auth",
+    disconnectPath: "/api/google-sheets/disconnect",
+    category: "google",
+    icon: <img src={LOGO_MAP.sheets} alt="Google Sheets" width={20} height={20} className="rounded" />,
   },
   {
     key: "trello",
@@ -119,6 +129,7 @@ const STATUS_MAP: Record<IntegrationKey, string> = {
   x: "xConnected",
   slack: "slackConnected",
   line: "lineConnected",
+  sheets: "sheetsConnected",
 };
 
 export default function IntegrationsPage() {
@@ -128,7 +139,7 @@ export default function IntegrationsPage() {
   const searchParams = useSearchParams();
 
   const [connected, setConnected] = useState<Record<IntegrationKey, boolean>>({
-    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false,
+    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false, sheets: false,
   });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [notionAutoSave, setNotionAutoSave] = useState(false);
@@ -159,7 +170,7 @@ export default function IntegrationsPage() {
 
   // Handle all OAuth callbacks
   useEffect(() => {
-    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line"];
+    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line", "sheets"];
     for (const key of callbackKeys) {
       const param = searchParams.get(key);
       if (param === "connected") {

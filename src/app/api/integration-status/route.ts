@@ -35,5 +35,6 @@ export async function GET(req: NextRequest) {
     gmailConnected: data?.gmail_connected ?? false,
     slackConnected: data?.slack_connected ?? false,
     lineConnected: data?.line_connected ?? false,
+    sheetsConnected: data?.google_sheets_connected ?? false,
   });
 }
