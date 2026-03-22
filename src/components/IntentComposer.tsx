@@ -411,7 +411,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const isComposing = useRef(false);
-  const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, approveTweet, sendEmail, restAgent } = useIntents();
+  const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, streamingMessage, approveTweet, sendEmail, restAgent } = useIntents();
   const { t } = useLocale();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const processedResponseIds = useRef<Set<string>>(new Set());
@@ -483,6 +483,15 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     if (isNearBottom) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
+  // Auto-scroll during streaming
+  useEffect(() => {
+    if (!streamingMessage) return;
+    const el = chatAreaRef.current;
+    if (!el) return;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+    if (isNearBottom) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [streamingMessage]);
+
   // Show/hide scroll-to-bottom button
   const handleScroll = useCallback(() => {
     const el = chatAreaRef.current;
@@ -491,18 +500,28 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   }, []);
 
   // Convert agent responses to chat messages (with natural delay queue)
+  // Track which agents had streaming responses (skip read/typing animation for them)
+  const streamedAgentIds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (streamingMessage) {
+      streamedAgentIds.current.add(streamingMessage.agentId);
+    }
+  }, [streamingMessage]);
+
   useEffect(() => {
     agentResponses
       .filter((r) => (!r.roomId || r.roomId === roomId) && r.timestamp >= roomLoadTime.current)
       .forEach((resp) => {
+      // Skip placeholder "..." - streaming handles display
+      if (resp.toOwner === "...") return;
+
       // Deduplicate: use full content hash
       const contentKey = `${resp.agentId}-${resp.toOwner}`;
       if (processedResponseIds.current.has(contentKey)) return;
       processedResponseIds.current.add(contentKey);
 
       const key = `${resp.agentId}-${resp.timestamp}`;
-      // Agent's response to owner
-      enqueueMessage({
+      const msg: ChatMessage = {
         id: `agent-${key}`,
         type: "agent",
         agentName: resp.agentName,
@@ -510,7 +529,21 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         agentId: resp.agentId,
         text: resp.toOwner,
         timestamp: resp.timestamp,
-      });
+      };
+
+      // If this agent was streaming, skip the queue animation and add directly
+      if (streamedAgentIds.current.has(resp.agentId)) {
+        streamedAgentIds.current.delete(resp.agentId);
+        setChatHistory((prev) => [...prev, msg]);
+        saveChatMessage({
+          id: msg.id, type: "agent", text: msg.text,
+          agentName: msg.agentName, agentAvatar: msg.agentAvatar,
+          agentId: msg.agentId, timestamp: msg.timestamp,
+        }, roomId);
+      } else {
+        // Non-streamed response: use normal queue with read/typing animation
+        enqueueMessage(msg);
+      }
 
       // Email preview as a follow-up message
       if (resp.emailAction) {
@@ -988,6 +1021,22 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             </div></React.Fragment>
           );
         })}
+        {/* Streaming message - real-time display */}
+        {streamingMessage && streamingMessage.roomId === roomId && (
+          <div className="flex gap-2 animate-fade-in">
+            <div className="flex-shrink-0 mt-1">
+              <AgentAvatarDisplay avatar={streamingMessage.agentAvatar || ""} size={32} />
+            </div>
+            <div className="max-w-[75%]">
+              <div className="flex items-center gap-2 ml-1">
+                <span className="text-[11px] text-[var(--muted)]">{streamingMessage.agentName}</span>
+              </div>
+              <div className="mt-0.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-[var(--search-bg)]">
+                <ChatMessageText text={streamingMessage.text} />
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={chatEndRef} />
 
         {/* Scroll to bottom button */}

@@ -218,6 +218,8 @@ interface IntentContextType {
   // Agent responses to owner
   agentResponses: AgentResponse[];
   clearAgentResponses: () => void;
+  // Streaming message (real-time text display, bypasses message queue)
+  streamingMessage: { agentId: string; agentName: string; agentAvatar: string; text: string; roomId: string } | null;
   approveTweet: (agentId: string) => void;
   sendEmail: (agentId: string) => Promise<boolean>;
   // Actions
@@ -238,6 +240,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
   const [activeAgentIds, setActiveAgentIds] = useState<Set<string>>(new Set());
   const [internalChats, setInternalChats] = useState<InternalChat[]>([]);
   const [agentResponses, setAgentResponses] = useState<AgentResponse[]>([]);
+  const [streamingMessage, setStreamingMessage] = useState<{ agentId: string; agentName: string; agentAvatar: string; text: string; roomId: string } | null>(null);
   const initDone = useRef(false);
   const projectFactsCache = useRef<{ facts: { category: string; content: string }[]; fetchedAt: number }>({ facts: [], fetchedAt: 0 });
 
@@ -742,36 +745,6 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       stream: true,
     });
 
-    // Helper to update or add agent response (streaming-safe: match by agentId + roomId)
-    const streamingRef = { started: false };
-    const upsertResponse = (toOwner: string, extra?: { toTimeline?: string; emailAction?: { to: string; subject: string; body: string }; tweetPending?: boolean }) => {
-      setAgentResponses((prev) => {
-        const base = {
-          agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-          toOwner, toTimeline: extra?.toTimeline || "", timestamp: Date.now(), posted: false, tweeted: false,
-          tweetPending: extra?.tweetPending || false, roomId, emailAction: extra?.emailAction,
-        };
-        // Find existing entry for this agent in this room (placeholder or streaming update)
-        const existing = prev.findIndex((r) => r.agentId === agent.id && r.roomId === roomId);
-        if (existing >= 0 && streamingRef.started) {
-          const updated = [...prev];
-          updated[existing] = { ...updated[existing], ...base };
-          return updated;
-        }
-        if (!streamingRef.started) {
-          streamingRef.started = true;
-          // Replace placeholder "..." if it exists
-          if (existing >= 0 && prev[existing].toOwner === "...") {
-            const updated = [...prev];
-            updated[existing] = { ...updated[existing], ...base };
-            return updated;
-          }
-          return [...prev, base];
-        }
-        return prev;
-      });
-    };
-
     return fetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: requestBody,
@@ -809,7 +782,11 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
               const displayText = (completeMatch?.[1] || partialMatch?.[1] || "")
                 .replace(/\\n/g, "\n").replace(/\\"/g, '"');
               if (displayText) {
-                setTimeout(() => upsertResponse(displayText), delay);
+                // Update streaming message (bypasses message queue)
+                setStreamingMessage({
+                  agentId: agent.id, agentName: agent.config.name,
+                  agentAvatar: agent.config.avatar, text: displayText, roomId,
+                });
               }
             } else if (parsed.type === "done") {
               finalData = parsed;
@@ -824,6 +801,9 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // Clear streaming message
+      setStreamingMessage(null);
+
       // Use final parsed data
       const data = finalData || { toOwner: streamedText };
       return data;
@@ -832,11 +812,17 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       const toTimeline = String(data.toTimeline || "");
       const emailAction = data.emailAction as { to: string; subject: string; body: string } | undefined;
 
+      // Add final response to agentResponses (triggers message queue for persistence)
       setTimeout(() => {
-        upsertResponse(toOwner, {
-          toTimeline,
-          emailAction,
-          tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
+        setAgentResponses((prev) => {
+          // Remove any placeholder "..."
+          const filtered = prev.filter((r) => !(r.agentId === agent.id && r.toOwner === "..."));
+          return [...filtered, {
+            agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
+            toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
+            tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
+            roomId, emailAction,
+          }];
         });
       }, delay);
 
@@ -1125,7 +1111,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, restAgent, encourageAgent, revertDrift,
       internalChats, sendChatMessage,
       myAgentConfig, myAgentStats,
-      agentResponses, clearAgentResponses, approveTweet, sendEmail,
+      agentResponses, clearAgentResponses, streamingMessage, approveTweet, sendEmail,
       postIntent, postReply,
       getConversation: useCallback((id: string) => conversations.get(id), [conversations]),
       loadConversation,
