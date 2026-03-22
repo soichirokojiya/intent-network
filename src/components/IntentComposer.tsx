@@ -5,7 +5,7 @@ import { useIntents } from "@/context/IntentContext";
 import { useLocale } from "@/context/LocaleContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 import { AgentResponse } from "@/lib/types";
-import { loadChatHistory, loadOlderMessages, saveChatMessage } from "@/lib/chatStorage";
+import { loadChatHistory, loadOlderMessages, saveChatMessage, toggleMessageLike } from "@/lib/chatStorage";
 import { useAuth } from "@/context/AuthContext";
 import { translateRole } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
@@ -253,6 +253,7 @@ interface ChatMessage {
   timestamp: number;
   tweetPreview?: string;
   agentId?: string;
+  liked?: boolean;
 }
 
 function detectIntent(text: string): "approve" | "reject" | "tweet" | "message" {
@@ -939,7 +940,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
                     : "bg-[var(--search-bg)]"
                 }`}>
-                  <ChatMessageText text={msg.text.replace(/\\n/g, "\n").replace(/<cite[^>]*>|<\/cite>/g, "").replace("→ /billing", "")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
+                  <ChatMessageText text={msg.text.replace(/\\n/g, "\n").replace(/<cite[^>]*>|<\/cite>/g, "").replace("→ /billing", "").replace(/\n?\[proactive\]/g, "")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
                   {msg.text.includes("/billing") && (
                     <div className="mt-2">
                       <button
@@ -974,6 +975,11 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     </div>
                   )}
                 </div>
+                {msg.liked && (
+                  <div className="mt-0.5 ml-1">
+                    <span className="text-[12px] opacity-80">❤️</span>
+                  </div>
+                )}
                 <div className="opacity-0 group-hover:opacity-100 mt-1 ml-1 flex items-center gap-3">
                   <button
                     onClick={(e) => { navigator.clipboard.writeText(msg.text.replace(/\\n/g, "\n")); const btn = e.currentTarget; btn.textContent = "✓"; setTimeout(() => { btn.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>${t("chat.copy")}`; }, 1500); }}
@@ -992,6 +998,16 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                   >
                     <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
                     {t("chat.reply")}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newLiked = !msg.liked;
+                      setChatHistory((prev) => prev.map((m) => m.id === msg.id ? { ...m, liked: newLiked } : m));
+                      toggleMessageLike(msg.id, newLiked);
+                    }}
+                    className={`text-[11px] transition-all flex items-center gap-1 ${msg.liked ? 'text-red-400 hover:text-[var(--muted)]' : 'text-[var(--muted)] hover:text-red-400'}`}
+                  >
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill={msg.liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
                   </button>
                 </div>
                 {false && (

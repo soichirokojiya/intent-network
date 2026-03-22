@@ -7,6 +7,7 @@ export interface ChatMessage {
   text: string;
   tweetPreview?: string;
   timestamp: number;
+  liked?: boolean;
 }
 
 function getDeviceId(): string {
@@ -32,6 +33,7 @@ export async function loadChatHistory(roomId: string = "general"): Promise<ChatM
       text: row.text as string,
       tweetPreview: (row.tweet_preview as string) || undefined,
       timestamp: new Date(row.created_at as string).getTime(),
+      liked: (row.liked as boolean) || false,
     }));
   } catch (e) {
     console.error("loadChatHistory error:", e);
@@ -58,6 +60,7 @@ export async function loadOlderMessages(roomId: string = "general", beforeTimest
       text: row.text as string,
       tweetPreview: (row.tweet_preview as string) || undefined,
       timestamp: new Date(row.created_at as string).getTime(),
+      liked: (row.liked as boolean) || false,
     }));
   } catch (e) {
     console.error("loadOlderMessages error:", e);
@@ -100,6 +103,21 @@ export async function getRoomConversation(roomId: string = "general", limit: num
     }));
   } catch {
     return [];
+  }
+}
+
+export async function toggleMessageLike(messageId: string, liked: boolean): Promise<void> {
+  const deviceId = getDeviceId();
+  if (!deviceId) return;
+
+  try {
+    await fetch("/api/chat", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId, messageId, liked }),
+    });
+  } catch (e) {
+    console.error("toggleMessageLike error:", e);
   }
 }
 

@@ -89,6 +89,21 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
+// PATCH: Toggle liked status on a message
+export async function PATCH(req: NextRequest) {
+  const { deviceId, messageId, liked } = await req.json();
+  if (!deviceId || !messageId) return NextResponse.json({ error: "Missing params" }, { status: 400 });
+
+  const { error } = await supabase
+    .from("owner_chats")
+    .update({ liked: !!liked })
+    .eq("id", messageId)
+    .eq("device_id", deviceId);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
 // DELETE: Remove welcome messages (for re-running welcome sequence)
 export async function DELETE(req: NextRequest) {
   const { deviceId, roomId } = await req.json();
