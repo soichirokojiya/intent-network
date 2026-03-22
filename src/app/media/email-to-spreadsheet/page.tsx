@@ -21,20 +21,20 @@ export default function EmailToSpreadsheetArticle() {
       <header className="px-5 md:px-10 py-5 border-b border-gray-200 flex items-center gap-3">
         <Link
           href="/"
-          className="text-[22px] font-bold text-[#1a7a4a] no-underline font-serif"
+          className="text-[22px] font-bold text-[#4A99E9] no-underline font-serif"
         >
           musu
         </Link>
         <Link
           href="/media"
-          className="text-xs text-gray-500 border border-gray-200 px-2.5 py-0.5 rounded-full no-underline hover:border-[#1a7a4a] transition-colors"
+          className="text-xs text-gray-500 border border-gray-200 px-2.5 py-0.5 rounded-full no-underline hover:border-[#4A99E9] transition-colors"
         >
           活用事例
         </Link>
       </header>
 
       {/* Hero */}
-      <section className="bg-[#1a7a4a] text-white px-5 md:px-10 py-12 md:py-20 relative overflow-hidden">
+      <section className="bg-[#4A99E9] text-white px-5 md:px-10 py-12 md:py-20 relative overflow-hidden">
         <div className="absolute -top-[60px] -right-[60px] w-[300px] h-[300px] rounded-full bg-white/5" />
         <div className="max-w-[760px] mx-auto relative">
           <div className="text-[13px] tracking-wider opacity-70 mb-5 uppercase">
@@ -64,7 +64,7 @@ export default function EmailToSpreadsheetArticle() {
         </p>
 
         {/* Chat demo */}
-        <div className="bg-[#f0f4f2] rounded-2xl p-6 md:p-7 my-8">
+        <div className="bg-[#f0f4f8] rounded-2xl p-6 md:p-7 my-8">
           <div className="text-xs text-gray-500 tracking-wider mb-5 uppercase">
             実際の会話
           </div>
@@ -75,7 +75,7 @@ export default function EmailToSpreadsheetArticle() {
                 私
               </div>
               <div>
-                <div className="bg-[#1a7a4a] text-white rounded-xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed max-w-[85%] shadow-sm">
+                <div className="bg-[#4A99E9] text-white rounded-xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed max-w-[85%] shadow-sm">
                   ではメールからとったデータを入れていって
                 </div>
               </div>
@@ -83,7 +83,7 @@ export default function EmailToSpreadsheetArticle() {
 
             {/* AI bubble */}
             <div className="flex gap-2.5 items-start">
-              <div className="w-9 h-9 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center text-sm font-bold shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#4A99E9] text-white flex items-center justify-center text-sm font-bold shrink-0">
                 M
               </div>
               <div>
@@ -110,7 +110,7 @@ export default function EmailToSpreadsheetArticle() {
                 私
               </div>
               <div>
-                <div className="bg-[#1a7a4a] text-white rounded-xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed max-w-[85%] shadow-sm">
+                <div className="bg-[#4A99E9] text-white rounded-xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed max-w-[85%] shadow-sm">
                   ok
                 </div>
               </div>
@@ -118,7 +118,7 @@ export default function EmailToSpreadsheetArticle() {
 
             {/* AI bubble */}
             <div className="flex gap-2.5 items-start">
-              <div className="w-9 h-9 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center text-sm font-bold shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#4A99E9] text-white flex items-center justify-center text-sm font-bold shrink-0">
                 M
               </div>
               <div>
@@ -142,7 +142,7 @@ export default function EmailToSpreadsheetArticle() {
         </p>
 
         {/* H2 */}
-        <h2 className="font-serif text-[22px] font-bold text-[#111] mt-14 mb-5 pl-4 border-l-4 border-[#1a7a4a]">
+        <h2 className="font-serif text-[22px] font-bold text-[#111] mt-14 mb-5 pl-4 border-l-4 border-[#4A99E9]">
           何をしたのか、整理すると
         </h2>
 
@@ -153,7 +153,7 @@ export default function EmailToSpreadsheetArticle() {
         {/* Steps */}
         <div className="my-8 flex flex-col gap-5">
           <div className="flex gap-5 items-start">
-            <div className="w-10 h-10 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center font-bold text-base shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#4A99E9] text-white flex items-center justify-center font-bold text-base shrink-0">
               1
             </div>
             <div>
@@ -167,7 +167,7 @@ export default function EmailToSpreadsheetArticle() {
           </div>
 
           <div className="flex gap-5 items-start">
-            <div className="w-10 h-10 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center font-bold text-base shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#4A99E9] text-white flex items-center justify-center font-bold text-base shrink-0">
               2
             </div>
             <div>
@@ -181,7 +181,7 @@ export default function EmailToSpreadsheetArticle() {
           </div>
 
           <div className="flex gap-5 items-start">
-            <div className="w-10 h-10 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center font-bold text-base shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#4A99E9] text-white flex items-center justify-center font-bold text-base shrink-0">
               3
             </div>
             <div>
@@ -195,7 +195,7 @@ export default function EmailToSpreadsheetArticle() {
           </div>
 
           <div className="flex gap-5 items-start">
-            <div className="w-10 h-10 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center font-bold text-base shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#4A99E9] text-white flex items-center justify-center font-bold text-base shrink-0">
               4
             </div>
             <div>
@@ -229,7 +229,7 @@ export default function EmailToSpreadsheetArticle() {
         </div>
 
         {/* H2 */}
-        <h2 className="font-serif text-[22px] font-bold text-[#111] mt-14 mb-5 pl-4 border-l-4 border-[#1a7a4a]">
+        <h2 className="font-serif text-[22px] font-bold text-[#111] mt-14 mb-5 pl-4 border-l-4 border-[#4A99E9]">
           ポイントは「承認してから実行」という設計
         </h2>
 
@@ -238,14 +238,14 @@ export default function EmailToSpreadsheetArticle() {
         </p>
 
         {/* Highlight box */}
-        <div className="bg-[#e8f5ee] border-l-4 border-[#1a7a4a] rounded-r-xl px-6 py-5 my-8">
-          <p className="text-[#1a4a2e] font-medium !mb-0">
+        <div className="bg-[#e8f0fe] border-l-4 border-[#4A99E9] rounded-r-xl px-6 py-5 my-8">
+          <p className="text-[#1a3a6e] font-medium !mb-0">
             「育てるほど、任せられる」というmusuのコンセプトはここにある。最初は確認しながら、慣れてきたら自動実行へ。信頼を積み重ねながら、少しずつ任せる範囲を広げていける。
           </p>
         </div>
 
         {/* H2 */}
-        <h2 className="font-serif text-[22px] font-bold text-[#111] mt-14 mb-5 pl-4 border-l-4 border-[#1a7a4a]">
+        <h2 className="font-serif text-[22px] font-bold text-[#111] mt-14 mb-5 pl-4 border-l-4 border-[#4A99E9]">
           次のステップ：今後は自動で反映される
         </h2>
 
@@ -262,7 +262,7 @@ export default function EmailToSpreadsheetArticle() {
         </p>
 
         {/* H2 */}
-        <h2 className="font-serif text-[22px] font-bold text-[#111] mt-14 mb-5 pl-4 border-l-4 border-[#1a7a4a]">
+        <h2 className="font-serif text-[22px] font-bold text-[#111] mt-14 mb-5 pl-4 border-l-4 border-[#4A99E9]">
           ソロプレナーに伝えたいこと
         </h2>
 
@@ -275,7 +275,7 @@ export default function EmailToSpreadsheetArticle() {
         </p>
 
         {/* CTA */}
-        <div className="bg-[#1a7a4a] text-white rounded-[20px] px-6 md:px-10 py-12 text-center mt-16">
+        <div className="bg-[#4A99E9] text-white rounded-[20px] px-6 md:px-10 py-12 text-center mt-16">
           <h2 className="font-serif text-2xl md:text-[26px] font-bold mb-3">
             ひとりだけど、ひとりじゃない。
           </h2>
@@ -286,7 +286,7 @@ export default function EmailToSpreadsheetArticle() {
           </p>
           <Link
             href="/"
-            className="inline-block bg-white text-[#1a7a4a] font-bold text-base px-10 py-3.5 rounded-full no-underline hover:-translate-y-0.5 transition-transform"
+            className="inline-block bg-white text-[#4A99E9] font-bold text-base px-10 py-3.5 rounded-full no-underline hover:-translate-y-0.5 transition-transform"
           >
             musuをはじめる &rarr;
           </Link>

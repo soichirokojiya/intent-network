@@ -15,7 +15,7 @@ export default function MediaPage() {
       <header className="px-5 py-4 border-b border-gray-200 flex items-center gap-3">
         <Link
           href="/"
-          className="text-xl font-extrabold text-[#1a7a4a] tracking-tight"
+          className="text-xl font-extrabold text-[#4A99E9] tracking-tight"
         >
           musu
         </Link>
@@ -25,13 +25,14 @@ export default function MediaPage() {
       </header>
 
       {/* Hero */}
-      <section className="bg-[#1a7a4a] text-white px-5 py-16 md:py-24">
+      <section className="bg-[#4A99E9] text-white px-5 py-16 md:py-24">
         <div className="max-w-3xl mx-auto">
+          <p className="text-sm text-white/60 tracking-wider mb-3">musu media</p>
           <h1 className="font-serif text-3xl md:text-4xl font-bold mb-4">
-            musu 活用事例
+            使い方は、使う人の数だけある。
           </h1>
           <p className="text-white/80 text-lg">
-            AIエージェントチームと一緒に、こんなことができる。
+            musuを活用しているソロプレナーたちのリアルな事例を紹介します。
           </p>
         </div>
       </section>
@@ -45,14 +46,14 @@ export default function MediaPage() {
               href={`/media/${article.slug}`}
               className="block group"
             >
-              <article className="border border-gray-200 rounded-2xl p-6 hover:border-[#1a7a4a] hover:shadow-md transition-all">
+              <article className="border border-gray-200 rounded-2xl p-6 hover:border-[#4A99E9] hover:shadow-md transition-all">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs text-[#1a7a4a] font-bold bg-[#e8f5ee] px-2.5 py-0.5 rounded-full">
+                  <span className="text-xs text-[#4A99E9] font-bold bg-[#e8f0fe] px-2.5 py-0.5 rounded-full">
                     {article.label}
                   </span>
                   <span className="text-xs text-gray-400">{article.date}</span>
                 </div>
-                <h2 className="text-lg font-bold text-gray-900 group-hover:text-[#1a7a4a] transition-colors mb-2">
+                <h2 className="text-lg font-bold text-gray-900 group-hover:text-[#4A99E9] transition-colors mb-2">
                   {article.title}
                 </h2>
                 <p className="text-sm text-gray-500 leading-relaxed">
