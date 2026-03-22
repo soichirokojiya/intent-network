@@ -176,14 +176,14 @@ export async function POST(req: NextRequest) {
       ? `オーナーがツイートの作成を依頼しました:\n「${intentText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "オーナーへの返事（1-2文）", "toTimeline": "ツイート文（140文字以内）"}`
       : wantsEmail
       ? `オーナーのメッセージ:\n「${intentText}」\n\nオーナーがメール送信を依頼しています。必ずemailAction付きのJSONを出力してください。\n件名や本文が指定されていなくても、文脈やオーナーの事業情報から推測して適切な件名・本文を自分で考えて作成すること。「教えてください」と聞き返すのは禁止。\n\nJSON（コードブロック不要）:\n{"toOwner": "メールを作成しました（1文）", "emailAction": {"to": "宛先メールアドレス", "subject": "件名", "body": "本文（ビジネスメールとして丁寧に）"}}\n\n注意:\n- 宛先が不明な場合のみtoOwnerで宛先を聞く（emailActionは含めない）\n- それ以外は必ずemailActionを含めること`
-      : `オーナーのメッセージ:\n「${intentText}」\n\n必要十分な長さで回答して。短すぎず長すぎず、要点を押さえて。チャットなのでレポート形式は禁止だが、考えを伝えるのに必要な分量は使ってよい。Markdown禁止。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "返事"}`;
+      : `オーナーのメッセージ:\n「${intentText}」\n\nこれはチャットです。友達とLINEするくらいの感覚で、3-5文で簡潔に答えて。長文レポート禁止。前置き不要、いきなり本題。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "返事"}`;
 
     // Smart model routing - check task + conversation history for search triggers
     const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http", "https", ".com", ".jp", ".world", ".io"];
     const allText = intentText + " " + (history || []).map((h: { text: string }) => h.text).join(" ");
     const needsSearch = searchKeywords.some((kw) => allText.includes(kw));
     const model = selectModel(complexity || "moderate", needsSearch);
-    const maxTokens = requestTweet ? 500 : 2000;
+    const maxTokens = requestTweet ? 500 : 800;
 
     const tools = needsSearch
       ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }]
