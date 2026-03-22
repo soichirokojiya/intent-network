@@ -54,6 +54,54 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Quick fact extraction for important messages (runs in background)
+  if (type === "user" && text.length > 10) {
+    (async () => {
+      try {
+        const importantKeywords = ["にする", "に決めた", "やめる", "変更", "方針", "ルール", "今後は", "これからは", "もうやらない", "必ず", "禁止", "廃止"];
+        const hasKeyword = importantKeywords.some(kw => text.includes(kw));
+        if (!hasKeyword) return;
+
+        const { default: Anthropic } = await import("@anthropic-ai/sdk");
+        const client = new Anthropic();
+        const response = await client.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 300,
+          messages: [{
+            role: "user",
+            content: `以下のメッセージに重要な意思決定・方針変更・ルール設定が含まれていますか？含まれている場合のみ、JSON配列で抽出してください。含まれていない場合は空配列[]を返してください。\n\n「${text}」\n\nJSON（コードブロック不要）:\n[{"category": "decision|policy|spec|task", "content": "抽出した内容"}]`
+          }]
+        });
+        const textBlock = response.content.find((b: { type: string }) => b.type === "text");
+        const rawText = textBlock ? (textBlock as { type: "text"; text: string }).text : "[]";
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) return;
+        const facts = JSON.parse(jsonMatch[0]);
+        if (!Array.isArray(facts) || facts.length === 0) return;
+
+        const validCategories = ["decision", "spec", "task", "policy"];
+        for (const fact of facts) {
+          if (!fact.category || !fact.content || !validCategories.includes(fact.category)) continue;
+          // Supersede old facts of same category
+          await supabase
+            .from("project_facts")
+            .update({ status: "superseded", updated_at: new Date().toISOString() })
+            .eq("device_id", deviceId)
+            .eq("category", fact.category)
+            .or("status.eq.active,status.is.null");
+          // Insert new fact
+          await supabase.from("project_facts").insert({
+            device_id: deviceId,
+            category: fact.category,
+            content: fact.content,
+            source_agent: "instant-extract",
+            status: "active",
+          });
+        }
+      } catch {}
+    })();
+  }
+
   // Trigger memory summarization in background if needed
   try {
     const { count } = await supabase

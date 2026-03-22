@@ -23,7 +23,7 @@ function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: b
 }
 
 // Custom tool definitions
-const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation"] as const;
+const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact"] as const;
 
 function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): Anthropic.Messages.Tool[] {
   const tools: Anthropic.Messages.Tool[] = [];
@@ -113,6 +113,19 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
     });
   }
 
+  // forget_fact is always available (no integration gate)
+  tools.push({
+    name: "forget_fact",
+    description: "ユーザーが「忘れて」「もう違う」「変えた」と言った時に、該当するproject_factをsupersededにする。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        factContent: { type: "string", description: "忘れる/無効化するファクトの内容（部分一致で検索）" },
+      },
+      required: ["factContent"],
+    },
+  });
+
   return tools;
 }
 
@@ -179,6 +192,15 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const data = await res.json();
         return JSON.stringify(data);
       }
+      case "forget_fact": {
+        const res = await fetch(`${baseUrl}/api/project-facts`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId, content: input.factContent }),
+        });
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
       default:
         return JSON.stringify({ error: `Unknown tool: ${toolName}` });
     }
@@ -222,7 +244,8 @@ const STATIC_RULES = `重要ルール:
 - 番号付きリストも禁止。(1) 1. 1: エラー1: のような形式は全て使わない
 - プレーンテキストのみ。箇条書きは「・」を使う。強調は「」で囲む
 - 〈〉【】などの装飾括弧も使わない。シンプルに書く
-- 必ず日本語で回答すること。英語は固有名詞のみ許可`;
+- 必ず日本語で回答すること。英語は固有名詞のみ許可
+- ユーザーが「忘れて」「もう違う」「その方針は変えた」等と言った場合、forget_factツールを使って該当ファクトを無効化すること`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -336,7 +359,7 @@ export async function POST(req: NextRequest) {
     // System prompt with prompt caching
     const isSimple = (complexity || "moderate") === "simple";
     const sheetsWriteRule = sheetsConnected ? "\n- sheets_writeツールを使う前に、必ず書き込み内容をユーザーに提示して確認を求めること。承認を得てから実行すること。" : "";
-    const stableContext = `${STATIC_RULES}${sheetsWriteRule}\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${!isSimple && memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${!isSimple ? factsContext : ""}`;
+    const stableContext = `${STATIC_RULES}${sheetsWriteRule}\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
 
     const systemPromptParts: Anthropic.Messages.TextBlockParam[] = [
       {

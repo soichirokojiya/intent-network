@@ -36,5 +36,6 @@ export async function GET(req: NextRequest) {
     slackConnected: data?.slack_connected ?? false,
     lineConnected: data?.line_connected ?? false,
     sheetsConnected: data?.google_sheets_connected ?? false,
+    memorySummary: data?.memory_summary || "",
   });
 }

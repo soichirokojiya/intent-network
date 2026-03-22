@@ -64,3 +64,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  const { deviceId, content } = await req.json();
+  if (!deviceId || !content) return NextResponse.json({ error: "Missing params" }, { status: 400 });
+
+  // Find and supersede matching facts
+  const { data: facts } = await supabase
+    .from("project_facts")
+    .select("id, content")
+    .eq("device_id", deviceId)
+    .or("status.eq.active,status.is.null");
+
+  const matching = (facts || []).filter(f => f.content.includes(content) || content.includes(f.content));
+
+  if (matching.length === 0) {
+    return NextResponse.json({ forgotten: 0, message: "該当するファクトが見つかりませんでした" });
+  }
+
+  for (const fact of matching) {
+    await supabase
+      .from("project_facts")
+      .update({ status: "superseded", updated_at: new Date().toISOString() })
+      .eq("id", fact.id);
+  }
+
+  return NextResponse.json({ forgotten: matching.length, message: `${matching.length}件のファクトを無効化しました` });
+}

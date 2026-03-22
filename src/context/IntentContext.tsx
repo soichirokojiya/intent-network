@@ -698,6 +698,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     let trelloData: { boards: { name: string; url: string; cards: { name: string; list: string; due: string | null }[] }[] } | undefined;
     let gmailData: { messages: { id: string; subject: string; from: string; date: string; snippet: string }[] } | undefined;
     let sheetsConnected = false;
+    let fetchedMemorySummary = "";
     try {
       const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
       if (deviceId) {
@@ -710,6 +711,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         if (statusRes?.ok) {
           const statusData = await statusRes.json();
           sheetsConnected = !!statusData.sheetsConnected;
+          fetchedMemorySummary = statusData.memorySummary || "";
         }
         if (calRes?.ok) {
           const calData = await calRes.json();
@@ -744,7 +746,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
       complexity,
       ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
-      memorySummary: typeof window !== "undefined" ? localStorage.getItem("musu_memory_summary") || "" : "",
+      memorySummary: fetchedMemorySummary || (typeof window !== "undefined" ? localStorage.getItem("musu_memory_summary") || "" : ""),
       projectFacts: facts,
       calendarEvents,
       trelloData,
