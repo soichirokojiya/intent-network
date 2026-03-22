@@ -23,7 +23,7 @@ function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: b
 }
 
 // Custom tool definitions
-const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "gmail_search", "gmail_read"] as const;
+const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read"] as const;
 
 function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): Anthropic.Messages.Tool[] {
   const tools: Anthropic.Messages.Tool[] = [];
@@ -39,6 +39,18 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
           range: { type: "string", description: "読み取り範囲（例: Sheet1!A1:C10）" },
         },
         required: ["spreadsheetId", "range"],
+      },
+    });
+    tools.push({
+      name: "sheets_create",
+      description: "新しいGoogle スプレッドシートを作成する。作成後のspreadsheetIdとURLを返す。",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          title: { type: "string", description: "スプレッドシートのタイトル" },
+          sheetNames: { type: "array", items: { type: "string" }, description: "シート名の配列（省略時はSheet1）" },
+        },
+        required: ["title"],
       },
     });
     tools.push({
@@ -96,6 +108,15 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ deviceId, spreadsheetId: input.spreadsheetId, range: input.range }),
+        });
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "sheets_create": {
+        const res = await fetch(`${baseUrl}/api/google-sheets/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId, title: input.title, sheetNames: input.sheetNames }),
         });
         const data = await res.json();
         return JSON.stringify(data);
