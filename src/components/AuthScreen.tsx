@@ -91,8 +91,13 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
         <h1 className="text-2xl font-extrabold text-center mb-1">
           {isReset ? t("auth.resetPassword") : isSignUp ? t("auth.teamTagline") : t("auth.welcome")}
         </h1>
+        {!isReset && (
+          <p className="text-[var(--muted)] text-center text-[13px] mb-1">
+            育てるほど、任せられる。
+          </p>
+        )}
         <p className="text-[var(--muted)] text-center text-[14px] mb-6">
-          {isReset ? t("auth.enterEmail") : isSignUp ? t("auth.freeStart") : t("auth.signInPlease")}
+          {isReset ? t("auth.enterEmail") : isSignUp ? "あなただけの仲間を持とう。" : t("auth.signInPlease")}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
