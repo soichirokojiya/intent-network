@@ -39,8 +39,8 @@ export async function GET(req: NextRequest) {
     const tokens = await tokenRes.json();
 
     if (!tokens.access_token) {
-      console.error("Chatwork token exchange failed:", tokens);
-      return NextResponse.redirect(new URL("/integrations?chatwork=error", req.url));
+      console.error("Chatwork token exchange failed:", JSON.stringify(tokens), "status:", tokenRes.status);
+      return NextResponse.redirect(new URL(`/integrations?chatwork=error&detail=${encodeURIComponent(JSON.stringify(tokens))}`, req.url));
     }
 
     // Save tokens to profiles table (deviceId = user id)
