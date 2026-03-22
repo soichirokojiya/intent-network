@@ -308,9 +308,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           const activeIds = defaults.filter((a) => coreNames.includes(a.config.name)).map((a) => a.id);
           setActiveAgentIds(new Set(activeIds));
           // Save sequentially to avoid RLS/concurrency issues
+          const activeSet = new Set(activeIds);
           (async () => {
             for (const agent of defaults) {
-              await saveAgent(agent, true);
+              await saveAgent(agent, activeSet.has(agent.id));
             }
           })();
           // Welcome messages are shown via UI (IntentComposer) when chatHistory is empty
