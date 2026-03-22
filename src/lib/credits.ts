@@ -36,13 +36,22 @@ export async function getBalance(): Promise<number> {
     .single();
 
   if (!data) {
-    // Create initial credit
+    // Get initial credit amount from site_settings (default 1000)
+    let initialCredit = 1000;
+    try {
+      const { data: setting } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "initial_credit_yen")
+        .single();
+      if (setting?.value) initialCredit = Number(setting.value) || 1000;
+    } catch {}
     await supabase.from("user_credits").insert({
       device_id: deviceId,
       user_id: deviceId,
-      balance_yen: 300,
+      balance_yen: initialCredit,
     });
-    return 300;
+    return initialCredit;
   }
   return Number(data.balance_yen);
 }

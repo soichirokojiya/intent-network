@@ -99,6 +99,9 @@ export default function AdminPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<"users" | "usage" | "kpi">("users");
   const [signupEnabled, setSignupEnabled] = useState(true);
+  const [initialCredit, setInitialCredit] = useState(1000);
+  const [editingCredit, setEditingCredit] = useState(false);
+  const [creditInput, setCreditInput] = useState("1000");
 
   const fetchSettings = useCallback(async (token: string) => {
     try {
@@ -106,6 +109,10 @@ export default function AdminPage() {
       if (res.ok) {
         const data = await res.json();
         setSignupEnabled(data.signup_enabled !== "false");
+        if (data.initial_credit_yen) {
+          setInitialCredit(Number(data.initial_credit_yen));
+          setCreditInput(data.initial_credit_yen);
+        }
       }
     } catch {}
   }, []);
@@ -121,6 +128,20 @@ export default function AdminPage() {
       body: JSON.stringify({ key: "signup_enabled", value: String(newValue) }),
     });
   }, [signupEnabled]);
+
+  const saveInitialCredit = useCallback(async () => {
+    const token = sessionStorage.getItem("admin_token");
+    if (!token) return;
+    const val = Number(creditInput);
+    if (isNaN(val) || val < 0) return;
+    setInitialCredit(val);
+    setEditingCredit(false);
+    await fetch("/api/admin/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ key: "initial_credit_yen", value: String(val) }),
+    });
+  }, [creditInput]);
 
   const fetchStats = useCallback(async (token: string) => {
     setLoading(true);
@@ -294,6 +315,26 @@ export default function AdminPage() {
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: signupEnabled ? "#00ba7c" : "#f4212e" }} />
               新規登録: {signupEnabled ? "公開中" : "停止中"}
             </button>
+            {editingCredit ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <span style={{ fontSize: "13px", color: "#536471" }}>初期クレジット: ¥</span>
+                <input
+                  type="number"
+                  value={creditInput}
+                  onChange={(e) => setCreditInput(e.target.value)}
+                  style={{ width: "80px", padding: "4px 8px", borderRadius: "8px", border: "1px solid #eff3f4", fontSize: "13px" }}
+                />
+                <button onClick={saveInitialCredit} style={{ padding: "4px 10px", borderRadius: "8px", background: "#1d9bf0", color: "#fff", fontSize: "12px", fontWeight: 600, border: "none", cursor: "pointer" }}>保存</button>
+                <button onClick={() => { setEditingCredit(false); setCreditInput(String(initialCredit)); }} style={{ padding: "4px 10px", borderRadius: "8px", background: "transparent", color: "#536471", fontSize: "12px", fontWeight: 600, border: "1px solid #eff3f4", cursor: "pointer" }}>×</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEditingCredit(true)}
+                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", borderRadius: "9999px", border: "1px solid #eff3f4", background: "#fff", color: "#536471", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}
+              >
+                初期クレジット: {formatYen(initialCredit)}
+              </button>
+            )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             {lastUpdated && (
