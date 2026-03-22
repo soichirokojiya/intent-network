@@ -519,8 +519,24 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     });
   }, [chatHistory]);
 
-  // No auto-scroll during streaming or on agent response completion.
-  // User can use the scroll-to-bottom button if needed.
+  // Auto-scroll during streaming: scroll to bottom on first chunk, follow during stream
+  const prevStreamingRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!streamingMessage) {
+      prevStreamingRef.current = null;
+      return;
+    }
+    const el = chatAreaRef.current;
+    if (!el) return;
+    // First chunk: scroll to bottom to show the response
+    if (!prevStreamingRef.current) {
+      prevStreamingRef.current = streamingMessage.agentId;
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    // During streaming: keep following
+    el.scrollTop = el.scrollHeight;
+  }, [streamingMessage]);
 
   // Show/hide scroll-to-bottom button
   const handleScroll = useCallback(() => {
