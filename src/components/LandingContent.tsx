@@ -103,9 +103,14 @@ export function LandingContent() {
             <p className="text-lg text-gray-500">
               あなただけの仲間を持とう。
             </p>
-            <Link href="/about" className="inline-block mt-4 text-[14px] text-[#4A99E9] font-bold hover:underline">
-              musuについて詳しく見る →
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center md:items-start gap-2 mt-4">
+              <Link href="/about" className="text-[14px] text-[#4A99E9] font-bold hover:underline">
+                musuについて詳しく見る →
+              </Link>
+              <Link href="/media" className="text-[14px] text-gray-500 font-bold hover:underline">
+                活用事例を見る →
+              </Link>
+            </div>
           </div>
 
           {/* Right: Auth form */}

@@ -137,6 +137,9 @@ export default function AboutPage() {
             <span className="text-lg font-extrabold">musu</span>
           </Link>
           <div className="flex items-center gap-3">
+            <Link href="/media" className="text-sm text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
+              活用事例
+            </Link>
             <Link href="/help" className="text-sm text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
               ヘルプ
             </Link>
