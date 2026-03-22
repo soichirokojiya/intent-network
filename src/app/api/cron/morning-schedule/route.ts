@@ -110,7 +110,7 @@ async function generateScheduleMessage(
   tomorrowEvents: { title: string; start: string; end: string; location: string }[],
   businessInfo: string,
   isEvening: boolean
-): Promise<string> {
+): Promise<{ text: string; usage: { input_tokens: number; output_tokens: number } | null }> {
   const todayList = formatEventList(todayEvents);
   const tomorrowList = formatEventList(tomorrowEvents);
 
@@ -162,17 +162,17 @@ ${todayList}
       messages: [{ role: "user", content: prompt }],
     });
     const text = response.content.find((b) => b.type === "text");
-    return text ? (text as { type: "text"; text: string }).text : formatEventList(todayEvents);
+    return { text: text ? (text as { type: "text"; text: string }).text : formatEventList(todayEvents), usage: response.usage };
   } catch {
     // Fallback to simple format
     if (isEvening) {
-      return tomorrowEvents.length === 0
+      return { text: tomorrowEvents.length === 0
         ? "お疲れさまでした。明日は予定がありません。ゆっくり休んでください。"
-        : `お疲れさまでした。明日の予定です。\n\n${tomorrowList}`;
+        : `お疲れさまでした。明日の予定です。\n\n${tomorrowList}`, usage: null };
     }
-    return todayEvents.length === 0
+    return { text: todayEvents.length === 0
       ? "おはようございます。今日は予定がありません。集中して作業できる日ですね。"
-      : `おはようございます。今日の予定です。\n\n${todayList}`;
+      : `おはようございます。今日の予定です。\n\n${todayList}`, usage: null };
   }
 }
 
@@ -244,12 +244,41 @@ export async function GET(req: Request) {
             : "おはようございます。今日は予定がありません。集中して作業できる日ですね。";
         } else {
           // Generate message with AI analysis only when events exist
-          messageText = await generateScheduleMessage(
+          const result = await generateScheduleMessage(
             todayEvents,
             tomorrowEvents,
             profile.business_info || "",
             isEvening
           );
+          messageText = result.text;
+
+          // Billing
+          if (result.usage) {
+            const modelUsed = "claude-haiku-4-5-20251001";
+            const usage = result.usage;
+            const inputTokens = (usage?.input_tokens || 0) + ((usage as unknown as Record<string, number>).cache_creation_input_tokens || 0) + ((usage as unknown as Record<string, number>).cache_read_input_tokens || 0);
+            const outputTokens = usage?.output_tokens || 0;
+            const pricing: Record<string, { input: number; output: number }> = {
+              "claude-opus-4-6": { input: 5 / 1_000_000, output: 25 / 1_000_000 },
+              "claude-sonnet-4-6": { input: 3 / 1_000_000, output: 15 / 1_000_000 },
+              "claude-haiku-4-5-20251001": { input: 1 / 1_000_000, output: 5 / 1_000_000 },
+            };
+            const modelPricing = pricing[modelUsed] || pricing["claude-haiku-4-5-20251001"];
+            const baseCost = (usage?.input_tokens || 0) * modelPricing.input;
+            const cacheCost = ((usage as unknown as Record<string, number>).cache_creation_input_tokens || 0) * modelPricing.input * 1.25
+              + ((usage as unknown as Record<string, number>).cache_read_input_tokens || 0) * modelPricing.input * 0.1;
+            const outputCost = outputTokens * modelPricing.output;
+            const costUsd = baseCost + cacheCost + outputCost;
+            const costYen = Math.ceil(costUsd * 150 * 1.5);
+            if (deviceId && costYen > 0) {
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
+              fetch(`${baseUrl}/api/credits`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ deviceId, inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "morning-schedule" }),
+              }).catch(() => {});
+            }
+          }
         }
 
         await supabase.from("owner_chats").insert({

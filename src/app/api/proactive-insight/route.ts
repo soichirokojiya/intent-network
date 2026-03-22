@@ -123,6 +123,34 @@ ${chatHistory || "(なし)"}
       messages: [{ role: "user", content: prompt }],
     });
 
+    // Billing
+    {
+      const modelUsed = "claude-haiku-4-5-20251001";
+      const usage = response.usage;
+      const inputTokens = (usage?.input_tokens || 0) + ((usage as unknown as Record<string, number>).cache_creation_input_tokens || 0) + ((usage as unknown as Record<string, number>).cache_read_input_tokens || 0);
+      const outputTokens = usage?.output_tokens || 0;
+      const pricing: Record<string, { input: number; output: number }> = {
+        "claude-opus-4-6": { input: 5 / 1_000_000, output: 25 / 1_000_000 },
+        "claude-sonnet-4-6": { input: 3 / 1_000_000, output: 15 / 1_000_000 },
+        "claude-haiku-4-5-20251001": { input: 1 / 1_000_000, output: 5 / 1_000_000 },
+      };
+      const modelPricing = pricing[modelUsed] || pricing["claude-haiku-4-5-20251001"];
+      const baseCost = (usage?.input_tokens || 0) * modelPricing.input;
+      const cacheCost = ((usage as unknown as Record<string, number>).cache_creation_input_tokens || 0) * modelPricing.input * 1.25
+        + ((usage as unknown as Record<string, number>).cache_read_input_tokens || 0) * modelPricing.input * 0.1;
+      const outputCost = outputTokens * modelPricing.output;
+      const costUsd = baseCost + cacheCost + outputCost;
+      const costYen = Math.ceil(costUsd * 150 * 1.5);
+      if (deviceId && costYen > 0) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
+        fetch(`${baseUrl}/api/credits`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId, inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "proactive-insight" }),
+        }).catch(() => {});
+      }
+    }
+
     const textBlock = response.content.find((b) => b.type === "text");
     const messageText = textBlock ? (textBlock as { type: "text"; text: string }).text.trim() : "";
 

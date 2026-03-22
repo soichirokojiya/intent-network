@@ -932,6 +932,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
               message: text,
               agents: nonOrchestrator.map((a) => ({ name: a.config.name, role: a.config.role || a.config.expertise || "" })),
               conversationHistory: history,
+              deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
             }),
           });
           if (routeRes.ok) {
