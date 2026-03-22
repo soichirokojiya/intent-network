@@ -64,6 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load profile from profiles table
   const loadProfile = useCallback(async (userId: string, email: string) => {
+    // Clear previous account data from localStorage FIRST to prevent leaks
+    localStorage.removeItem("musu_business_info");
+    localStorage.removeItem("musu_memory_summary");
     bindDeviceId(userId);
     const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
     setDisplayName(data?.display_name || email.split("@")[0]);
@@ -81,8 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setGoogleCalendarConnected(data?.google_calendar_connected ?? false);
     setTrelloConnected(data?.trello_connected ?? false);
     setScheduleDeliveryEnabled(data?.schedule_delivery_enabled ?? false);
-    if (data?.business_info) localStorage.setItem("musu_business_info", data.business_info);
-    if (data?.memory_summary) localStorage.setItem("musu_memory_summary", data.memory_summary);
+    // Only set localStorage if this account has data
+    localStorage.setItem("musu_business_info", data?.business_info || "");
+    localStorage.setItem("musu_memory_summary", data?.memory_summary || "");
   }, [bindDeviceId]);
 
   useEffect(() => {
