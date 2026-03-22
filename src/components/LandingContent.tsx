@@ -107,7 +107,7 @@ export function LandingContent() {
               <Link href="/about" className="text-[14px] text-[#4A99E9] font-bold hover:underline">
                 musuについて詳しく見る →
               </Link>
-              <Link href="/media" className="text-[14px] text-gray-500 font-bold hover:underline">
+              <Link href="/media" className="text-[14px] text-[#4A99E9] font-bold hover:underline">
                 活用事例を見る →
               </Link>
             </div>
