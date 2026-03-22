@@ -39,10 +39,7 @@ const STATIC_RULES = `重要ルール:
 
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData, gmailData } = await req.json();
-
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData, gmailData, stream: wantStream } = await req.json();
 
     if (!intentText || !agentName) {
       return NextResponse.json({ error: "required" }, { status: 400 });
@@ -150,8 +147,6 @@ export async function POST(req: NextRequest) {
     const today = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
 
     // System prompt with prompt caching
-    // Cache stable parts (rules + persona + memory) for 90% input cost reduction on hits
-    // For simple tasks, skip memory/facts to reduce token overhead
     const isSimple = (complexity || "moderate") === "simple";
     const stableContext = `${STATIC_RULES}\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${!isSimple && memorySummary ? `\n【オーナーの記憶】${memorySummary}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${!isSimple ? factsContext : ""}`;
 
@@ -191,7 +186,160 @@ export async function POST(req: NextRequest) {
       ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }]
       : [];
 
-    // Try primary model, fallback to Sonnet if fails
+    // === STREAMING MODE ===
+    if (wantStream) {
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            let actualModel = model;
+            let fullText = "";
+            let totalInputTokens = 0;
+            let totalOutputTokens = 0;
+
+            // First pass: streaming
+            try {
+              const stream = client.messages.stream({
+                model,
+                max_tokens: maxTokens,
+                system: systemPromptParts,
+                ...(tools.length > 0 ? { tools } : {}),
+                messages: [{ role: "user", content: userPrompt }],
+              });
+
+              // Collect tool_use blocks for continuation
+              let needsContinuation = false;
+              const assistantContent: Anthropic.Messages.ContentBlock[] = [];
+
+              for await (const event of stream) {
+                if (event.type === "content_block_delta") {
+                  const delta = event.delta;
+                  if ("text" in delta && delta.text) {
+                    fullText += delta.text;
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "delta", text: delta.text })}\n\n`));
+                  }
+                } else if (event.type === "content_block_start") {
+                  if (event.content_block.type === "tool_use") {
+                    needsContinuation = true;
+                  }
+                } else if (event.type === "message_delta") {
+                  if (event.delta && "stop_reason" in event.delta && event.delta.stop_reason === "tool_use") {
+                    needsContinuation = true;
+                  }
+                }
+              }
+
+              const finalMessage = await stream.finalMessage();
+              assistantContent.push(...finalMessage.content);
+              totalInputTokens += finalMessage.usage?.input_tokens || 0;
+              totalOutputTokens += finalMessage.usage?.output_tokens || 0;
+
+              // Tool use continuation (web_search)
+              if (needsContinuation) {
+                fullText = ""; // Reset - continuation will have the real answer
+                const toolResults = assistantContent
+                  .filter((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use")
+                  .map((b) => ({
+                    type: "tool_result" as const,
+                    tool_use_id: b.id,
+                    content: "Search completed",
+                  }));
+
+                const contStream = client.messages.stream({
+                  model,
+                  max_tokens: maxTokens,
+                  system: systemPromptParts,
+                  ...(tools.length > 0 ? { tools } : {}),
+                  messages: [
+                    { role: "user", content: userPrompt },
+                    { role: "assistant", content: assistantContent },
+                    { role: "user", content: toolResults },
+                  ],
+                });
+
+                for await (const event of contStream) {
+                  if (event.type === "content_block_delta") {
+                    const delta = event.delta;
+                    if ("text" in delta && delta.text) {
+                      fullText += delta.text;
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "delta", text: delta.text })}\n\n`));
+                    }
+                  }
+                }
+
+                const contFinal = await contStream.finalMessage();
+                totalInputTokens += contFinal.usage?.input_tokens || 0;
+                totalOutputTokens += contFinal.usage?.output_tokens || 0;
+              }
+            } catch (primaryError) {
+              if (model !== "claude-sonnet-4-6") {
+                console.error(`Primary model ${model} failed, falling back to Sonnet:`, primaryError);
+                actualModel = "claude-sonnet-4-6";
+                fullText = "";
+                const fallbackStream = client.messages.stream({
+                  model: actualModel,
+                  max_tokens: maxTokens,
+                  system: systemPromptParts,
+                  ...(tools.length > 0 ? { tools } : {}),
+                  messages: [{ role: "user", content: userPrompt }],
+                });
+                for await (const event of fallbackStream) {
+                  if (event.type === "content_block_delta") {
+                    const delta = event.delta;
+                    if ("text" in delta && delta.text) {
+                      fullText += delta.text;
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "delta", text: delta.text })}\n\n`));
+                    }
+                  }
+                }
+                const fbFinal = await fallbackStream.finalMessage();
+                totalInputTokens += fbFinal.usage?.input_tokens || 0;
+                totalOutputTokens += fbFinal.usage?.output_tokens || 0;
+              } else {
+                throw primaryError;
+              }
+            }
+
+            // Bill
+            if (deviceId) {
+              const pricing = MODEL_PRICING[actualModel] || MODEL_PRICING["claude-sonnet-4-6"];
+              const MARGIN = 1.5;
+              const costUsd = totalInputTokens * pricing.input + totalOutputTokens * pricing.output;
+              const costYen = Math.ceil(costUsd * 150 * MARGIN);
+              fetch(new URL("/api/credits", req.url).toString(), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  deviceId, inputTokens: totalInputTokens, outputTokens: totalOutputTokens,
+                  costYen, model: actualModel, apiRoute: "agent-respond",
+                }),
+              }).catch(() => {});
+            }
+
+            // Send final parsed result
+            const parsed = parseAgentJSON(fullText);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", ...parsed })}\n\n`));
+            controller.close();
+          } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: msg })}\n\n`));
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(readable, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
+    // === NON-STREAMING MODE (legacy) ===
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
     let actualModel = model;
     let message;
     try {
@@ -203,7 +351,6 @@ export async function POST(req: NextRequest) {
         messages: [{ role: "user", content: userPrompt }],
       });
     } catch (primaryError) {
-      // Fallback to Sonnet 4.6 if primary model fails
       if (model !== "claude-sonnet-4-6") {
         console.error(`Primary model ${model} failed, falling back to Sonnet:`, primaryError);
         actualModel = "claude-sonnet-4-6";
@@ -222,12 +369,10 @@ export async function POST(req: NextRequest) {
     totalInputTokens += message.usage?.input_tokens || 0;
     totalOutputTokens += message.usage?.output_tokens || 0;
 
-    // Only use the last text block (skip web_search intermediate text)
     let finalText = "";
     const textBlocks = message.content.filter((b) => b.type === "text");
     if (textBlocks.length > 0) finalText = (textBlocks[textBlocks.length - 1] as { type: "text"; text: string }).text;
 
-    // Tool use continuation
     if (message.stop_reason === "tool_use") {
       const toolResults = message.content
         .filter((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use")
@@ -256,7 +401,6 @@ export async function POST(req: NextRequest) {
       if (contTextBlocks.length > 0) finalText = (contTextBlocks[contTextBlocks.length - 1] as { type: "text"; text: string }).text;
     }
 
-    // Bill the user with actual model pricing
     if (deviceId) {
       const pricing = MODEL_PRICING[actualModel] || MODEL_PRICING["claude-sonnet-4-6"];
       const MARGIN = 1.5;
@@ -273,8 +417,6 @@ export async function POST(req: NextRequest) {
     }
 
     const parsed = parseAgentJSON(finalText);
-
-    // emailAction is returned to frontend for user confirmation (not auto-sent)
     return NextResponse.json(parsed);
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);

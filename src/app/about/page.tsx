@@ -115,7 +115,7 @@ const integrations = [
   { name: "Gmail", desc: "メール送受信", logo: "/logos/gmail.webp" },
   { name: "Google Calendar", desc: "予定管理", logo: "/logos/google-calendar.jpg" },
   { name: "Google Drive", desc: "ファイル参照", logo: "/logos/google-drive.jpeg" },
-  { name: "Notion", desc: "ナレッジ同期", logo: "/logos/notion.svg" },
+  { name: "Notion", desc: "ナレッジ同期", logo: "/logos/notion.png" },
   { name: "Slack", desc: "チャット連携", logo: "/logos/slack.png" },
   { name: "Trello", desc: "タスク管理", logo: "/logos/trello.svg" },
   { name: "X (Twitter)", desc: "SNS投稿", logo: "/logos/x.svg" },

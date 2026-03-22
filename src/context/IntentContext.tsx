@@ -722,56 +722,109 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       }
     } catch { /* ignore integration errors */ }
 
+    const requestBody = JSON.stringify({
+      intentText: text, agentName: agent.config.name,
+      agentPersonality: agent.stats.driftedPersonality || agent.config.character || agent.config.personality,
+      agentExpertise: agent.config.role || agent.config.expertise,
+      agentTone: agent.stats.driftedTone || agent.config.speakingStyle || agent.config.tone,
+      agentBeliefs: agent.stats.driftedBeliefs || agent.config.coreValue || agent.config.beliefs,
+      agentMood: agent.stats.mood,
+      requestTweet,
+      conversationHistory: history,
+      deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
+      complexity,
+      ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
+      memorySummary: typeof window !== "undefined" ? localStorage.getItem("musu_memory_summary") || "" : "",
+      projectFacts: facts,
+      calendarEvents,
+      trelloData,
+      gmailData,
+      stream: true,
+    });
+
+    // Helper to update or add agent response
+    const upsertResponse = (toOwner: string, extra?: { toTimeline?: string; emailAction?: { to: string; subject: string; body: string }; tweetPending?: boolean }) => {
+      setAgentResponses((prev) => {
+        const existing = prev.findIndex((r) => r.agentId === agent.id && (r.toOwner === "..." || r.toOwner.startsWith("...")));
+        const base = {
+          agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
+          toOwner, toTimeline: extra?.toTimeline || "", timestamp: Date.now(), posted: false, tweeted: false,
+          tweetPending: extra?.tweetPending || false, roomId, emailAction: extra?.emailAction,
+        };
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = { ...updated[existing], ...base };
+          return updated;
+        }
+        return [...prev, base];
+      });
+    };
+
     return fetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        intentText: text, agentName: agent.config.name,
-        agentPersonality: agent.stats.driftedPersonality || agent.config.character || agent.config.personality,
-        agentExpertise: agent.config.role || agent.config.expertise,
-        agentTone: agent.stats.driftedTone || agent.config.speakingStyle || agent.config.tone,
-        agentBeliefs: agent.stats.driftedBeliefs || agent.config.coreValue || agent.config.beliefs,
-        agentMood: agent.stats.mood,
-        requestTweet,
-        conversationHistory: history,
-        deviceId: typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null,
-        complexity,
-        ownerBusinessInfo: typeof window !== "undefined" ? localStorage.getItem("musu_business_info") || "" : "",
-        memorySummary: typeof window !== "undefined" ? localStorage.getItem("musu_memory_summary") || "" : "",
-        projectFacts: facts,
-        calendarEvents,
-        trelloData,
-        gmailData,
-      }),
+      body: requestBody,
     }).then(async (r) => {
-      const text = await r.text();
-      let data;
-      try { data = JSON.parse(text); } catch { throw new Error(`応答を解析できませんでした`); }
-      if (!r.ok || data.error) throw new Error(data.error || `API error: ${r.status}`);
+      if (!r.ok) {
+        const errData = await r.json().catch(() => ({ error: `API error: ${r.status}` }));
+        throw new Error(errData.error || `API error: ${r.status}`);
+      }
+
+      // SSE streaming response
+      const reader = r.body?.getReader();
+      if (!reader) throw new Error("No response body");
+      const decoder = new TextDecoder();
+      let streamedText = "";
+      let finalData: Record<string, unknown> | null = null;
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || ""; // Keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const parsed = JSON.parse(line.slice(6));
+            if (parsed.type === "delta") {
+              streamedText += parsed.text;
+              // Extract toOwner text progressively from JSON being built
+              const partialMatch = streamedText.match(/"toOwner"\s*:\s*"((?:[^"\\]|\\.)*)$/);
+              const completeMatch = streamedText.match(/"toOwner"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+              const displayText = (completeMatch?.[1] || partialMatch?.[1] || "")
+                .replace(/\\n/g, "\n").replace(/\\"/g, '"');
+              if (displayText) {
+                setTimeout(() => upsertResponse(displayText), delay);
+              }
+            } else if (parsed.type === "done") {
+              finalData = parsed;
+            } else if (parsed.type === "error") {
+              throw new Error(parsed.error);
+            }
+          } catch (e) {
+            if (e instanceof Error && e.message !== "Unexpected end of JSON input") {
+              if (e.message && !e.message.includes("JSON")) throw e;
+            }
+          }
+        }
+      }
+
+      // Use final parsed data
+      const data = finalData || { toOwner: streamedText };
       return data;
     }).then((data): string => {
-      const toOwner = (data.toOwner || "了解。").replace(/\\n/g, "\n");
-      const toTimeline = data.toTimeline || "";
-      const emailAction = data.emailAction || undefined;
+      const toOwner = (String(data.toOwner || "了解。")).replace(/\\n/g, "\n");
+      const toTimeline = String(data.toTimeline || "");
+      const emailAction = data.emailAction as { to: string; subject: string; body: string } | undefined;
 
       setTimeout(() => {
-        setAgentResponses((prev) => {
-          // Replace "考え中..." placeholder if exists
-          const existing = prev.findIndex((r) => r.agentId === agent.id && r.toOwner === "...");
-          if (existing >= 0) {
-            const updated = [...prev];
-            updated[existing] = {
-              ...updated[existing], toOwner, toTimeline, timestamp: Date.now(),
-              tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
-              emailAction,
-            };
-            return updated;
-          }
-          return [...prev, {
-            agentId: agent.id, agentName: agent.config.name, agentAvatar: agent.config.avatar,
-            toOwner, toTimeline, timestamp: Date.now(), posted: false, tweeted: false,
-            tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
-            roomId, emailAction,
-          }];
+        upsertResponse(toOwner, {
+          toTimeline,
+          emailAction,
+          tweetPending: requestTweet && agent.config.twitterEnabled && !!toTimeline,
         });
       }, delay);
 

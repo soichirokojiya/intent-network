@@ -29,7 +29,7 @@ const LOGO_MAP: Record<IntegrationKey, string> = {
   gmail: "/logos/gmail.webp",
   gdrive: "/logos/google-drive.jpeg",
   trello: "/logos/trello.svg",
-  notion: "/logos/notion.svg",
+  notion: "/logos/notion.png",
   slack: "/logos/slack.png",
   line: "/logos/line.svg",
   x: "/logos/x.svg",

@@ -83,7 +83,7 @@ export async function GET(req: Request) {
           tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
           messages: [{
             role: "user",
-            content: `今日は${today}。Web検索で最新ニュースを探して、日本語でまとめて。\n\n事業情報: ${profile.business_info}${topicInstruction}\n\nMarkdown禁止。プレーンテキストのみ。citeタグも使わない。\n\n必ず以下の形式で出力すること:\n\nおはようございます。今日のニュースです。\n\n【事業関連ニュース】\n1. [タイトル]\n引用元: [URL]\n→ なぜ関係あるか（1-2文）\n\n2. [タイトル]\n引用元: [URL]\n→ なぜ関係あるか（1-2文）\n\n【世界・経済・国内の主要ニュース】\n3. [タイトル]\n引用元: [URL]\n→ ポイント（1文）\n\n4. [タイトル]\n引用元: [URL]\n→ ポイント（1文）\n\n5. [タイトル]\n引用元: [URL]\n→ ポイント（1文）`,
+            content: `今日は${today}。Web検索で最新ニュースを探して、日本語でまとめて。\n\n事業情報: ${profile.business_info}${topicInstruction}\n\nMarkdown禁止。プレーンテキストのみ。citeタグも使わない。\n\n重要: 各ニュースには必ず実際のURLを「引用元:」として記載すること。URLが不明なニュースは掲載しない。Web検索結果に含まれるURLをそのまま使うこと。\n\n必ず以下の形式で出力すること:\n\nおはようございます。今日のニュースです。\n\n【事業関連ニュース】\n1. [タイトル]\n引用元: [実際のURL（https://で始まる完全なURL）]\n→ なぜ関係あるか（1-2文）\n\n2. [タイトル]\n引用元: [実際のURL]\n→ なぜ関係あるか（1-2文）\n\n【世界・経済・国内の主要ニュース】\n3. [タイトル]\n引用元: [実際のURL]\n→ ポイント（1文）\n\n4. [タイトル]\n引用元: [実際のURL]\n→ ポイント（1文）\n\n5. [タイトル]\n引用元: [実際のURL]\n→ ポイント（1文）`,
           }],
         });
 
