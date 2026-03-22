@@ -239,6 +239,24 @@ export default function AccountSettingsPage() {
 
         <hr className="border-[var(--card-border)]" />
 
+        {/* Links */}
+        <div className="space-y-2">
+          <button onClick={() => router.push("/billing")} className="w-full flex items-center justify-between py-3 px-1 text-[15px] hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
+            <span>料金明細</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
+          <button onClick={() => router.push("/help")} className="w-full flex items-center justify-between py-3 px-1 text-[15px] hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
+            <span>ヘルプ</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
+          <button onClick={() => router.push("/contact")} className="w-full flex items-center justify-between py-3 px-1 text-[15px] hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
+            <span>お問い合わせ</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
+        </div>
+
+        <hr className="border-[var(--card-border)]" />
+
         {/* Sign out */}
         <div className="pt-2">
           <button onClick={signOut} className="w-full py-2.5 border border-[var(--card-border)] rounded-xl text-sm font-bold hover:bg-[var(--hover-bg)]">
