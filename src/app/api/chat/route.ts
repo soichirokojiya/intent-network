@@ -54,6 +54,37 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Save feedback response if previous message was a feedback question
+  if (type === "user" && text.length > 0) {
+    (async () => {
+      try {
+        const { data: recentMsgs } = await supabase
+          .from("owner_chats")
+          .select("text, type")
+          .eq("device_id", deviceId)
+          .eq("room_id", roomId || "general")
+          .order("created_at", { ascending: false })
+          .limit(3);
+
+        const feedbackMsg = recentMsgs?.find((m) => m.type === "agent" && m.text?.includes("[feedback]"));
+        if (feedbackMsg) {
+          // Determine trigger type from the question
+          let triggerType = "unknown";
+          if (feedbackMsg.text.includes("数日経った")) triggerType = "day3";
+          else if (feedbackMsg.text.includes("1週間")) triggerType = "day7";
+          else if (feedbackMsg.text.includes("1ヶ月")) triggerType = "day30";
+
+          await supabase.from("feedback_responses").insert({
+            device_id: deviceId,
+            trigger_type: triggerType,
+            question: feedbackMsg.text.replace("\n[feedback]", ""),
+            answer: text,
+          });
+        }
+      } catch {}
+    })();
+  }
+
   // Quick fact extraction for important messages (runs in background)
   if (type === "user" && text.length > 10) {
     (async () => {

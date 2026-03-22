@@ -97,7 +97,9 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<"users" | "usage" | "kpi">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "usage" | "kpi" | "feedback">("users");
+  const [feedbackData, setFeedbackData] = useState<{ trigger_type: string; question: string; answer: string; created_at: string; device_id: string }[]>([]);
+  const [churnData, setChurnData] = useState<{ reason: string; comment: string; email: string; created_at: string }[]>([]);
   const [signupEnabled, setSignupEnabled] = useState(true);
   const [initialCredit, setInitialCredit] = useState(1000);
   const [editingCredit, setEditingCredit] = useState(false);
@@ -163,6 +165,14 @@ export default function AdminPage() {
       setStats(data);
       setLastUpdated(new Date());
       fetchSettings(token);
+      // Fetch feedback & churn data
+      Promise.all([
+        fetch("/api/feedback", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : { responses: [] }),
+        fetch("/api/admin/churn-survey", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : { surveys: [] }),
+      ]).then(([fb, ch]) => {
+        setFeedbackData(fb.responses || []);
+        setChurnData(ch.surveys || []);
+      }).catch(() => {});
     } catch {
       setError("Failed to load stats");
     } finally {
@@ -425,7 +435,7 @@ export default function AdminPage() {
         {stats && (
           <div style={{ marginTop: "32px" }}>
             <div style={{ display: "flex", gap: "0", borderBottom: "1px solid #eff3f4", marginBottom: "16px" }}>
-              {(["users", "usage", "kpi"] as const).map((tab) => (
+              {(["users", "usage", "kpi", "feedback"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -440,7 +450,7 @@ export default function AdminPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {tab === "users" ? "Users" : tab === "usage" ? "Usage Log" : "KPI"}
+                  {tab === "users" ? "Users" : tab === "usage" ? "Usage Log" : tab === "kpi" ? "KPI" : "Feedback"}
                 </button>
               ))}
             </div>
@@ -615,6 +625,64 @@ export default function AdminPage() {
                       {stats.users.length}
                     </span>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "feedback" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Feedback Responses */}
+                <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #eff3f4", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                  <div style={{ padding: "16px 20px", borderBottom: "1px solid #eff3f4" }}>
+                    <h3 style={{ fontSize: "15px", fontWeight: 700 }}>フィードバック回答 ({feedbackData.length}件)</h3>
+                  </div>
+                  {feedbackData.length === 0 ? (
+                    <p style={{ padding: "24px", textAlign: "center", color: "#536471" }}>まだ回答がありません</p>
+                  ) : (
+                    <div>
+                      {feedbackData.map((fb, i) => (
+                        <div key={i} style={{ padding: "14px 20px", borderBottom: "1px solid #eff3f4" }}>
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px" }}>
+                            <span style={{
+                              fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "9999px",
+                              background: fb.trigger_type === "day3" ? "#e8f0fe" : fb.trigger_type === "day7" ? "#e8f5ee" : "#fef9e7",
+                              color: fb.trigger_type === "day3" ? "#4A99E9" : fb.trigger_type === "day7" ? "#00ba7c" : "#e0a800",
+                            }}>
+                              {fb.trigger_type}
+                            </span>
+                            <span style={{ fontSize: "12px", color: "#536471" }}>{new Date(fb.created_at).toLocaleDateString("ja-JP")}</span>
+                            <span style={{ fontSize: "12px", color: "#536471", fontFamily: "monospace" }}>{fb.device_id?.slice(0, 8)}...</span>
+                          </div>
+                          <p style={{ fontSize: "13px", color: "#536471", marginBottom: "4px" }}>Q: {fb.question?.replace("[feedback]", "").slice(0, 80)}</p>
+                          <p style={{ fontSize: "14px", color: "#0f1419", fontWeight: 500 }}>{fb.answer}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Churn Surveys */}
+                <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #eff3f4", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                  <div style={{ padding: "16px 20px", borderBottom: "1px solid #eff3f4" }}>
+                    <h3 style={{ fontSize: "15px", fontWeight: 700 }}>退会アンケート ({churnData.length}件)</h3>
+                  </div>
+                  {churnData.length === 0 ? (
+                    <p style={{ padding: "24px", textAlign: "center", color: "#536471" }}>まだ回答がありません</p>
+                  ) : (
+                    <div>
+                      {churnData.map((ch, i) => (
+                        <div key={i} style={{ padding: "14px 20px", borderBottom: "1px solid #eff3f4" }}>
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "9999px", background: "#fde8e8", color: "#f4212e" }}>退会</span>
+                            <span style={{ fontSize: "12px", color: "#536471" }}>{new Date(ch.created_at).toLocaleDateString("ja-JP")}</span>
+                            <span style={{ fontSize: "12px", color: "#536471" }}>{ch.email || "-"}</span>
+                          </div>
+                          <p style={{ fontSize: "14px", color: "#0f1419", fontWeight: 500 }}>{ch.reason || "-"}</p>
+                          {ch.comment && <p style={{ fontSize: "13px", color: "#536471", marginTop: "4px" }}>{ch.comment}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

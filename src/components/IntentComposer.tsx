@@ -497,6 +497,30 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               }
             })
             .catch(() => {});
+
+          // Feedback check (3d/7d/30d)
+          fetch("/api/feedback-check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ deviceId: did }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.ask && data.message) {
+                const m = data.message;
+                const feedbackMsg: ChatMessage = {
+                  id: m.id,
+                  type: "agent",
+                  agentName: m.agent_name,
+                  agentAvatar: m.agent_avatar || "",
+                  agentId: m.agent_id,
+                  text: m.text,
+                  timestamp: new Date(m.created_at).getTime(),
+                };
+                setChatHistory((prev) => [...prev, feedbackMsg]);
+              }
+            })
+            .catch(() => {});
         }
       }
     });
