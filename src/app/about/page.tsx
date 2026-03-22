@@ -258,93 +258,91 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Use Case */}
+      {/* Use Cases */}
       <section className="px-5 py-16 md:py-24">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-[#e8f5ee] text-[#1a7a4a] font-bold text-sm px-4 py-2 rounded-full mb-6">
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-[#4A99E9] font-bold text-sm px-4 py-2 rounded-full mb-6">
               活用事例
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold mb-4">
-              「メールのデータ、
-              <br className="md:hidden" />
-              スプレッドシートに入れといて」
+              話しかけるだけで、仕事が動く。
             </h2>
             <p className="text-gray-500">
-              Gmailに届く売上メールを読んで、スプレッドシートに自動で記録。
-              <br className="hidden md:inline" />
-              仕様を伝えるだけで動き出した。
+              musuを使っているソロプレナーたちのリアルな事例。
             </p>
           </div>
 
-          {/* Chat demo */}
-          <div className="bg-[#f0f4f2] rounded-2xl p-6 md:p-8 mb-8">
-            <p className="text-xs text-gray-500 tracking-wider mb-5">実際の会話</p>
-            <div className="space-y-4">
-              {/* User */}
-              <div className="flex justify-end gap-2">
-                <div className="bg-[#1a7a4a] text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm max-w-[80%]">
-                  メールからとったデータをスプレッドシートに入れていって
-                </div>
-              </div>
-              {/* AI */}
-              <div className="flex gap-2">
-                <div className="w-8 h-8 bg-[#1a7a4a] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">M</div>
-                <div>
-                  <p className="text-[11px] text-gray-500 mb-1">Mio・秘書</p>
-                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm max-w-[85%] shadow-sm">
-                    道の駅の売上メールから17日分のデータ抽出したよ。26行になるけど、これでOKならそのまま書き込むよ〜
+          {/* Case 1: メール→スプレッドシート */}
+          <div className="border border-gray-200 rounded-2xl p-6 md:p-8 mb-6">
+            <h3 className="font-extrabold text-lg mb-4">「メールのデータ、スプレッドシートに入れといて」</h3>
+            <div className="bg-[#f0f4f8] rounded-2xl p-5 mb-6">
+              <div className="space-y-3">
+                <div className="flex justify-end gap-2">
+                  <div className="bg-[#4A99E9] text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[80%]">
+                    メールからとったデータをスプレッドシートに入れていって
                   </div>
                 </div>
-              </div>
-              {/* User */}
-              <div className="flex justify-end gap-2">
-                <div className="bg-[#1a7a4a] text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm">
-                  ok
-                </div>
-              </div>
-              {/* AI */}
-              <div className="flex gap-2">
-                <div className="w-8 h-8 bg-[#1a7a4a] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">M</div>
-                <div>
-                  <p className="text-[11px] text-gray-500 mb-1">Mio・秘書</p>
-                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm max-w-[85%] shadow-sm">
-                    全23行入れたよ〜。MOIRAI ORGANICSが14点¥33,320、島素材が20点¥17,600、合計¥50,920。シート確認してみて。
+                <div className="flex gap-2">
+                  <div className="w-7 h-7 bg-[#4A99E9] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">M</div>
+                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%] shadow-sm">
+                    17日分のデータ抽出したよ。26行になるけど、OKならそのまま書き込むよ〜
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Result */}
-          <div className="bg-gray-900 text-white rounded-2xl p-6 mb-8">
-            <p className="text-xs text-gray-500 tracking-wider mb-4">自動集計された結果</p>
-            <div className="divide-y divide-gray-700">
-              <div className="flex justify-between py-3 text-sm">
-                <span className="text-gray-400">MOIRAI ORGANICS</span>
+            <div className="bg-gray-900 text-white rounded-xl p-5 mb-5">
+              <div className="flex justify-between py-2 text-sm">
+                <span className="opacity-60">MOIRAI ORGANICS</span>
                 <span className="font-bold text-[#5dca8a]">14点 ¥33,320</span>
               </div>
-              <div className="flex justify-between py-3 text-sm">
-                <span className="text-gray-400">島素材（猪肉ドッグフード）</span>
-                <span className="font-bold text-[#5dca8a]">20点 ¥17,600</span>
-              </div>
-              <div className="flex justify-between py-3 text-sm">
-                <span className="text-gray-400">合計</span>
+              <div className="flex justify-between py-2 text-sm border-t border-white/10">
+                <span className="opacity-60">合計</span>
                 <span className="font-bold text-[#5dca8a]">¥50,920</span>
               </div>
             </div>
-          </div>
-
-          <div className="bg-[#e8f5ee] border-l-4 border-[#1a7a4a] rounded-r-xl p-5 mb-8">
-            <p className="text-[#1a4a2e] text-sm font-medium leading-relaxed">
-              「育てるほど、任せられる」というmusuのコンセプトはここにある。最初は確認しながら、慣れてきたら自動実行へ。信頼を積み重ねながら、少しずつ任せる範囲を広げていける。
-            </p>
-          </div>
-
-          <div className="text-center">
             <Link href="/media/email-to-spreadsheet" className="text-[#4A99E9] font-bold text-sm hover:underline">
               この事例の詳細を読む →
             </Link>
+          </div>
+
+          {/* Case 2: 在庫管理 */}
+          <div className="border border-gray-200 rounded-2xl p-6 md:p-8 mb-6">
+            <h3 className="font-extrabold text-lg mb-4">「売上メールが来たら、自動で在庫を引いて」</h3>
+            <div className="bg-[#f0f4f8] rounded-2xl p-5 mb-6">
+              <div className="space-y-3">
+                <div className="flex justify-end gap-2">
+                  <div className="bg-[#4A99E9] text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[80%]">
+                    道の駅の売上メールが来たら、自動で在庫を引いてほしい
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className="w-7 h-7 bg-[#4A99E9] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">N</div>
+                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%] shadow-sm">
+                    自動化ルール作ったよ。1時間ごとにメールをチェックして、売上があったら在庫を更新するね。
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-900 text-white rounded-xl p-5 mb-5">
+              <div className="flex justify-between py-2 text-sm">
+                <span className="opacity-60">在庫確認の作業時間</span>
+                <span className="font-bold text-[#5dca8a]">15分/日 → 0分</span>
+              </div>
+              <div className="flex justify-between py-2 text-sm border-t border-white/10">
+                <span className="opacity-60">セットアップ</span>
+                <span className="font-bold text-[#5dca8a]">チャット5分</span>
+              </div>
+            </div>
+            <Link href="/media/gmail-inventory-management" className="text-[#4A99E9] font-bold text-sm hover:underline">
+              この事例の詳細を読む →
+            </Link>
+          </div>
+
+          <div className="bg-blue-50 border-l-4 border-[#4A99E9] rounded-r-xl p-5">
+            <p className="text-[#1a3a6e] text-sm font-medium leading-relaxed">
+              「育てるほど、任せられる」というmusuのコンセプトはここにある。最初は確認しながら、慣れてきたら自動実行へ。信頼を積み重ねながら、少しずつ任せる範囲を広げていける。
+            </p>
           </div>
         </div>
       </section>
