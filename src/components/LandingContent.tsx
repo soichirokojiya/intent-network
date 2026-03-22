@@ -101,6 +101,9 @@ export function LandingContent() {
               AIが、あなたの仕事仲間になる。<br />
               フリーランス・ソロプレナーのための<br className="hidden md:inline" />AIエージェントチーム。
             </p>
+            <Link href="/about" className="inline-block mt-4 text-[14px] text-[#4A99E9] font-bold hover:underline">
+              musuについて詳しく見る →
+            </Link>
           </div>
 
           {/* Right: Auth form */}
