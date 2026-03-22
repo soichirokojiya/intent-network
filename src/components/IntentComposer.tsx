@@ -413,7 +413,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
   const [welcomeDone, setWelcomeDone] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const isComposing = useRef(false);
-  const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, streamingMessage, approveTweet, sendEmail, restAgent } = useIntents();
+  const { postIntent, myAgents, activeAgentIds, agentResponses, clearAgentResponses, streamingMessage, clearStreamingMessage, approveTweet, sendEmail, restAgent } = useIntents();
   const { t } = useLocale();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const processedResponseIds = useRef<Set<string>>(new Set());
@@ -551,13 +551,9 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       // If this agent was streaming, skip the queue animation and add directly
       if (streamedAgentIds.current.has(resp.agentId)) {
         streamedAgentIds.current.delete(resp.agentId);
-        // Preserve scroll position during streaming→history swap
-        const el = chatAreaRef.current;
-        const scrollBefore = el ? el.scrollTop : 0;
+        // Add to history first, then clear streaming (same render cycle = no layout shift)
         setChatHistory((prev) => [...prev, msg]);
-        if (el) {
-          requestAnimationFrame(() => { el.scrollTop = scrollBefore; });
-        }
+        clearStreamingMessage();
         saveChatMessage({
           id: msg.id, type: "agent", text: msg.text,
           agentName: msg.agentName, agentAvatar: msg.agentAvatar,

@@ -220,6 +220,7 @@ interface IntentContextType {
   clearAgentResponses: () => void;
   // Streaming message (real-time text display, bypasses message queue)
   streamingMessage: { agentId: string; agentName: string; agentAvatar: string; text: string; roomId: string } | null;
+  clearStreamingMessage: () => void;
   approveTweet: (agentId: string) => void;
   sendEmail: (agentId: string) => Promise<boolean>;
   // Actions
@@ -801,8 +802,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Clear streaming message
-      setStreamingMessage(null);
+      // Streaming message is cleared by IntentComposer after chatHistory swap
 
       // Use final parsed data
       const data = finalData || { toOwner: streamedText };
@@ -1108,7 +1108,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       addAgent, removeAgent, updateAgentConfig, feedAgent, reviveAgent, restAgent, encourageAgent, revertDrift,
       internalChats, sendChatMessage,
       myAgentConfig, myAgentStats,
-      agentResponses, clearAgentResponses, streamingMessage, approveTweet, sendEmail,
+      agentResponses, clearAgentResponses, streamingMessage, clearStreamingMessage: useCallback(() => setStreamingMessage(null), []), approveTweet, sendEmail,
       postIntent, postReply,
       getConversation: useCallback((id: string) => conversations.get(id), [conversations]),
       loadConversation,
