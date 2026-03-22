@@ -11,7 +11,7 @@ export const maxDuration = 120;
 // Model pricing for billing
 // Anthropic official pricing (USD per token)
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  "claude-opus-4-6": { input: 15 / 1_000_000, output: 75 / 1_000_000 },
+  "claude-opus-4-6": { input: 5 / 1_000_000, output: 25 / 1_000_000 },
   "claude-sonnet-4-6": { input: 3 / 1_000_000, output: 15 / 1_000_000 },
   "claude-haiku-4-5-20251001": { input: 0.8 / 1_000_000, output: 4 / 1_000_000 },
 };
