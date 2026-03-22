@@ -15,4 +15,12 @@ export const articles: Article[] = [
     date: "2026-03-22",
     label: "活用事例",
   },
+  {
+    slug: "gmail-inventory-management",
+    title: "Gmailの売上メールから在庫管理を自動化した話",
+    description:
+      "売上通知メールが届くたびに手動で在庫を更新していた作業を、musuに任せたら完全自動化できた。スプレッドシートで在庫管理システムを作った実例。",
+    date: "2026-03-22",
+    label: "活用事例",
+  },
 ];
