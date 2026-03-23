@@ -169,9 +169,10 @@ function WelcomeSequence({ agents, onMessageShown, onComplete }: { agents: { id:
 
   // Stable ref for messages to avoid stale closures in useEffect
   const messagesRef = useRef([
-    `はじめまして、${orchestrator.config.name}です。あなた専属チームのリーダーです。\nここにいる全員があなたの仕事仲間です。何でも気軽に話しかけてください。`,
-    `チームメンバーを紹介します。\n${allMembers}\nチーム編成は自由にカスタマイズできます。チーム欄からメンバーのON/OFF・追加・役割変更がいつでもできます。`,
-    `musuはいろんな仕事を任せられます。\n「競合を調べて」→ リサーチ\n「メールして」→ メール作成・送信\n「Gmailの売上データをスプレッドシートに入れて」→ 自動転記\n「今後も自動で反映して」→ 自動化ルール作成\nGmail・Googleカレンダー・スプレッドシート・Trello・Notion・Slackと連携できます。アプリ連携から設定してみてください。`,
+    `はじめまして、${orchestrator.config.name}です。あなた専属チームのリーダーです。\nここにいるメンバー全員が、あなたの仕事仲間です。`,
+    `まず2つだけお願いがあります。\n\n1つ目は「プロフィール」の完成です。事業内容を入れてもらえると、チーム全員があなたの事業を理解した上で動けるようになります。左メニューの「プロフィール」から設定できます。\n\n2つ目は「アプリ連携」です。Gmail・Googleカレンダー・スプレッドシートなど、普段使っているツールをつなぐと、できることが一気に広がります。左メニューの「アプリ連携」から設定できます。`,
+    `チームメンバーを紹介します。\n${allMembers}\nチーム欄からメンバーのON/OFF・追加・役割変更がいつでもできます。`,
+    `こんなことを任せられます。\n・「競合を調べて」→ Soraがリサーチ\n・「メールして」→ Mioがメール作成・送信\n・「Gmailの売上データをスプレッドシートに入れて」→ 自動で転記\n・「毎朝8時に予定を教えて」→ 毎日届くブリーフィング\n・「今後も自動で反映して」→ 自動化ルール作成\n\n何でも気軽に話しかけてください。`,
   ]);
   const messages = messagesRef.current;
   const onMessageShownRef = useRef(onMessageShown);
@@ -453,7 +454,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
 
       const did = localStorage.getItem("musu_device_id") || "";
       const welcomeKey = `musu_welcome_done_${did}`;
-      if (realMsgs.length > 0 || welcomeMsgs.length >= 3 || localStorage.getItem(welcomeKey)) {
+      if (realMsgs.length > 0 || welcomeMsgs.length >= 4 || localStorage.getItem(welcomeKey)) {
         // Has real messages or complete welcome sequence — show as-is
         setChatHistory(msgs as ChatMessage[]);
         setWelcomeDone(true);
