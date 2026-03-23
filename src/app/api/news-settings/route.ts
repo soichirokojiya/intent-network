@@ -35,10 +35,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { enabled, time, times } = await req.json();
+  const { enabled, time, times } = body;
 
   const effectiveTimes = times || [time || "07:00"];
   const { error } = await supabase

@@ -94,10 +94,11 @@ async function postTweet(accessToken: string, text: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const deviceId = getVerifiedUserId(req);
+    const body = await req.json();
+    const deviceId = getVerifiedUserId(req) || body.deviceId;
     if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { agentId, text } = await req.json();
+    const { agentId, text } = body;
 
     if (!text) {
       return NextResponse.json(

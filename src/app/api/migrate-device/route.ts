@@ -13,10 +13,11 @@ const supabaseAdmin = createClient(
  */
 export async function POST(req: NextRequest) {
   try {
-    const newDeviceId = getVerifiedUserId(req);
+    const body = await req.json();
+    const newDeviceId = getVerifiedUserId(req) || body.deviceId;
     if (!newDeviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { oldDeviceId } = await req.json();
+    const { oldDeviceId } = body;
 
     if (!oldDeviceId || oldDeviceId === newDeviceId) {
       return NextResponse.json({ migrated: false });

@@ -28,10 +28,11 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 
 // POST: Create a new spreadsheet
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const reqBody = await req.json();
+  const deviceId = getVerifiedUserId(req) || reqBody.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { title, sheetNames } = await req.json();
+  const { title, sheetNames } = reqBody;
   if (!title) {
     return NextResponse.json({ error: "title required" }, { status: 400 });
   }

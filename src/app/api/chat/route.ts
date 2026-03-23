@@ -36,10 +36,10 @@ export async function GET(req: NextRequest) {
 
 // POST: Save chat message
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
   const { roomId, type, agentId, agentName, agentAvatar, text, tweetPreview } = body;
 
   if (!text) return NextResponse.json({ error: "Missing params" }, { status: 400 });
@@ -202,10 +202,11 @@ export async function POST(req: NextRequest) {
 
 // PATCH: Toggle liked status on a message
 export async function PATCH(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { messageId, liked } = await req.json();
+  const { messageId, liked } = body;
   if (!messageId) return NextResponse.json({ error: "Missing params" }, { status: 400 });
 
   const { error } = await supabase
@@ -220,10 +221,11 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE: Remove welcome messages (for re-running welcome sequence)
 export async function DELETE(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { roomId } = await req.json();
+  const { roomId } = body;
 
   await supabase
     .from("owner_chats")

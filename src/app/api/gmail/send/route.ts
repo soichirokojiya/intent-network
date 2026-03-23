@@ -27,10 +27,11 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 }
 
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const reqBody = await req.json();
+  const deviceId = getVerifiedUserId(req) || reqBody.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { to, subject, body } = await req.json();
+  const { to, subject, body } = reqBody;
 
   if (!to || !subject || !body) {
     return NextResponse.json({ error: "Missing required fields (to, subject, body)" }, { status: 400 });

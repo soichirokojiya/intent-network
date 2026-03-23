@@ -34,10 +34,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const deviceId = getVerifiedUserId(req);
+    const body = await req.json();
+    const deviceId = getVerifiedUserId(req) || body.deviceId;
     if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { category, content, sourceAgent } = await req.json();
+    const { category, content, sourceAgent } = body;
     if (!category || !content) {
       return NextResponse.json({ error: "category and content required" }, { status: 400 });
     }
@@ -70,10 +71,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { content } = await req.json();
+  const { content } = body;
   if (!content) return NextResponse.json({ error: "Missing params" }, { status: 400 });
 
   // Find and supersede matching facts

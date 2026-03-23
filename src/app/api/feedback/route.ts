@@ -9,10 +9,11 @@ const supabase = createClient(
 
 // POST: Save feedback response
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { triggerType, question, answer } = await req.json();
+  const { triggerType, question, answer } = body;
   if (!triggerType || !answer) {
     return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }

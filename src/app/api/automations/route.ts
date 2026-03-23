@@ -8,10 +8,11 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, triggerType, triggerConfig, actionType, actionConfig, agentId } = await req.json();
+  const { name, triggerType, triggerConfig, actionType, actionConfig, agentId } = body;
   if (!name || !triggerType || !actionType) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
@@ -44,10 +45,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { automationId } = await req.json();
+  const { automationId } = body;
   if (!automationId) return NextResponse.json({ error: "Missing params" }, { status: 400 });
 
   await supabase.from("automations").delete().eq("id", automationId).eq("device_id", deviceId);

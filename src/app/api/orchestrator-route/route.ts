@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUserId } from "@/lib/serverAuth";
 
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { message, agents, conversationHistory } = await req.json();
+  const { message, agents, conversationHistory } = body;
 
   if (!message || !agents) {
     return NextResponse.json({ error: "message and agents required" }, { status: 400 });

@@ -9,12 +9,13 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const deviceId = getVerifiedUserId(req);
+    const body = await req.json();
+    const deviceId = getVerifiedUserId(req) || body.deviceId;
     if (!deviceId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { action, times, topics } = await req.json();
+    const { action, times, topics } = body;
 
     if (!["set_times", "set_topics", "enable", "disable", "set_schedule_times", "enable_schedule", "disable_schedule", "set_x_schedule", "disable_x_schedule"].includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });

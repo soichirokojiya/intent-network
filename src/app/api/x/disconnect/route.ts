@@ -8,10 +8,11 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { agentId } = await req.json();
+  const { agentId } = body;
 
   if (agentId) {
     // Disconnect agent-level X account

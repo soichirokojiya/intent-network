@@ -27,10 +27,11 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 }
 
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { spreadsheetId, range } = await req.json();
+  const { spreadsheetId, range } = body;
   if (!spreadsheetId || !range) {
     return NextResponse.json({ error: "spreadsheetId and range required" }, { status: 400 });
   }

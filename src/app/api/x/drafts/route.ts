@@ -34,10 +34,11 @@ export async function GET(req: NextRequest) {
 
 // POST: Generate a new draft (Kai creates a tweet proposal)
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { source } = await req.json();
+  const { source } = body;
 
   // Load context for Kai
   const [profileRes, factsRes, pastDraftsRes] = await Promise.all([

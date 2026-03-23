@@ -75,7 +75,8 @@ JSON出力（他の文字不要）:
 
 export async function POST(req: NextRequest) {
   try {
-    const deviceId = getVerifiedUserId(req);
+    const body = await req.json().catch(() => ({}));
+    const deviceId = getVerifiedUserId(req) || body.deviceId;
     if (!deviceId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

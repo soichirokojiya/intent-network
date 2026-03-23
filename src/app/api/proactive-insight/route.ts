@@ -12,7 +12,8 @@ const supabase = createClient(
 
 // POST: Trigger proactive insight for a single user (called on login)
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json().catch(() => ({}));
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
   if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
