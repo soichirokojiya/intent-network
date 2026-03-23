@@ -20,7 +20,8 @@ export async function middleware(req: NextRequest) {
   // Skip public routes, OAuth callbacks, and admin (uses own ADMIN_PASSWORD auth)
   const isPublic = PUBLIC_PATHS.some((p) => req.nextUrl.pathname.startsWith(p));
   const isCallback = req.nextUrl.pathname.includes("/callback");
-  if (isPublic || isCallback) {
+  const isOAuthStart = req.nextUrl.pathname.endsWith("/auth") && req.method === "GET";
+  if (isPublic || isCallback || isOAuthStart) {
     return NextResponse.next();
   }
 
