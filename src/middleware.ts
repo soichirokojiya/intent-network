@@ -68,8 +68,8 @@ export async function middleware(req: NextRequest) {
     });
   }
 
-  // No auth session found - pass through (individual routes handle fallback)
-  return NextResponse.next();
+  // No valid auth session - block the request
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
 export const config = {
