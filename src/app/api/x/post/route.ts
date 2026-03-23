@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Try posting
-    let result = await postTweet(accessToken, text);
+    let result = await postTweet(accessToken!, text);
 
     // Handle 401 with refresh token
     if (result.status === 401 && refreshToken) {
