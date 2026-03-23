@@ -45,6 +45,39 @@ async function refreshAccessToken(deviceId: string, refreshToken: string) {
   return tokens.access_token as string;
 }
 
+async function refreshAgentAccessToken(agentId: string, refreshToken: string) {
+  const clientId = process.env.X_CLIENT_ID!;
+  const clientSecret = process.env.X_CLIENT_SECRET!;
+  const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+
+  const tokenRes = await fetch("https://api.x.com/2/oauth2/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${basicAuth}`,
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: clientId,
+    }),
+  });
+
+  const tokens = await tokenRes.json();
+  if (!tokens.access_token) throw new Error("Failed to refresh agent X token");
+
+  await supabase
+    .from("owner_agents")
+    .update({
+      x_access_token: tokens.access_token,
+      x_refresh_token: tokens.refresh_token || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", agentId);
+
+  return tokens.access_token as string;
+}
+
 async function postTweet(accessToken: string, text: string) {
   const res = await fetch("https://api.x.com/2/tweets", {
     method: "POST",
@@ -60,7 +93,7 @@ async function postTweet(accessToken: string, text: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { deviceId, text } = await req.json();
+    const { deviceId, agentId, text } = await req.json();
 
     if (!deviceId || !text) {
       return NextResponse.json(
@@ -69,28 +102,54 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get tokens from profiles
-    const { data: profile, error: dbError } = await supabase
-      .from("profiles")
-      .select("x_access_token, x_refresh_token")
-      .eq("id", deviceId)
-      .single();
+    // Try agent-level token first, then user-level
+    let accessToken: string | null = null;
+    let refreshToken: string | null = null;
+    let tokenSource: "agent" | "profile" = "profile";
 
-    if (dbError || !profile?.x_access_token) {
-      return NextResponse.json(
-        { error: "X not connected" },
-        { status: 401 },
-      );
+    if (agentId) {
+      const { data: agent } = await supabase
+        .from("owner_agents")
+        .select("x_access_token, x_refresh_token")
+        .eq("id", agentId)
+        .eq("device_id", deviceId)
+        .single();
+
+      if (agent?.x_access_token) {
+        accessToken = agent.x_access_token;
+        refreshToken = agent.x_refresh_token;
+        tokenSource = "agent";
+      }
     }
 
-    let accessToken = profile.x_access_token;
+    if (!accessToken) {
+      const { data: profile, error: dbError } = await supabase
+        .from("profiles")
+        .select("x_access_token, x_refresh_token")
+        .eq("id", deviceId)
+        .single();
+
+      if (dbError || !profile?.x_access_token) {
+        return NextResponse.json(
+          { error: "X not connected" },
+          { status: 401 },
+        );
+      }
+      accessToken = profile.x_access_token;
+      refreshToken = profile.x_refresh_token;
+    }
 
     // Try posting
     let result = await postTweet(accessToken, text);
 
     // Handle 401 with refresh token
-    if (result.status === 401 && profile.x_refresh_token) {
-      accessToken = await refreshAccessToken(deviceId, profile.x_refresh_token);
+    if (result.status === 401 && refreshToken) {
+      if (tokenSource === "agent" && agentId) {
+        // Refresh agent token
+        accessToken = await refreshAgentAccessToken(agentId, refreshToken);
+      } else {
+        accessToken = await refreshAccessToken(deviceId, refreshToken);
+      }
       result = await postTweet(accessToken, text);
     }
 

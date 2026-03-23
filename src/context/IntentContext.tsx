@@ -574,11 +574,9 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
     const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
 
-    // Try X OAuth first (user's own account), fallback to app Twitter
-    const postUrl = deviceId ? "/api/x/post" : "/api/twitter/tweet";
-    const postBody = deviceId
-      ? { deviceId, text: resp.toTimeline }
-      : { text: resp.toTimeline };
+    // Try agent's X token first, then user's, then app fallback
+    const postUrl = "/api/x/post";
+    const postBody = { deviceId, agentId, text: resp.toTimeline };
 
     fetch(postUrl, {
       method: "POST", headers: { "Content-Type": "application/json" },

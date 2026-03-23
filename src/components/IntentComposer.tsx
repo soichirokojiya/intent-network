@@ -259,13 +259,13 @@ interface ChatMessage {
 
 function detectIntent(text: string): "approve" | "reject" | "tweet" | "message" {
   const lower = text.trim().toLowerCase();
-  const approveWords = ["ok", "おk", "いいよ", "いいね", "それで", "お願い", "それでいい", "大丈夫", "問題ない", "頼む", "よろしく", "オッケー", "おけ", "ええよ", "ええで", "go", "yes", "sure", "いい感じ", "完璧", "バッチリ"];
+  const approveWords = ["ok", "おk", "いいよ", "いいね", "それで", "お願い", "それでいい", "大丈夫", "問題ない", "頼む", "よろしく", "オッケー", "おけ", "ええよ", "ええで", "go", "yes", "sure", "いい感じ", "完璧", "バッチリ", "今投稿", "投稿して", "それで投稿"];
   const rejectWords = ["やめて", "やめ", "やり直し", "修正", "変えて", "違う", "ダメ", "だめ", "no", "nope", "cancel", "キャンセル", "やっぱやめ", "なし"];
   const tweetWords = ["ツイートして", "ツイート作って", "ツイートお願い", "投稿して", "投稿作って", "xに投稿", "tweetして", "ポストして", "つぶやいて"];
 
-  if (tweetWords.some((w) => lower.includes(w))) return "tweet";
   if (approveWords.some((w) => lower === w || lower.includes(w))) return "approve";
   if (rejectWords.some((w) => lower === w || lower.includes(w))) return "reject";
+  if (tweetWords.some((w) => lower.includes(w))) return "tweet";
   return "message";
 }
 
