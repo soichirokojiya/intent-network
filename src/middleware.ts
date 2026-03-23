@@ -59,13 +59,31 @@ export async function middleware(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    // Inject verified user ID for API routes
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set("x-verified-user-id", user.id);
     return NextResponse.next({
       request: { headers: requestHeaders },
       headers: res.headers,
     });
+  }
+
+  // Fallback: check Authorization Bearer header (from authFetch)
+  const authHeader = req.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabaseWithToken = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: { user: tokenUser } } = await supabaseWithToken.auth.getUser();
+    if (tokenUser) {
+      const requestHeaders = new Headers(req.headers);
+      requestHeaders.set("x-verified-user-id", tokenUser.id);
+      return NextResponse.next({
+        request: { headers: requestHeaders },
+      });
+    }
   }
 
   // No valid auth session - block the request
