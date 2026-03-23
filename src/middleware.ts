@@ -2,9 +2,26 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const PUBLIC_PATHS = [
+  "/api/signup",
+  "/api/signup-check",
+  "/api/reset-password",
+  "/api/feedback-check",
+  "/api/cron/",
+  "/api/stripe/webhook",
+  "/api/admin/",
+];
+
 export async function middleware(req: NextRequest) {
   // Only process /api/* routes
   if (!req.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
+  // Skip public routes, OAuth callbacks, and admin (uses own ADMIN_PASSWORD auth)
+  const isPublic = PUBLIC_PATHS.some((p) => req.nextUrl.pathname.startsWith(p));
+  const isCallback = req.nextUrl.pathname.includes("/callback");
+  if (isPublic || isCallback) {
     return NextResponse.next();
   }
 
@@ -52,9 +69,8 @@ export async function middleware(req: NextRequest) {
     });
   }
 
-  // Non-blocking: pass through without verified user ID
-  // API routes fall back to deviceId from request params/body
-  return NextResponse.next();
+  // No valid auth session found - block the request
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
 export const config = {
