@@ -140,15 +140,6 @@ const integrations: Integration[] = [
     category: "accounting",
     icon: <img src={LOGO_MAP.square} alt="Square" width={20} height={20} className="rounded" />,
   },
-  {
-    key: "x",
-    name: "X (Twitter)",
-    description: "チームがXに投稿できるようになります。",
-    authPath: "/api/x/auth",
-    disconnectPath: "/api/x/disconnect",
-    category: "sns",
-    icon: <img src={LOGO_MAP.x} alt="X" width={20} height={20} className="rounded" />,
-  },
 ];
 
 const STATUS_MAP: Record<IntegrationKey, string> = {
