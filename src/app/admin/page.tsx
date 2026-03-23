@@ -174,21 +174,22 @@ export default function AdminPage() {
     }
   }, [fetchSettings]);
 
-  // Check admin access on mount (wait for Supabase session to be ready)
+  // Check admin access on mount (wait for Supabase session to be restored)
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        fetchStats().then(() => {
+          setAuthed(true);
+        }).catch(() => {
+          setAuthed(false);
+        });
+      } else if (event === "INITIAL_SESSION" || event === "SIGNED_OUT") {
         setAuthed(false);
         setError("ログインしてください。");
         setLoading(false);
-        return;
       }
-      fetchStats().then(() => {
-        setAuthed(true);
-      }).catch(() => {
-        setAuthed(false);
-      });
     });
+    return () => subscription.unsubscribe();
   }, [fetchStats]);
 
   // Auto-refresh every 60s
