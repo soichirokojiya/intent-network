@@ -10,6 +10,22 @@ export const metadata: Metadata = {
     title: "Gmailの売上メールから在庫管理を自動化した話 | musu",
     description:
       "売上通知メールが届くたびに手動で在庫を更新していた作業を、musuに任せたら完全自動化できた。",
+    images: [
+      {
+        url: "https://images.unsplash.com/photo-1553413077-190dd305871c?w=1200&h=630&fit=crop",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Gmailの売上メールから在庫管理を自動化した話 | musu",
+    description:
+      "売上通知メールが届くたびに手動で在庫を更新していた作業を、musuに任せたら完全自動化できた。スプレッドシートで在庫管理システムを作った実例。",
+    images: [
+      "https://images.unsplash.com/photo-1553413077-190dd305871c?w=1200&h=630&fit=crop",
+    ],
   },
 };
 

@@ -11,6 +11,23 @@ export const metadata: Metadata = {
       "「メールのデータ、スプレッドシートに入れといて」が現実になった話 | musu",
     description:
       "Gmailに届く売上メールを読んで、Googleスプレッドシートに自動で記録。musuのAIチームに頼んだら、仕様を伝えるだけで動き出した。",
+    images: [
+      {
+        url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=630&fit=crop",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title:
+      "「メールのデータ、スプレッドシートに入れといて」が現実になった話 | musu",
+    description:
+      "Gmailに届く売上メールを読んで、Googleスプレッドシートに自動で記録。musuのAIチームに頼んだら、仕様を伝えるだけで動き出した。",
+    images: [
+      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=630&fit=crop",
+    ],
   },
 };
 

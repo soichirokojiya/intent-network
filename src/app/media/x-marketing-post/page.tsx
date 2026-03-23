@@ -11,6 +11,13 @@ export const metadata: Metadata = {
       "「SNS投稿、チームに任せたら楽すぎた」AIと一緒にX運用を始めた話 | musu",
     description:
       "マーケティング戦略をAIチームと議論して、投稿文を作成、承認ボタンひとつでXに投稿。ソロプレナーのSNS運用が変わった。",
+    images: [{ url: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=1200&h=630&fit=crop", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "「SNS投稿、チームに任せたら楽すぎた」AIと一緒にX運用を始めた話 | musu",
+    description: "マーケティング戦略をAIチームと議論して、投稿文を作成、承認ボタンひとつでXに投稿。ソロプレナーのSNS運用が変わった。",
+    images: ["https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=1200&h=630&fit=crop"],
   },
 };
 

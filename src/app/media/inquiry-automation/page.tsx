@@ -11,6 +11,23 @@ export const metadata: Metadata = {
       "「問い合わせメール、もう見落とさない」を仕組みにした話 | musu",
     description:
       "Gmailの問い合わせを自動で分類・返信文案を作成。Slackに通知して、OKで返信。対応履歴はNotionに自動保存。",
+    images: [
+      {
+        url: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=630&fit=crop",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title:
+      "「問い合わせメール、もう見落とさない」を仕組みにした話 | musu",
+    description:
+      "Gmailの問い合わせを自動で分類・返信文案を作成。Slackに通知して、OKで返信。対応履歴はNotionに自動保存。",
+    images: [
+      "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=630&fit=crop",
+    ],
   },
 };
 

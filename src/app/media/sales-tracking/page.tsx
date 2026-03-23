@@ -11,6 +11,23 @@ export const metadata: Metadata = {
       "「今月いくら売れた？」に即答できるようになった話 | musu",
     description:
       "Squareの決済データをGoogleスプレッドシートに記録。売上の集計から分析まで、musuに聞くだけ。",
+    images: [
+      {
+        url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=630&fit=crop",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title:
+      "「今月いくら売れた？」に即答できるようになった話 | musu",
+    description:
+      "Squareの決済データをGoogleスプレッドシートに記録。売上の集計から分析まで、musuに聞くだけ。",
+    images: [
+      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=630&fit=crop",
+    ],
   },
 };
 

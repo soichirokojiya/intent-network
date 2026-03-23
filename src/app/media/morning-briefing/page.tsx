@@ -11,6 +11,23 @@ export const metadata: Metadata = {
       "朝起きたら、今日やることが整理されている生活 | musu",
     description:
       "Googleカレンダーの予定、重要メール、業界ニュース。毎朝musuが自動でブリーフィングを届けてくれる。",
+    images: [
+      {
+        url: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=1200&h=630&fit=crop",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title:
+      "朝起きたら、今日やることが整理されている生活 | musu",
+    description:
+      "Googleカレンダーの予定、重要メール、業界ニュース。毎朝musuが自動でブリーフィングを届けてくれる。",
+    images: [
+      "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=1200&h=630&fit=crop",
+    ],
   },
 };
 
