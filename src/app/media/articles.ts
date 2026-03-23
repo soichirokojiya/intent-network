@@ -59,4 +59,14 @@ export const articles: Article[] = [
     tags: ["Square", "Sheets", "売上管理"],
     image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop",
   },
+  {
+    slug: "x-marketing-post",
+    title: "「SNS投稿、チームに任せたら楽すぎた」AIと一緒にX運用を始めた話",
+    description:
+      "マーケティング戦略をAIチームと議論して、投稿文を作成、承認ボタンひとつでXに投稿。ソロプレナーのSNS運用が変わった。",
+    date: "2026-03-23",
+    label: "lab",
+    tags: ["X", "自動化"],
+    image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&h=400&fit=crop",
+  },
 ];
