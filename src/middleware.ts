@@ -9,7 +9,6 @@ const PUBLIC_PATHS = [
   "/api/feedback-check",
   "/api/cron/",
   "/api/stripe/webhook",
-  "/api/admin/",
 ];
 
 export async function middleware(req: NextRequest) {

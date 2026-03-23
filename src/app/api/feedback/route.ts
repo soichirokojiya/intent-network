@@ -30,10 +30,9 @@ export async function POST(req: NextRequest) {
 
 // GET: List feedback (admin only)
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.ADMIN_PASSWORD}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { requireAdmin } = await import("@/lib/adminAuth");
+  const denied = requireAdmin(req);
+  if (denied) return denied;
 
   const { data } = await supabase
     .from("feedback_responses")

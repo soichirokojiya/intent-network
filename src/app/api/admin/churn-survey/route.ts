@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAdmin } from "@/lib/adminAuth";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
+// POST: Submit churn survey (authenticated users only)
 export async function POST(req: NextRequest) {
-  const { deviceId, userId, email, reason, comment } = await req.json();
+  const body = await req.json();
+  const userId = getVerifiedUserId(req) || body.deviceId;
 
   await supabase.from("churn_surveys").insert({
-    device_id: deviceId || null,
+    device_id: userId || null,
     user_id: userId || null,
-    email: email || null,
-    reason: reason || null,
-    comment: comment || null,
+    email: body.email || null,
+    reason: body.reason || null,
+    comment: body.comment || null,
   });
 
   return NextResponse.json({ ok: true });
@@ -22,10 +26,8 @@ export async function POST(req: NextRequest) {
 
 // GET: List all churn surveys (admin only)
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.ADMIN_PASSWORD}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireAdmin(req);
+  if (denied) return denied;
 
   const { data } = await supabase
     .from("churn_surveys")

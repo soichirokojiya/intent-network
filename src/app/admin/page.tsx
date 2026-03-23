@@ -105,9 +105,9 @@ export default function AdminPage() {
   const [editingCredit, setEditingCredit] = useState(false);
   const [creditInput, setCreditInput] = useState("1000");
 
-  const fetchSettings = useCallback(async (token: string) => {
+  const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/settings", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch("/api/admin/settings");
       if (res.ok) {
         const data = await res.json();
         setSignupEnabled(data.signup_enabled !== "false");
@@ -120,43 +120,36 @@ export default function AdminPage() {
   }, []);
 
   const toggleSignup = useCallback(async () => {
-    const token = sessionStorage.getItem("admin_token");
-    if (!token) return;
     const newValue = !signupEnabled;
     setSignupEnabled(newValue);
     await fetch("/api/admin/settings", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: "signup_enabled", value: String(newValue) }),
     });
   }, [signupEnabled]);
 
   const saveInitialCredit = useCallback(async () => {
-    const token = sessionStorage.getItem("admin_token");
-    if (!token) return;
     const val = Number(creditInput);
     if (isNaN(val) || val < 0) return;
     setInitialCredit(val);
     setEditingCredit(false);
     await fetch("/api/admin/settings", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: "initial_credit_yen", value: String(val) }),
     });
   }, [creditInput]);
 
-  const fetchStats = useCallback(async (token: string) => {
+  const fetchStats = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/stats", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/admin/stats");
       if (!res.ok) {
         if (res.status === 401) {
           setAuthed(false);
-          sessionStorage.removeItem("admin_token");
-          setError("Invalid password");
+          setError("管理者権限がありません。ログインしてください。");
           return;
         }
         throw new Error("Failed to fetch stats");
@@ -164,11 +157,11 @@ export default function AdminPage() {
       const data = await res.json();
       setStats(data);
       setLastUpdated(new Date());
-      fetchSettings(token);
+      fetchSettings();
       // Fetch feedback & churn data
       Promise.all([
-        fetch("/api/feedback", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : { responses: [] }),
-        fetch("/api/admin/churn-survey", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : { surveys: [] }),
+        fetch("/api/feedback").then(r => r.ok ? r.json() : { responses: [] }),
+        fetch("/api/admin/churn-survey").then(r => r.ok ? r.json() : { surveys: [] }),
       ]).then(([fb, ch]) => {
         setFeedbackData(fb.responses || []);
         setChurnData(ch.surveys || []);
@@ -180,31 +173,18 @@ export default function AdminPage() {
     }
   }, [fetchSettings]);
 
-  // Check sessionStorage on mount
+  // Auto-auth on mount (uses Supabase Auth cookie)
   useEffect(() => {
-    const saved = sessionStorage.getItem("admin_token");
-    if (saved) {
-      setAuthed(true);
-      fetchStats(saved);
-    }
+    setAuthed(true);
+    fetchStats();
   }, [fetchStats]);
 
   // Auto-refresh every 60s
   useEffect(() => {
     if (!authed) return;
-    const token = sessionStorage.getItem("admin_token");
-    if (!token) return;
-    const interval = setInterval(() => fetchStats(token), 60000);
+    const interval = setInterval(() => fetchStats(), 60000);
     return () => clearInterval(interval);
   }, [authed, fetchStats]);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!password.trim()) return;
-    sessionStorage.setItem("admin_token", password);
-    setAuthed(true);
-    fetchStats(password);
-  };
 
   if (!authed) {
     return (
@@ -215,54 +195,34 @@ export default function AdminPage() {
         justifyContent: "center",
         background: "#f7f9f9",
       }}>
-        <form onSubmit={handleLogin} style={{
+        <div style={{
           background: "#fff",
           padding: "32px",
           borderRadius: "16px",
           boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
           width: "100%",
           maxWidth: "360px",
+          textAlign: "center",
         }}>
           <h1 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
             musu.world Admin
           </h1>
-          <p style={{ fontSize: "14px", color: "#536471", marginBottom: "24px" }}>
-            Enter admin password to continue
+          <p style={{ fontSize: "14px", color: "#536471", marginBottom: "16px" }}>
+            {error || "管理者アカウントでログインしてください。"}
           </p>
-          {error && (
-            <p style={{ color: "#f4212e", fontSize: "14px", marginBottom: "12px" }}>{error}</p>
-          )}
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            autoFocus
-            style={{
-              width: "100%",
-              padding: "12px 16px",
-              borderRadius: "8px",
-              border: "1px solid #eff3f4",
-              fontSize: "16px",
-              marginBottom: "16px",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-          />
-          <button type="submit" style={{
-            width: "100%",
-            padding: "12px",
+          <a href="/" style={{
+            display: "inline-block",
+            padding: "12px 24px",
             borderRadius: "9999px",
             background: "#1d9bf0",
             color: "#fff",
             fontWeight: 700,
             fontSize: "15px",
-            border: "none",
-            cursor: "pointer",
+            textDecoration: "none",
           }}>
-            Login
-          </button>
-        </form>
+            ログインページへ
+          </a>
+        </div>
       </div>
     );
   }
@@ -353,10 +313,7 @@ export default function AdminPage() {
               </span>
             )}
             <button
-              onClick={() => {
-                const token = sessionStorage.getItem("admin_token");
-                if (token) fetchStats(token);
-              }}
+              onClick={() => fetchStats()}}
               disabled={loading}
               style={{
                 padding: "8px 16px",
@@ -374,7 +331,6 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => {
-                sessionStorage.removeItem("admin_token");
                 setAuthed(false);
                 setStats(null);
               }}

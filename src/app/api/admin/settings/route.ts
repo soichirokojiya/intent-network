@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAdmin } from "@/lib/adminAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-function checkAuth(req: NextRequest): boolean {
-  const auth = req.headers.get("authorization");
-  return auth === `Bearer ${process.env.ADMIN_PASSWORD}`;
-}
-
 // GET: Get all settings
 export async function GET(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = requireAdmin(req);
+  if (denied) return denied;
 
   const { data } = await supabase.from("site_settings").select("key, value");
   const settings: Record<string, string> = {};
@@ -24,7 +21,8 @@ export async function GET(req: NextRequest) {
 
 // PATCH: Update a setting
 export async function PATCH(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = requireAdmin(req);
+  if (denied) return denied;
 
   const { key, value } = await req.json();
   if (!key || value === undefined) return NextResponse.json({ error: "key and value required" }, { status: 400 });
