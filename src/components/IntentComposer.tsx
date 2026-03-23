@@ -1118,11 +1118,14 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                           })();
                           if (!tweetText) { btn.disabled = false; btn.textContent = "投稿する"; return; }
                           const deviceId = localStorage.getItem("musu_device_id") || "";
+                          // Find agent with X connected (twitterEnabled)
+                          const xAgent = configured.find((a) => a.config.twitterEnabled || a.config.twitterUsername);
+                          const postAgentId = xAgent?.id || msg.agentId;
                           try {
                             const res = await fetch("/api/x/post", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ deviceId, agentId: msg.agentId, text: tweetText }),
+                              body: JSON.stringify({ deviceId, agentId: postAgentId, text: tweetText }),
                             });
                             const data = await res.json();
                             // Hide buttons after action

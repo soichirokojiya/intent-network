@@ -107,10 +107,11 @@ export async function POST(req: NextRequest) {
     let refreshToken: string | null = null;
     let tokenSource: "agent" | "profile" = "profile";
 
+    // Try specific agent first, then any agent with X token for this user
     if (agentId) {
       const { data: agent } = await supabase
         .from("owner_agents")
-        .select("x_access_token, x_refresh_token")
+        .select("id, x_access_token, x_refresh_token")
         .eq("id", agentId)
         .eq("device_id", deviceId)
         .single();
@@ -118,6 +119,23 @@ export async function POST(req: NextRequest) {
       if (agent?.x_access_token) {
         accessToken = agent.x_access_token;
         refreshToken = agent.x_refresh_token;
+        tokenSource = "agent";
+      }
+    }
+
+    // Fallback: find any agent with X token for this user
+    if (!accessToken) {
+      const { data: anyAgent } = await supabase
+        .from("owner_agents")
+        .select("id, x_access_token, x_refresh_token")
+        .eq("device_id", deviceId)
+        .not("x_access_token", "is", null)
+        .limit(1)
+        .single();
+
+      if (anyAgent?.x_access_token) {
+        accessToken = anyAgent.x_access_token;
+        refreshToken = anyAgent.x_refresh_token;
         tokenSource = "agent";
       }
     }
