@@ -19,6 +19,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: string | null; isExisting?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<{ error: string | null }>;
   updateAvatarUrl: (url: string) => Promise<{ error: string | null }>;
@@ -68,7 +69,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("musu_business_info");
     localStorage.removeItem("musu_memory_summary");
     bindDeviceId(userId);
-    const { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
+    let { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
+    // Auto-create profile if it doesn't exist (e.g. first Google login)
+    if (!data) {
+      await supabase.from("profiles").insert({
+        id: userId,
+        display_name: email.split("@")[0],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      const res = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
+      data = res.data;
+    }
     setDisplayName(data?.display_name || email.split("@")[0]);
     setAvatarUrl(data?.avatar_url || "");
     setBusinessInfo(data?.business_info || "");
@@ -139,6 +151,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error: error?.message || null };
+  }, []);
+
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/` },
+    });
     return { error: error?.message || null };
   }, []);
 
@@ -228,7 +248,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, loadProfile]);
 
   return (
-    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, newsTimes, googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, loading, signUp, signIn, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings, updateScheduleDelivery, refreshProfile }}>
+    <AuthContext.Provider value={{ user, displayName, avatarUrl, businessInfo, memorySummary, newsEnabled, newsTime, newsTimes, googleCalendarConnected, trelloConnected, scheduleDeliveryEnabled, loading, signUp, signIn, signInWithGoogle, signOut, updateDisplayName, updateAvatarUrl, updateBusinessInfo, updateNewsSettings, updateScheduleDelivery, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -41,13 +41,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ migrated: false, reason: "new_device_has_data" });
     }
 
-    // Migrate all tables
-    const tables = ["owner_agents", "owner_chats", "project_rooms", "user_credits", "usage_log"];
+    // Migrate all tables with device_id column
+    const tables = [
+      "owner_agents", "owner_chats", "project_rooms", "user_credits", "usage_log",
+      "project_facts", "automations", "x_post_drafts", "feedback_responses", "churn_surveys",
+    ];
     for (const table of tables) {
       await supabaseAdmin
         .from(table)
         .update({ device_id: newDeviceId })
         .eq("device_id", oldDeviceId);
+    }
+
+    // Also update user_id where it exists
+    const tablesWithUserId = ["owner_agents", "owner_chats"];
+    for (const table of tablesWithUserId) {
+      await supabaseAdmin
+        .from(table)
+        .update({ user_id: newDeviceId })
+        .eq("user_id", oldDeviceId);
     }
 
     return NextResponse.json({ migrated: true });
