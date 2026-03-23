@@ -40,20 +40,40 @@ export default function AgentPage() {
   const [, setTick] = useState(0);
 
   // Auto-select agent or open create form from query params
+  // Only react to searchParams changes, not myAgents updates (biorhythm timer resets editing state)
   useEffect(() => {
     const id = searchParams.get("id");
     const isNew = searchParams.get("new");
+    const xStatus = searchParams.get("x");
     if (isNew) {
       setDraft(getDefaultDraft());
       setCreating(true);
       setEditingAgentId(null);
       setSelectedAgentId(null);
-    } else if (id && myAgents.some((a) => a.id === id)) {
+    } else if (id && xStatus === "connected") {
+      // Returning from X OAuth — open edit form for the agent
+      const agent = myAgents.find((a) => a.id === id);
+      if (agent) {
+        setDraft({
+          name: agent.config.name, avatar: agent.config.avatar,
+          tone: "", beliefs: "",
+          expertise: agent.config.role || agent.config.expertise || "",
+          personality: agent.config.personality || agent.config.character || "",
+          role: agent.config.role || "", character: agent.config.personality || agent.config.character || "",
+          speakingStyle: "", coreValue: "",
+          twitterEnabled: agent.config.twitterEnabled || false, twitterUsername: agent.config.twitterUsername || "",
+          isOrchestrator: agent.config.isOrchestrator || false,
+        });
+        setEditingAgentId(id);
+        setCreating(true);
+      }
+    } else if (id) {
       setSelectedAgentId(id);
       setCreating(false);
       setEditingAgentId(null);
     }
-  }, [searchParams, myAgents]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   useEffect(() => { const ti = setInterval(() => setTick((x) => x + 1), 10000); return () => clearInterval(ti); }, []);
 
@@ -234,7 +254,45 @@ export default function AgentPage() {
               rows={4}
               className="w-full bg-[var(--search-bg)] rounded-xl px-3 py-2 text-[14px] outline-none border border-[var(--card-border)] focus:border-[var(--accent)] resize-none" />
           </div>
-          {/* Twitter連携削除済み */}
+          {editingAgentId && (
+            <div className="mb-4">
+              <label className="text-[13px] text-[var(--muted)] block mb-2">X連携</label>
+              {draft.twitterUsername ? (
+                <div className="flex items-center gap-3 bg-[var(--search-bg)] rounded-xl px-4 py-3 border border-[var(--card-border)]">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="opacity-60"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  <span className="text-[14px] font-medium">@{draft.twitterUsername}</span>
+                  <span className="text-[12px] text-[var(--green)]">連携済み</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const deviceId = localStorage.getItem("musu_device_id") || "";
+                      await fetch("/api/x/disconnect", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ deviceId, agentId: editingAgentId }),
+                      });
+                      setDraft((d) => ({ ...d, twitterEnabled: false, twitterUsername: "" }));
+                    }}
+                    className="ml-auto text-[12px] text-red-400 hover:text-red-300"
+                  >
+                    解除
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const deviceId = localStorage.getItem("musu_device_id") || "";
+                    window.location.href = `/api/x/auth?deviceId=${deviceId}&agentId=${editingAgentId}`;
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-[var(--search-bg)] hover:bg-[var(--hover-bg)] border border-[var(--card-border)] rounded-xl px-4 py-3 transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="opacity-60"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  <span className="text-[14px]">Xアカウントを連携する</span>
+                </button>
+              )}
+            </div>
+          )}
           <button onClick={handleCreate} disabled={!draft.name.trim()}
             className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold py-3 rounded-full">
             {editingAgentId ? t("agent.saveBtn") : t("agent.create")}

@@ -352,16 +352,6 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     if (internalChats.length > 0) localStorage.setItem("internalChats", JSON.stringify(internalChats));
   }, [internalChats]);
 
-  // Biorhythm timer: recalculate mood every 60 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setMyAgents((prev) => prev.map((a) => {
-        const { mood } = calcBiorhythm(a.stats.biorhythmSeed || 0, a.stats.lastInteractedAt, a.stats.recentPostTimestamps || [], a.stats.restingUntil);
-        return { ...a, stats: { ...a.stats, mood } };
-      }));
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   // --- Agent CRUD ---
   const setActiveAgentId = useCallback((id: string) => {

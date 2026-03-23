@@ -23,7 +23,11 @@ export async function loadAgents(): Promise<{ agents: MyAgent[]; activeIds: stri
 
   const agents: MyAgent[] = data.map((row) => ({
     id: row.id,
-    config: row.config,
+    config: {
+      ...row.config,
+      twitterEnabled: !!row.x_username,
+      twitterUsername: row.x_username || row.config?.twitterUsername || "",
+    },
     stats: row.stats,
   }));
 

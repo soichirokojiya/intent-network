@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 export async function GET(req: NextRequest) {
   const deviceId = req.nextUrl.searchParams.get("deviceId");
+  const agentId = req.nextUrl.searchParams.get("agentId");
   if (!deviceId) {
     return NextResponse.json({ error: "deviceId required" }, { status: 400 });
   }
@@ -19,9 +20,9 @@ export async function GET(req: NextRequest) {
     .update(codeVerifier)
     .digest("base64url");
 
-  // Encode deviceId + codeVerifier in state (base64url)
+  // Encode deviceId + codeVerifier + agentId in state (base64url)
   const stateData = Buffer.from(
-    JSON.stringify({ deviceId, codeVerifier }),
+    JSON.stringify({ deviceId, codeVerifier, agentId: agentId || null }),
   ).toString("base64url");
 
   const redirectUri = "https://musu.world/api/x/callback";
