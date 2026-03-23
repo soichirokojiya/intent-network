@@ -101,25 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("musu_memory_summary", data?.memory_summary || "");
   }, [bindDeviceId]);
 
-  // One-time cleanup: remove old localStorage Supabase sessions (migrated to cookie)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const migrated = localStorage.getItem("musu_auth_migrated");
-    if (!migrated) {
-      // Clear old Supabase localStorage keys
-      const keysToRemove = Object.keys(localStorage).filter(
-        (k) => k.startsWith("sb-") || k.startsWith("supabase.")
-      );
-      keysToRemove.forEach((k) => localStorage.removeItem(k));
-      localStorage.setItem("musu_auth_migrated", "1");
-      if (keysToRemove.length > 0) {
-        window.location.reload();
-        return;
-      }
-    }
-  }, []);
-
-  useEffect(() => {
+useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         // Set device_id BEFORE setting user (which triggers IntentProvider)
