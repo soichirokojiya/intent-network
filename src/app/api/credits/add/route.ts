@@ -67,9 +67,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ balance: newBalance });
   } else {
+    let initialCredit = 1000;
+    try {
+      const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "initial_credit_yen").single();
+      if (setting?.value) initialCredit = Number(setting.value) || 1000;
+    } catch {}
     await supabase.from("user_credits").insert({
-      device_id: deviceId, user_id: deviceId, balance_yen: 300 + amount, total_charged_yen: amount,
+      device_id: deviceId, user_id: deviceId, balance_yen: initialCredit + amount, total_charged_yen: amount,
     });
-    return NextResponse.json({ balance: 300 + amount });
+    return NextResponse.json({ balance: initialCredit + amount });
   }
 }

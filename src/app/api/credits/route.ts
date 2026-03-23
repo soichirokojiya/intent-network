@@ -17,12 +17,18 @@ export async function GET(req: NextRequest) {
     .single();
 
   if (!data) {
+    // Get initial credit from site_settings
+    let initialCredit = 1000;
+    try {
+      const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "initial_credit_yen").single();
+      if (setting?.value) initialCredit = Number(setting.value) || 1000;
+    } catch {}
     await supabase.from("user_credits").insert({
       device_id: deviceId,
       user_id: deviceId,
-      balance_yen: 300,
+      balance_yen: initialCredit,
     });
-    return NextResponse.json({ balance: 300, totalUsed: 0, totalCharged: 0, totalInputTokens: 0, totalOutputTokens: 0 });
+    return NextResponse.json({ balance: initialCredit, totalUsed: 0, totalCharged: 0, totalInputTokens: 0, totalOutputTokens: 0 });
   }
 
   // Get total tokens used (exclude charge entries)
