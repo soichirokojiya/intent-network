@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePathname } from "next/navigation";
 import { LandingContent } from "./LandingContent";
 
-const PUBLIC_PATHS = ["/terms", "/privacy", "/contact", "/help", "/about", "/media"];
+const PUBLIC_PATHS = ["/terms", "/privacy", "/contact", "/admin", "/help", "/about", "/media"];
 
 export function AuthGate({ children, publicChildren }: { children: React.ReactNode; publicChildren: React.ReactNode }) {
   const { user, loading } = useAuth();

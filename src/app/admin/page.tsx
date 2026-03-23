@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { authFetch } from "@/lib/supabase";
+import { supabase, authFetch } from "@/lib/supabase";
 
 interface UserRow {
   id: string;
@@ -174,12 +174,20 @@ export default function AdminPage() {
     }
   }, [fetchSettings]);
 
-  // Check admin access on mount
+  // Check admin access on mount (wait for Supabase session to be ready)
   useEffect(() => {
-    fetchStats().then(() => {
-      setAuthed(true);
-    }).catch(() => {
-      setAuthed(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setAuthed(false);
+        setError("ログインしてください。");
+        setLoading(false);
+        return;
+      }
+      fetchStats().then(() => {
+        setAuthed(true);
+      }).catch(() => {
+        setAuthed(false);
+      });
     });
   }, [fetchStats]);
 
