@@ -1102,6 +1102,35 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                       </button>
                     </div>
                   )}
+                  {msg.tweetPreview && msg.agentId && (
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => {
+                          approveTweet(msg.agentId!);
+                          enqueueMessage({
+                            id: `tweet-approved-${Date.now()}`, type: "agent",
+                            agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
+                            text: "投稿しました！", timestamp: Date.now(),
+                          });
+                        }}
+                        className="px-3 py-1 bg-[var(--accent)] text-white text-[12px] font-bold rounded-lg hover:bg-[var(--accent-hover)]"
+                      >
+                        投稿する
+                      </button>
+                      <button
+                        onClick={() => {
+                          enqueueMessage({
+                            id: `tweet-cancel-${Date.now()}`, type: "agent",
+                            agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
+                            text: "投稿をキャンセルしました。", timestamp: Date.now(),
+                          });
+                        }}
+                        className="px-3 py-1 border border-[var(--card-border)] text-[12px] rounded-lg hover:bg-[var(--hover-bg)]"
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  )}
                   {msg.id.startsWith("email-preview-") && msg.agentId && (
                     <div className="mt-2 flex gap-2">
                       <button
