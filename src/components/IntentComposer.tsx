@@ -1105,13 +1105,35 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                   {(msg.tweetPreview || (msg.type === "agent" && /このツイート|この内容で投稿|投稿していい|これでいく|投稿するね/.test(msg.text))) && msg.agentId && (
                     <div className="mt-2 flex gap-2">
                       <button
-                        onClick={() => {
-                          approveTweet(msg.agentId!);
-                          enqueueMessage({
-                            id: `tweet-approved-${Date.now()}`, type: "agent",
-                            agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
-                            text: "投稿しました！", timestamp: Date.now(),
-                          });
+                        onClick={async () => {
+                          // Extract tweet text from message: 「...」 pattern
+                          const tweetText = msg.tweetPreview || (() => {
+                            const match = msg.text.match(/「([^」]+)」/);
+                            return match?.[1] || "";
+                          })();
+                          if (!tweetText) return;
+                          const deviceId = localStorage.getItem("musu_device_id") || "";
+                          try {
+                            const res = await fetch("/api/x/post", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ deviceId, agentId: msg.agentId, text: tweetText }),
+                            });
+                            const data = await res.json();
+                            enqueueMessage({
+                              id: `tweet-approved-${Date.now()}`, type: "agent",
+                              agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
+                              text: data.ok ? "投稿しました！" : `投稿に失敗しました: ${data.error || "不明なエラー"}`,
+                              timestamp: Date.now(),
+                            });
+                          } catch {
+                            enqueueMessage({
+                              id: `tweet-err-${Date.now()}`, type: "agent",
+                              agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
+                              text: "投稿に失敗しました。X連携を確認してください。",
+                              timestamp: Date.now(),
+                            });
+                          }
                         }}
                         className="px-3 py-1 bg-[var(--accent)] text-white text-[12px] font-bold rounded-lg hover:bg-[var(--accent-hover)]"
                       >
