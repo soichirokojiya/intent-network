@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 
@@ -14,6 +14,12 @@ export function LandingContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [signupEnabled, setSignupEnabled] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/signup-check").then(r => r.json()).then(d => setSignupEnabled(d.signupEnabled)).catch(() => setSignupEnabled(true));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,9 +119,39 @@ export function LandingContent() {
             </div>
           </div>
 
-          {/* Right: Auth form */}
+          {/* Right: Auth form or closed notice */}
           <div className="w-full max-w-[396px]">
             <div className="bg-white rounded-xl shadow-lg p-6 pb-5">
+              {!signupEnabled && !showLoginForm ? (
+                <div className="text-center py-4">
+                  <p className="text-[18px] font-bold text-gray-800 mb-2">β版の登録枠が上限に達しました</p>
+                  <p className="text-[14px] text-gray-500 mb-4 leading-relaxed">
+                    たくさんのご登録ありがとうございます。<br />
+                    現在、新規登録を一時停止しています。<br />
+                    次回の募集開始はXでお知らせします。
+                  </p>
+                  <a
+                    href="https://x.com/OtobeAsako"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white font-bold rounded-full text-[14px] hover:bg-gray-800 transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    Xをフォローする
+                  </a>
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <p className="text-[12px] text-gray-400 mb-2">既にアカウントをお持ちの方</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginForm(true)}
+                      className="text-[14px] text-[#4A99E9] font-bold hover:underline"
+                    >
+                      ログインはこちら
+                    </button>
+                  </div>
+                </div>
+              ) : (
+              <>
               {!isReset && (
                 <>
                   <button
@@ -183,12 +219,21 @@ export function LandingContent() {
                 <>
                   <div className="border-t border-gray-200 my-5" />
                   <div className="text-center">
-                    <button
-                      onClick={() => switchMode(mode === "reset" ? "signin" : "signup")}
-                      className="bg-[#42b72a] hover:bg-[#36a420] text-white font-bold px-6 py-3 rounded-lg text-[15px] transition-colors"
-                    >
-                      {mode === "reset" ? t("auth.backToSignIn") : t("auth.signUp")}
-                    </button>
+                    {mode === "reset" ? (
+                      <button
+                        onClick={() => switchMode("signin")}
+                        className="bg-[#42b72a] hover:bg-[#36a420] text-white font-bold px-6 py-3 rounded-lg text-[15px] transition-colors"
+                      >
+                        {t("auth.backToSignIn")}
+                      </button>
+                    ) : signupEnabled ? (
+                      <button
+                        onClick={() => switchMode("signup")}
+                        className="bg-[#42b72a] hover:bg-[#36a420] text-white font-bold px-6 py-3 rounded-lg text-[15px] transition-colors"
+                      >
+                        {t("auth.signUp")}
+                      </button>
+                    ) : null}
                   </div>
                 </>
               )}
@@ -204,6 +249,8 @@ export function LandingContent() {
                     </button>
                   </div>
                 </>
+              )}
+              </>
               )}
             </div>
           </div>

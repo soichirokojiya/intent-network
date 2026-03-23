@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 export async function GET(req: NextRequest) {
-  const denied = requireAdmin(req);
+  const denied = await requireAdmin(req);
   if (denied) return denied;
 
   const todayStart = new Date();

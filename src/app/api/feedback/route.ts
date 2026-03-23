@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 // GET: List feedback (admin only)
 export async function GET(req: NextRequest) {
   const { requireAdmin } = await import("@/lib/adminAuth");
-  const denied = requireAdmin(req);
+  const denied = await requireAdmin(req);
   if (denied) return denied;
 
   const { data } = await supabase

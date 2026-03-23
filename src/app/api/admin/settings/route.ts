@@ -9,7 +9,7 @@ const supabase = createClient(
 
 // GET: Get all settings
 export async function GET(req: NextRequest) {
-  const denied = requireAdmin(req);
+  const denied = await requireAdmin(req);
   if (denied) return denied;
 
   const { data } = await supabase.from("site_settings").select("key, value");
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
 // PATCH: Update a setting
 export async function PATCH(req: NextRequest) {
-  const denied = requireAdmin(req);
+  const denied = await requireAdmin(req);
   if (denied) return denied;
 
   const { key, value } = await req.json();

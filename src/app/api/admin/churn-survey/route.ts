@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
 // GET: List all churn surveys (admin only)
 export async function GET(req: NextRequest) {
-  const denied = requireAdmin(req);
+  const denied = await requireAdmin(req);
   if (denied) return denied;
 
   const { data } = await supabase
