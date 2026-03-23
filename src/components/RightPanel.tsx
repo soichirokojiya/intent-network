@@ -96,6 +96,7 @@ export function RightPanel() {
       saveOrder(newOrder.map((a) => a.id));
     }
     touchStartIdx.current = null;
+    setOverIdx(null);
   };
 
   return (

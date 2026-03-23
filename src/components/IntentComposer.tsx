@@ -162,15 +162,15 @@ function WelcomeSequence({ agents, onMessageShown, onComplete }: { agents: { id:
   const orchestrator = agents.find((a) => a.config.role === "オーケストレーター" || a.config.expertise === "オーケストレーター") || agents[0];
   const otherAgents = agents.filter((a) => a.id !== orchestrator.id);
 
-  const memberList = otherAgents.map((a) => {
+  const allMembers = agents.map((a) => {
     const role = a.config.role || a.config.expertise || "";
-    return `${a.config.name}（${role}）`;
-  }).join("、");
+    return `・${a.config.name}（${role}）`;
+  }).join("\n");
 
   // Stable ref for messages to avoid stale closures in useEffect
   const messagesRef = useRef([
     `はじめまして、${orchestrator.config.name}です。あなた専属チームのリーダーです。\nここにいる全員があなたの仕事仲間です。何でも気軽に話しかけてください。`,
-    `メンバーを紹介します。\n${memberList}\nチーム編成は自由にカスタマイズできます。右のチーム欄からメンバーのON/OFF・追加・役割変更がいつでもできます。`,
+    `チームメンバーを紹介します。\n${allMembers}\nチーム編成は自由にカスタマイズできます。チーム欄からメンバーのON/OFF・追加・役割変更がいつでもできます。`,
     `musuはいろんな仕事を任せられます。\n「競合を調べて」→ リサーチ\n「メールして」→ メール作成・送信\n「Gmailの売上データをスプレッドシートに入れて」→ 自動転記\n「今後も自動で反映して」→ 自動化ルール作成\nGmail・Googleカレンダー・スプレッドシート・Trello・Notion・Slackと連携できます。アプリ連携から設定してみてください。`,
   ]);
   const messages = messagesRef.current;
