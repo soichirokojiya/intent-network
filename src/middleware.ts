@@ -68,8 +68,8 @@ export async function middleware(req: NextRequest) {
     });
   }
 
-  // Non-blocking: pass through (auth checked in individual routes via adminAuth.ts)
-  return NextResponse.next();
+  // No valid auth session - block the request
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
 export const config = {
