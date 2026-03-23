@@ -1102,16 +1102,21 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                       </button>
                     </div>
                   )}
-                  {(msg.tweetPreview || (msg.type === "agent" && /このツイート|この内容で投稿|投稿していい|これでいく|投稿するね/.test(msg.text))) && msg.agentId && (
-                    <div className="mt-2 flex gap-2">
+                  {(msg.tweetPreview || (msg.type === "agent" && /このツイート|この内容で投稿|投稿していい|これでいく|投稿するね/.test(msg.text))) && msg.agentId && !msg.text.includes("[tweeted]") && (() => {
+                    const tweetBtnId = `tweet-btn-${msg.id}`;
+                    return (
+                    <div className="mt-2 flex gap-2" id={tweetBtnId}>
                       <button
-                        onClick={async () => {
-                          // Extract tweet text from message: 「...」 pattern
+                        onClick={async (e) => {
+                          const btn = e.currentTarget;
+                          if (btn.disabled) return;
+                          btn.disabled = true;
+                          btn.textContent = "投稿中...";
                           const tweetText = msg.tweetPreview || (() => {
                             const match = msg.text.match(/「([^」]+)」/);
                             return match?.[1] || "";
                           })();
-                          if (!tweetText) return;
+                          if (!tweetText) { btn.disabled = false; btn.textContent = "投稿する"; return; }
                           const deviceId = localStorage.getItem("musu_device_id") || "";
                           try {
                             const res = await fetch("/api/x/post", {
@@ -1120,6 +1125,9 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                               body: JSON.stringify({ deviceId, agentId: msg.agentId, text: tweetText }),
                             });
                             const data = await res.json();
+                            // Hide buttons after action
+                            const container = document.getElementById(tweetBtnId);
+                            if (container) container.style.display = "none";
                             enqueueMessage({
                               id: `tweet-approved-${Date.now()}`, type: "agent",
                               agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
@@ -1127,6 +1135,8 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                               timestamp: Date.now(),
                             });
                           } catch {
+                            btn.disabled = false;
+                            btn.textContent = "投稿する";
                             enqueueMessage({
                               id: `tweet-err-${Date.now()}`, type: "agent",
                               agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
@@ -1135,12 +1145,14 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                             });
                           }
                         }}
-                        className="px-3 py-1 bg-[var(--accent)] text-white text-[12px] font-bold rounded-lg hover:bg-[var(--accent-hover)]"
+                        className="px-3 py-1 bg-[var(--accent)] text-white text-[12px] font-bold rounded-lg hover:bg-[var(--accent-hover)] disabled:opacity-50"
                       >
                         投稿する
                       </button>
                       <button
                         onClick={() => {
+                          const container = document.getElementById(tweetBtnId);
+                          if (container) container.style.display = "none";
                           enqueueMessage({
                             id: `tweet-cancel-${Date.now()}`, type: "agent",
                             agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
@@ -1152,7 +1164,8 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                         キャンセル
                       </button>
                     </div>
-                  )}
+                    );
+                  })()}
                   {msg.id.startsWith("email-preview-") && msg.agentId && (
                     <div className="mt-2 flex gap-2">
                       <button
