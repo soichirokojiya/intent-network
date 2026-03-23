@@ -102,9 +102,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [bindDeviceId]);
 
 useEffect(() => {
+    const recoverSession = () => {
+      const keys = Object.keys(localStorage).filter(k => k.startsWith("sb-"));
+      if (keys.length > 0) {
+        keys.forEach(k => localStorage.removeItem(k));
+        window.location.reload();
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    };
+
+    // Auto-recovery: if loading hangs for 5 seconds, clear and reload
+    const timeout = setTimeout(() => {
+      if (loading) recoverSession();
+    }, 5000);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timeout);
       if (session?.user) {
-        // Set device_id BEFORE setting user (which triggers IntentProvider)
         bindDeviceId(session.user.id);
         setUser(session.user);
         loadProfile(session.user.id, session.user.email || "");
@@ -112,7 +128,12 @@ useEffect(() => {
         setUser(null);
       }
       setLoading(false);
+    }).catch(() => {
+      clearTimeout(timeout);
+      recoverSession();
     });
+
+    return () => clearTimeout(timeout);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       // Password recovery: redirect to change password page
