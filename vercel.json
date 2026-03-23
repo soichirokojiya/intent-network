@@ -23,7 +23,7 @@
     },
     {
       "path": "/api/x/cron-draft",
-      "schedule": "0 0 * * *"
+      "schedule": "0 * * * *"
     }
   ]
 }

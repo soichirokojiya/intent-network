@@ -8,10 +8,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-// POST: Cron job — Kai generates a daily tweet draft and posts it as a chat proposal
-// Called by Vercel Cron at 9:00 JST
+// POST: Cron job — runs every hour, checks if current time matches any user's X post schedule
 export async function POST(req: NextRequest) {
-  // Verify cron secret
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
@@ -20,35 +18,50 @@ export async function POST(req: NextRequest) {
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
 
-  // Find all users who have X connected (or just the admin for now)
-  const adminDeviceId = process.env.ADMIN_DEVICE_ID;
-  if (!adminDeviceId) {
-    return NextResponse.json({ error: "ADMIN_DEVICE_ID not set" }, { status: 500 });
-  }
+  // Current hour in JST
+  const now = new Date();
+  const jstOffset = 9 * 60 * 60 * 1000;
+  const jstNow = new Date(now.getTime() + jstOffset);
+  const currentHour = jstNow.getUTCHours().toString().padStart(2, "0") + ":00";
 
-  const deviceIds = [adminDeviceId];
+  // Find users with X post schedule enabled
+  const { data: users } = await supabase
+    .from("profiles")
+    .select("id, x_post_schedule")
+    .eq("x_post_schedule_enabled", true)
+    .not("x_post_schedule", "is", null);
+
+  if (!users || users.length === 0) {
+    return NextResponse.json({ skipped: true, reason: "no_scheduled_users", currentHour });
+  }
 
   const results = [];
 
-  for (const deviceId of deviceIds) {
+  for (const user of users) {
+    const deviceId = user.id;
+    let scheduleTimes: string[] = [];
     try {
-      // Check if already generated today (JST)
-      const now = new Date();
-      const jstOffset = 9 * 60 * 60 * 1000;
-      const jstNow = new Date(now.getTime() + jstOffset);
-      const todayStart = new Date(
-        Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()) - jstOffset,
-      );
+      scheduleTimes = JSON.parse(user.x_post_schedule || "[]");
+    } catch {
+      continue;
+    }
 
-      const { data: todayDrafts } = await supabase
+    // Check if current hour matches any scheduled time
+    if (!scheduleTimes.some((t: string) => t === currentHour)) {
+      continue;
+    }
+
+    try {
+      // Skip if there's already a pending draft
+      const { data: pendingDrafts } = await supabase
         .from("x_post_drafts")
         .select("id")
         .eq("device_id", deviceId)
-        .gte("created_at", todayStart.toISOString())
+        .eq("status", "pending")
         .limit(1);
 
-      if (todayDrafts && todayDrafts.length > 0) {
-        results.push({ deviceId, skipped: true, reason: "already_generated_today" });
+      if (pendingDrafts && pendingDrafts.length > 0) {
+        results.push({ deviceId, skipped: true, reason: "pending_draft_exists" });
         continue;
       }
 
@@ -56,7 +69,7 @@ export async function POST(req: NextRequest) {
       const draftRes = await fetch(`${baseUrl}/api/x/drafts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deviceId, source: "daily_cron" }),
+        body: JSON.stringify({ deviceId, source: "scheduled" }),
       });
 
       const draft = await draftRes.json();
@@ -66,7 +79,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Find Kai agent for this user
+      // Find the marketing agent (Kai) for this user
       const { data: agents } = await supabase
         .from("owner_agents")
         .select("id, config")
@@ -90,14 +103,14 @@ export async function POST(req: NextRequest) {
         agent_name: agentName,
         agent_avatar: agentAvatar,
         agent_id: agentId,
-        text: `今日の投稿案です！\n\n「${draft.text}」\n[x-draft:${draft.id}]`,
+        text: `投稿案です！\n\n「${draft.text}」\n[x-draft:${draft.id}]`,
       });
 
-      results.push({ deviceId, ok: true, draftId: draft.id });
+      results.push({ deviceId, ok: true, draftId: draft.id, time: currentHour });
     } catch (err) {
       results.push({ deviceId, error: err instanceof Error ? err.message : String(err) });
     }
   }
 
-  return NextResponse.json({ results });
+  return NextResponse.json({ results, currentHour });
 }

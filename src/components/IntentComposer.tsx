@@ -331,6 +331,32 @@ function detectNewsTopicIntent(text: string): { action: "set_topics"; topics: st
   return null;
 }
 
+// Detect X post schedule setting from chat message
+function detectXPostScheduleIntent(text: string): { action: "set_x_schedule"; times: string[] } | { action: "disable_x_schedule" } | null {
+  if (/(投稿|ポスト|ツイート|X).*(止め|やめ|停止|オフ|off)/i.test(text)) {
+    return { action: "disable_x_schedule" };
+  }
+  const timeMatches: string[] = [];
+  const hourRegex = /(\d{1,2})時/g;
+  let m;
+  while ((m = hourRegex.exec(text)) !== null) {
+    const hour = parseInt(m[1], 10);
+    if (hour >= 0 && hour <= 23) timeMatches.push(hour.toString().padStart(2, "0") + ":00");
+  }
+  const hmRegex = /(\d{1,2}):(\d{2})/g;
+  while ((m = hmRegex.exec(text)) !== null) {
+    const hour = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (hour >= 0 && hour <= 23 && min >= 0 && min <= 59) {
+      timeMatches.push(hour.toString().padStart(2, "0") + ":" + min.toString().padStart(2, "0"));
+    }
+  }
+  if (timeMatches.length > 0 && /(投稿|ポスト|ツイート|X)/i.test(text)) {
+    return { action: "set_x_schedule", times: [...new Set(timeMatches)] };
+  }
+  return null;
+}
+
 // Detect schedule delivery time setting from chat message
 function detectScheduleIntent(text: string): { action: "set_schedule_times"; times: string[] } | { action: "disable_schedule" } | null {
   if (/予定.*(止め|やめ|停止|オフ|off)|スケジュール.*(止め|やめ|停止|オフ|off)/i.test(text)) {
@@ -799,6 +825,45 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       setText("");
       setReplyTo(null);
       return;
+    }
+
+    // Detect X post schedule setting from chat
+    const xScheduleIntent = detectXPostScheduleIntent(userText);
+    if (xScheduleIntent) {
+      const deviceId = localStorage.getItem("musu_device_id") || "";
+      if (deviceId) {
+        try {
+          const body = xScheduleIntent.action === "disable_x_schedule"
+            ? { deviceId, action: "disable_x_schedule" }
+            : { deviceId, action: "set_x_schedule", times: (xScheduleIntent as { action: "set_x_schedule"; times: string[] }).times };
+          const res = await fetch("/api/delivery-settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          // Find Kai or the mentioned agent
+          const mentionId = detectMention(userText, configured);
+          const respondingAgent = mentionId ? configured.find((a) => a.id === mentionId) : configured.find((a) => a.config.role === "マーケティング") || configured[0];
+          const confirmText = xScheduleIntent.action === "disable_x_schedule"
+            ? "X投稿スケジュールをオフにしました。"
+            : `X投稿のスケジュールを ${(xScheduleIntent as { action: "set_x_schedule"; times: string[] }).times.join("、")} に設定しました！その時間に投稿案を提案しますね。`;
+          if (respondingAgent) {
+            enqueueMessage({
+              id: `x-schedule-confirm-${Date.now()}`,
+              type: "agent",
+              agentName: respondingAgent.config.name,
+              agentAvatar: respondingAgent.config.avatar,
+              agentId: respondingAgent.id,
+              text: data.ok ? confirmText : `設定エラー: ${data.error || "不明"}`,
+              timestamp: Date.now(),
+            });
+          }
+        } catch {}
+        setText("");
+        setReplyTo(null);
+        return;
+      }
     }
 
     // Detect schedule delivery time setting from chat
