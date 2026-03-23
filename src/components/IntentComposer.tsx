@@ -1102,7 +1102,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                       </button>
                     </div>
                   )}
-                  {msg.tweetPreview && msg.agentId && (
+                  {(msg.tweetPreview || (msg.type === "agent" && /このツイート|この内容で投稿|投稿していい|これでいく|投稿するね/.test(msg.text))) && msg.agentId && (
                     <div className="mt-2 flex gap-2">
                       <button
                         onClick={() => {
