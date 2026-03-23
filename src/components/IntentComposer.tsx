@@ -451,7 +451,9 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       const welcomeMsgs = msgs.filter((m) => m.id.startsWith("welcome-"));
       const realMsgs = msgs.filter((m) => !m.id.startsWith("welcome-"));
 
-      if (realMsgs.length > 0 || welcomeMsgs.length >= 3) {
+      const did = localStorage.getItem("musu_device_id") || "";
+      const welcomeKey = `musu_welcome_done_${did}`;
+      if (realMsgs.length > 0 || welcomeMsgs.length >= 3 || localStorage.getItem(welcomeKey)) {
         // Has real messages or complete welcome sequence — show as-is
         setChatHistory(msgs as ChatMessage[]);
         setWelcomeDone(true);
@@ -910,6 +912,8 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               const msgs = [...welcomeMsgsRef.current];
               welcomeMsgsRef.current = [];
               setWelcomeDone(true);
+              const wDid = localStorage.getItem("musu_device_id") || "";
+              localStorage.setItem(`musu_welcome_done_${wDid}`, "1");
               setChatHistory(msgs);
               // Delete old incomplete welcome messages, then save new ones
               const deviceId = localStorage.getItem("musu_device_id") || "";
