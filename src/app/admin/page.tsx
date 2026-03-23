@@ -316,7 +316,7 @@ export default function AdminPage() {
               </span>
             )}
             <button
-              onClick={() => fetchStats()}}
+              onClick={() => fetchStats()}
               disabled={loading}
               style={{
                 padding: "8px 16px",
