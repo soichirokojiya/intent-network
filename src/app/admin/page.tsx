@@ -150,7 +150,7 @@ export default function AdminPage() {
         if (res.status === 401) {
           setAuthed(false);
           setError("管理者権限がありません。ログインしてください。");
-          return;
+          throw new Error("Unauthorized");
         }
         throw new Error("Failed to fetch stats");
       }
@@ -188,6 +188,14 @@ export default function AdminPage() {
     const interval = setInterval(() => fetchStats(), 60000);
     return () => clearInterval(interval);
   }, [authed, fetchStats]);
+
+  if (loading && !stats) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f7f9f9" }}>
+        <p style={{ color: "#536471" }}>Loading...</p>
+      </div>
+    );
+  }
 
   if (!authed) {
     return (
