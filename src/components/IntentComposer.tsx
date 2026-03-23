@@ -839,14 +839,16 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           body: JSON.stringify({ deviceId, ...topicIntent }),
         });
         const data = await res.json();
-        const firstAgent = configured[0];
-        if (firstAgent) {
+        // Use mentioned agent or fall back to first configured
+        const mentionedId = detectMention(userText, myAgents);
+        const responder = (mentionedId ? configured.find((a) => a.id === mentionedId) : null) || configured[0];
+        if (responder) {
           enqueueMessage({
             id: `topic-confirm-${Date.now()}`,
             type: "agent",
-            agentName: firstAgent.config.name,
-            agentAvatar: firstAgent.config.avatar,
-            agentId: firstAgent.id,
+            agentName: responder.config.name,
+            agentAvatar: responder.config.avatar,
+            agentId: responder.id,
             text: data.ok ? `ニュースのトピックを「${topicIntent.topics}」に設定しました。次回の配信から反映されます。` : `設定エラー: ${data.error || "不明"}`,
             timestamp: Date.now(),
           });
