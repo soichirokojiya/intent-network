@@ -114,12 +114,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       // Password recovery: redirect to change password page
       if (event === "PASSWORD_RECOVERY" && session?.user) {
         window.location.href = "/settings/account";
         return;
       }
+
+      // Block new Google signups when registration is disabled
+      if (event === "SIGNED_IN" && session?.user) {
+        const isOAuth = session.user.app_metadata?.provider === "google";
+        if (isOAuth) {
+          // Check if this user already has a profile (existing user)
+          const { data: existing } = await supabase.from("profiles").select("id").eq("id", session.user.id).single();
+          if (!existing) {
+            // New user — check if signup is enabled
+            try {
+              const checkRes = await fetch("/api/signup-check");
+              const checkData = await checkRes.json();
+              if (!checkData.signupEnabled) {
+                await supabase.auth.signOut();
+                setUser(null);
+                alert("現在、新規登録を停止しています。");
+                return;
+              }
+            } catch {}
+          }
+        }
+      }
+
       setUser(session?.user ?? null);
       if (session?.user) {
         loadProfile(session.user.id, session.user.email || "");
