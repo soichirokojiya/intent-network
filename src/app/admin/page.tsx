@@ -173,10 +173,13 @@ export default function AdminPage() {
     }
   }, [fetchSettings]);
 
-  // Auto-auth on mount (uses Supabase Auth cookie)
+  // Check admin access on mount
   useEffect(() => {
-    setAuthed(true);
-    fetchStats();
+    fetchStats().then(() => {
+      setAuthed(true);
+    }).catch(() => {
+      setAuthed(false);
+    });
   }, [fetchStats]);
 
   // Auto-refresh every 60s
