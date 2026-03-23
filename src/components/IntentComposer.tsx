@@ -1113,8 +1113,20 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                           btn.disabled = true;
                           btn.textContent = "投稿中...";
                           const tweetText = msg.tweetPreview || (() => {
+                            // Try 「...」 pattern first
                             const match = msg.text.match(/「([^」]+)」/);
-                            return match?.[1] || "";
+                            if (match?.[1]) return match[1];
+                            // Fallback: remove UI text and use remaining content
+                            const cleaned = msg.text
+                              .replace(/\\n/g, "\n")
+                              .replace(/これでいく[？?]?/g, "")
+                              .replace(/このツイートでいいですか[？?]?/g, "")
+                              .replace(/この内容で投稿していい[？?]?/g, "")
+                              .replace(/投稿するね[！!]?/g, "")
+                              .replace(/新しく書いたよ[！!]?/g, "")
+                              .replace(/前回の内容ブラッシュアップして作ったよ[！!]?.*$/gm, "")
+                              .trim();
+                            return cleaned || "";
                           })();
                           if (!tweetText) { btn.disabled = false; btn.textContent = "投稿する"; return; }
                           const deviceId = localStorage.getItem("musu_device_id") || "";
