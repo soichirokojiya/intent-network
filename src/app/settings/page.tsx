@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { authFetch } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { useRouter } from "next/navigation";
@@ -43,7 +44,7 @@ export default function SettingsPage() {
     formData.append("userId", user.id);
 
     try {
-      const res = await fetch("/api/upload-avatar", { method: "POST", body: formData });
+      const res = await authFetch("/api/upload-avatar", { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok && data.url) {
         await updateAvatarUrl(data.url);

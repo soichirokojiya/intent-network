@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { authFetch } from "@/lib/supabase";
 
 export default function TrelloCallbackPage() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function TrelloCallbackPage() {
       return;
     }
 
-    fetch("/api/trello/save-token", {
+    authFetch("/api/trello/save-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deviceId, token }),

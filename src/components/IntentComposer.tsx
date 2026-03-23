@@ -9,6 +9,7 @@ import { loadChatHistory, loadOlderMessages, saveChatMessage, toggleMessageLike 
 import { useAuth } from "@/context/AuthContext";
 import { translateRole } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
+import { authFetch } from "@/lib/supabase";
 
 const COLLAPSE_LINES = 10;
 
@@ -514,7 +515,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       if (roomId === "general" && realMsgs.length > 0) {
         const did = localStorage.getItem("device_id");
         if (did) {
-          fetch("/api/proactive-insight", {
+          authFetch("/api/proactive-insight", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ deviceId: did }),
@@ -538,7 +539,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
             .catch(() => {});
 
           // Feedback check (3d/7d/30d)
-          fetch("/api/feedback-check", {
+          authFetch("/api/feedback-check", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ deviceId: did }),
@@ -734,7 +735,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
         const formData = new FormData();
         formData.append("file", attachedFile);
         formData.append("userId", user.id);
-        const res = await fetch("/api/upload-file", { method: "POST", body: formData });
+        const res = await authFetch("/api/upload-file", { method: "POST", body: formData });
         const data = await res.json();
         if (data.url) {
           const fileTag = `[ファイル: ${attachedFile.name}](${data.url})`;
@@ -797,7 +798,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     if (deliveryIntent && user) {
       const deviceId = user.id;
       try {
-        const res = await fetch("/api/delivery-settings", {
+        const res = await authFetch("/api/delivery-settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ deviceId, ...deliveryIntent }),
@@ -836,7 +837,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           const body = xScheduleIntent.action === "disable_x_schedule"
             ? { deviceId, action: "disable_x_schedule" }
             : { deviceId, action: "set_x_schedule", times: (xScheduleIntent as { action: "set_x_schedule"; times: string[] }).times };
-          const res = await fetch("/api/delivery-settings", {
+          const res = await authFetch("/api/delivery-settings", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
@@ -875,7 +876,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           const body = scheduleIntent.action === "disable_schedule"
             ? { deviceId, action: "disable_schedule" }
             : { deviceId, action: "set_schedule_times", times: (scheduleIntent as { action: "set_schedule_times"; times: string[] }).times };
-          const res = await fetch("/api/delivery-settings", {
+          const res = await authFetch("/api/delivery-settings", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
@@ -908,7 +909,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
     if (topicIntent && user) {
       const deviceId = user.id;
       try {
-        const res = await fetch("/api/delivery-settings", {
+        const res = await authFetch("/api/delivery-settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ deviceId, ...topicIntent }),
@@ -995,7 +996,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
               setChatHistory(msgs);
               // Delete old incomplete welcome messages, then save new ones
               const deviceId = localStorage.getItem("musu_device_id") || "";
-              fetch("/api/chat", {
+              authFetch("/api/chat", {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ deviceId, roomId }),
@@ -1134,7 +1135,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                           const xAgent = configured.find((a) => a.config.twitterEnabled || a.config.twitterUsername);
                           const postAgentId = xAgent?.id || msg.agentId;
                           try {
-                            const res = await fetch("/api/x/post", {
+                            const res = await authFetch("/api/x/post", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ deviceId, agentId: postAgentId, text: tweetText }),
@@ -1213,7 +1214,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                         <button
                           onClick={async () => {
                             try {
-                              const res = await fetch(`/api/x/drafts/${draftId}`, {
+                              const res = await authFetch(`/api/x/drafts/${draftId}`, {
                                 method: "PATCH",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({ action: "approve" }),
@@ -1241,7 +1242,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                         <button
                           onClick={async () => {
                             const reason = prompt("スキップの理由（任意）:");
-                            await fetch(`/api/x/drafts/${draftId}`, {
+                            await authFetch(`/api/x/drafts/${draftId}`, {
                               method: "PATCH",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ action: "reject", rejectionReason: reason || "" }),

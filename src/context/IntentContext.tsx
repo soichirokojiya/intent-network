@@ -5,6 +5,7 @@ import { Intent, Conversation, AgentReaction, AgentResponse } from "@/lib/types"
 import { SEED_AGENTS } from "@/lib/agents";
 import { loadAgents, saveAgent, deleteAgent as deleteAgentFromDb } from "@/lib/agentStorage";
 import { getAgentConversation, getRoomConversation, saveChatMessage } from "@/lib/chatStorage";
+import { authFetch } from "@/lib/supabase";
 
 // --- Types ---
 
@@ -458,7 +459,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       personality: agent.stats.driftedPersonality || agent.config.character || agent.config.personality,
     };
 
-    fetch("/api/my-agent-react", {
+    authFetch("/api/my-agent-react", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         intentText: intent.text, agentName: agent.config.name,
@@ -491,7 +492,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
 
   // Trigger internal chat between user's agents
   const triggerInternalChat = useCallback((agentA: MyAgent, agentB: MyAgent, topic: string) => {
-    fetch("/api/my-agents-chat", {
+    authFetch("/api/my-agents-chat", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         agentA: { name: agentA.config.name, personality: agentA.config.character || agentA.config.personality, tone: agentA.config.speakingStyle || agentA.config.tone, expertise: agentA.config.role || agentA.config.expertise },
@@ -543,7 +544,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
     if (!deviceId) return false;
     try {
-      const res = await fetch("/api/gmail/send", {
+      const res = await authFetch("/api/gmail/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ deviceId, to: resp.emailAction.to, subject: resp.emailAction.subject, body: resp.emailAction.body }),
@@ -578,7 +579,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     const postUrl = "/api/x/post";
     const postBody = { deviceId, agentId, text: resp.toTimeline };
 
-    fetch(postUrl, {
+    authFetch(postUrl, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(postBody),
     }).then((r) => {
@@ -626,7 +627,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     const responders = agents.sort(() => Math.random() - 0.5).slice(0, Math.random() > 0.5 ? 2 : 1);
 
     responders.forEach((agent, i) => {
-      fetch("/api/my-agent-react", {
+      authFetch("/api/my-agent-react", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           intentText: `チャットでオーナーが言いました: 「${text}」\nこれまでの会話の文脈を踏まえて、チャットの返信として自然に応答してください。`,
@@ -664,7 +665,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       return projectFactsCache.current.facts;
     }
     try {
-      const res = await fetch(`/api/project-facts?deviceId=${encodeURIComponent(deviceId)}`);
+      const res = await authFetch(`/api/project-facts?deviceId=${encodeURIComponent(deviceId)}`);
       if (!res.ok) return projectFactsCache.current.facts;
       const data = await res.json();
       const facts = (data.facts || []).map((f: { category: string; content: string }) => ({ category: f.category, content: f.content }));
@@ -697,10 +698,10 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
       if (deviceId) {
         const [calRes, trelloRes, gmailRes, statusRes] = await Promise.all([
-          fetch(`/api/google/calendar?deviceId=${deviceId}`).catch(() => null),
-          fetch(`/api/trello/boards?deviceId=${deviceId}`).catch(() => null),
-          fetch(`/api/gmail/messages?deviceId=${deviceId}`).catch(() => null),
-          fetch(`/api/integration-status?deviceId=${deviceId}`).catch(() => null),
+          authFetch(`/api/google/calendar?deviceId=${deviceId}`).catch(() => null),
+          authFetch(`/api/trello/boards?deviceId=${deviceId}`).catch(() => null),
+          authFetch(`/api/gmail/messages?deviceId=${deviceId}`).catch(() => null),
+          authFetch(`/api/integration-status?deviceId=${deviceId}`).catch(() => null),
         ]);
         if (statusRes?.ok) {
           const statusData = await statusRes.json();
@@ -750,7 +751,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       stream: true,
     });
 
-    return fetch("/api/agent-respond", {
+    return authFetch("/api/agent-respond", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: requestBody,
     }).then(async (r) => {
@@ -920,7 +921,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
         let delegateNames: string[] = [];
         try {
           const history = await getRoomConversation(roomId, 10).catch(() => []);
-          const routeRes = await fetch("/api/orchestrator-route", {
+          const routeRes = await authFetch("/api/orchestrator-route", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -975,7 +976,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       // --- OLD ORCHESTRATION FLOW (unused) ---
       const otherAgents = allConfigured.filter((a) => !a.config.isOrchestrator);
       getRoomConversation(roomId, 15).catch(() => []).then((history) => {
-      fetch("/api/orchestrator-plan", {
+      authFetch("/api/orchestrator-plan", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ownerMessage: text,

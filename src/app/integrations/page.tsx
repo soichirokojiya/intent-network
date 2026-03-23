@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { authFetch } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -176,7 +177,7 @@ export default function IntegrationsPage() {
     const deviceId = localStorage.getItem("musu_device_id") || "";
     if (!deviceId) return;
     try {
-      const res = await fetch(`/api/integration-status?deviceId=${deviceId}`);
+      const res = await authFetch(`/api/integration-status?deviceId=${deviceId}`);
       if (res.ok) {
         const data = await res.json();
         const newConn: Record<string, boolean> = {};
@@ -215,7 +216,7 @@ export default function IntegrationsPage() {
   const handleDisconnect = async (integration: Integration) => {
     const deviceId = localStorage.getItem("musu_device_id") || "";
     setLoading(true);
-    const res = await fetch(integration.disconnectPath, {
+    const res = await authFetch(integration.disconnectPath, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deviceId }),
@@ -301,7 +302,7 @@ export default function IntegrationsPage() {
                                 const newVal = !notionAutoSave;
                                 setNotionAutoSave(newVal);
                                 const deviceId = localStorage.getItem("musu_device_id") || "";
-                                await fetch("/api/notion/toggle-auto-save", {
+                                await authFetch("/api/notion/toggle-auto-save", {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json" },
                                   body: JSON.stringify({ deviceId, enabled: newVal }),

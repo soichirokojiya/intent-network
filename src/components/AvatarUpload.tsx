@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { authFetch } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { AgentAvatarDisplay } from "./AgentAvatarDisplay";
 
@@ -28,7 +29,7 @@ export function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUploadProp
     formData.append("userId", user.id);
 
     try {
-      const res = await fetch("/api/upload-avatar", { method: "POST", body: formData });
+      const res = await authFetch("/api/upload-avatar", { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok && data.url) {
         onAvatarChange(data.url);

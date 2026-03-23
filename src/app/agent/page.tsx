@@ -8,6 +8,7 @@ import { PixelAvatarGrid } from "@/components/PixelAvatar";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { authFetch } from "@/lib/supabase";
 import Link from "next/link";
 
 const ROLE_KEYS = ["role.marketing", "role.research", "role.creative", "role.finance", "role.strategy", "role.developer", "role.dataScientist", "role.orchestrator", "role.philosopher", "role.secretary"];
@@ -266,7 +267,7 @@ export default function AgentPage() {
                     type="button"
                     onClick={async () => {
                       const deviceId = localStorage.getItem("musu_device_id") || "";
-                      await fetch("/api/x/disconnect", {
+                      await authFetch("/api/x/disconnect", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ deviceId, agentId: editingAgentId }),

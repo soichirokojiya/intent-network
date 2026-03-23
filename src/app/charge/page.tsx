@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { authFetch } from "@/lib/supabase";
 import { useLocale } from "@/context/LocaleContext";
 
 const CHARGE_OPTIONS = [1000, 3000, 5000, 10000];
@@ -18,7 +19,7 @@ export default function ChargePage() {
   useEffect(() => {
     const deviceId = localStorage.getItem("musu_device_id");
     if (deviceId) {
-      fetch(`/api/credits?deviceId=${deviceId}`).then((r) => r.json()).then((d) => setBalance(d.balance));
+      authFetch(`/api/credits?deviceId=${deviceId}`).then((r) => r.json()).then((d) => setBalance(d.balance));
     }
   }, []);
 
@@ -26,7 +27,7 @@ export default function ChargePage() {
   useEffect(() => {
     if (sessionId && !charged) {
       setCharged(true);
-      fetch("/api/credits/add", {
+      authFetch("/api/credits/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId }),
@@ -50,7 +51,7 @@ export default function ChargePage() {
     }
 
     try {
-      const res = await fetch("/api/stripe/checkout", {
+      const res = await authFetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: chargeAmount, deviceId }),

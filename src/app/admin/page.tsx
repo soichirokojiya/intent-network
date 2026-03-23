@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { authFetch } from "@/lib/supabase";
 
 interface UserRow {
   id: string;
@@ -107,7 +108,7 @@ export default function AdminPage() {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/settings");
+      const res = await authFetch("/api/admin/settings");
       if (res.ok) {
         const data = await res.json();
         setSignupEnabled(data.signup_enabled !== "false");
@@ -122,7 +123,7 @@ export default function AdminPage() {
   const toggleSignup = useCallback(async () => {
     const newValue = !signupEnabled;
     setSignupEnabled(newValue);
-    await fetch("/api/admin/settings", {
+    await authFetch("/api/admin/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: "signup_enabled", value: String(newValue) }),
@@ -134,7 +135,7 @@ export default function AdminPage() {
     if (isNaN(val) || val < 0) return;
     setInitialCredit(val);
     setEditingCredit(false);
-    await fetch("/api/admin/settings", {
+    await authFetch("/api/admin/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: "initial_credit_yen", value: String(val) }),
@@ -145,7 +146,7 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/stats");
+      const res = await authFetch("/api/admin/stats");
       if (!res.ok) {
         if (res.status === 401) {
           setAuthed(false);
@@ -160,8 +161,8 @@ export default function AdminPage() {
       fetchSettings();
       // Fetch feedback & churn data
       Promise.all([
-        fetch("/api/feedback").then(r => r.ok ? r.json() : { responses: [] }),
-        fetch("/api/admin/churn-survey").then(r => r.ok ? r.json() : { surveys: [] }),
+        authFetch("/api/feedback").then(r => r.ok ? r.json() : { responses: [] }),
+        authFetch("/api/admin/churn-survey").then(r => r.ok ? r.json() : { surveys: [] }),
       ]).then(([fb, ch]) => {
         setFeedbackData(fb.responses || []);
         setChurnData(ch.surveys || []);

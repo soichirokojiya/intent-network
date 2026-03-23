@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, authFetch } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Migrate old data in background (fire and forget)
     if (currentDeviceId && currentDeviceId !== userId) {
-      fetch("/api/migrate-device", {
+      authFetch("/api/migrate-device", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ oldDeviceId: currentDeviceId, newDeviceId: userId }),

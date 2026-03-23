@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/supabase";
+
 export interface ChatMessage {
   id: string;
   type: "user" | "agent";
@@ -20,7 +22,7 @@ export async function loadChatHistory(roomId: string = "general"): Promise<ChatM
   if (!deviceId) return [];
 
   try {
-    const res = await fetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=30`);
+    const res = await authFetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=30`);
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
@@ -47,7 +49,7 @@ export async function loadOlderMessages(roomId: string = "general", beforeTimest
 
   try {
     const before = new Date(beforeTimestamp).toISOString();
-    const res = await fetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=${limit}&before=${before}`);
+    const res = await authFetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=${limit}&before=${before}`);
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
@@ -73,7 +75,7 @@ export async function getAgentConversation(agentId: string, roomId: string = "ge
   if (!deviceId) return [];
 
   try {
-    const res = await fetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=${limit}`);
+    const res = await authFetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=${limit}`);
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
@@ -93,7 +95,7 @@ export async function getRoomConversation(roomId: string = "general", limit: num
   if (!deviceId) return [];
 
   try {
-    const res = await fetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=${limit}`);
+    const res = await authFetch(`/api/chat?deviceId=${deviceId}&roomId=${roomId}&limit=${limit}`);
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
@@ -111,7 +113,7 @@ export async function toggleMessageLike(messageId: string, liked: boolean): Prom
   if (!deviceId) return;
 
   try {
-    await fetch("/api/chat", {
+    await authFetch("/api/chat", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deviceId, messageId, liked }),
@@ -126,7 +128,7 @@ export async function saveChatMessage(msg: ChatMessage, roomId: string = "genera
   if (!deviceId) return;
 
   try {
-    await fetch("/api/chat", {
+    await authFetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

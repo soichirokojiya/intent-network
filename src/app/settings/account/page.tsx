@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
-import { supabase } from "@/lib/supabase";
+import { supabase, authFetch } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function AccountSettingsPage() {
@@ -32,7 +32,7 @@ export default function AccountSettingsPage() {
     const deviceId = localStorage.getItem("musu_device_id") || "";
     if (!deviceId) return;
     try {
-      const res = await fetch(`/api/news-settings?deviceId=${deviceId}`);
+      const res = await authFetch(`/api/news-settings?deviceId=${deviceId}`);
       if (res.ok) {
         const data = await res.json();
         setNewsEnabled(data.newsEnabled);
@@ -48,7 +48,7 @@ export default function AccountSettingsPage() {
   useEffect(() => {
     const deviceId = localStorage.getItem("musu_device_id") || "";
     if (!deviceId) return;
-    fetch(`/api/integration-status?deviceId=${deviceId}`)
+    authFetch(`/api/integration-status?deviceId=${deviceId}`)
       .then((r) => r.json())
       .then((d) => { if (d.scheduleDeliveryEnabled !== undefined) setScheduleEnabled(d.scheduleDeliveryEnabled); })
       .catch(() => {});
@@ -59,7 +59,7 @@ export default function AccountSettingsPage() {
     if (!deviceId) return;
     setNewsEnabled(enabled);
     try {
-      const res = await fetch("/api/news-settings", {
+      const res = await authFetch("/api/news-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ deviceId, enabled, time, times }),
@@ -105,13 +105,13 @@ export default function AccountSettingsPage() {
       const deviceId = localStorage.getItem("musu_device_id") || "";
       // Save churn survey
       if (deleteReason || deleteComment) {
-        await fetch("/api/admin/churn-survey", {
+        await authFetch("/api/admin/churn-survey", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ deviceId, userId: user?.id, email: user?.email, reason: deleteReason, comment: deleteComment }),
         }).catch(() => {});
       }
-      const res = await fetch("/api/delete-account", {
+      const res = await authFetch("/api/delete-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user?.id, deviceId }),
@@ -195,7 +195,7 @@ export default function AccountSettingsPage() {
                 if (!deviceId) return;
                 const newVal = !scheduleEnabled;
                 setScheduleEnabled(newVal);
-                await fetch("/api/delivery-settings", {
+                await authFetch("/api/delivery-settings", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ deviceId, action: newVal ? "enable_schedule" : "disable_schedule" }),
