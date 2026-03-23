@@ -306,16 +306,26 @@ function detectDeliveryIntent(text: string): { action: "set_times"; times: strin
 
 // Detect news topic customization from chat message
 function detectNewsTopicIntent(text: string): { action: "set_topics"; topics: string } | null {
-  // Match patterns like "ニュースは〜にして", "〜のニュースを送って", "ニュースのジャンルを〜に"
+  // Remove @mention prefix
+  const cleaned = text.replace(/@\S+\s*/, "").trim();
+
   const patterns = [
+    // 「〜についてのニュースを送って」「〜に関するニュースを」
+    /(.+?)(?:について|に関する|関連)の?(?:主要な)?ニュース.*(?:送|届|欲|にして|多め|中心|メイン|重視)/,
+    // 「ニュースは〜にして」「ニュースを〜にして」
     /ニュース.*(?:を|は|の)(.+?)(?:にして|に変えて|にしたい|がいい|が欲しい|を送って|を届けて|多めに|中心に|メインで|重視して)/,
+    // 「〜のニュースを送って」
     /(.+?)(?:のニュース|関連ニュース|系のニュース).*(?:送って|届けて|欲しい|にして|多めに|中心に)/,
+    // 「ニュースのジャンルを〜に」
     /ニュース.*(?:ジャンル|トピック|テーマ|カテゴリ).*(?:を|は)(.+?)(?:に|で)/,
   ];
   for (const re of patterns) {
-    const m = text.match(re);
+    const m = cleaned.match(re);
     if (m && m[1]) {
-      return { action: "set_topics", topics: m[1].trim() };
+      const topics = m[1].trim().replace(/^、+|、+$/g, "").replace(/も$/, "");
+      if (topics.length > 1 && topics.length < 100) {
+        return { action: "set_topics", topics };
+      }
     }
   }
   return null;
