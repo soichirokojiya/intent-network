@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { anthropic } from "@/lib/anthropicClient";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 export const maxDuration = 120;
 
@@ -74,9 +75,9 @@ JSON出力（他の文字不要）:
 
 export async function POST(req: NextRequest) {
   try {
-    const { deviceId } = await req.json();
+    const deviceId = getVerifiedUserId(req);
     if (!deviceId) {
-      return NextResponse.json({ error: "deviceId required" }, { status: 400 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { data: profile } = await supabase
@@ -164,8 +165,8 @@ export async function POST(req: NextRequest) {
       if (deviceId && costYen > 0) {
         fetch(new URL("/api/credits", req.url).toString(), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deviceId, inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "summarize-memory" }),
+          headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+          body: JSON.stringify({ inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "summarize-memory" }),
         }).catch(() => {});
       }
     }
@@ -263,9 +264,8 @@ export async function POST(req: NextRequest) {
           const baseUrl = new URL(req.url).origin;
           const notionRes = await fetch(`${baseUrl}/api/notion/save`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
             body: JSON.stringify({
-              deviceId,
               title: `musu メモ - ${today}`,
               content: notionContent,
             }),

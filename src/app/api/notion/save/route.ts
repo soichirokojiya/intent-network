@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,10 +8,13 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
-  const { deviceId, title, content } = await req.json();
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!deviceId || !content) {
-    return NextResponse.json({ error: "Missing deviceId or content" }, { status: 400 });
+  const { title, content } = await req.json();
+
+  if (!content) {
+    return NextResponse.json({ error: "Missing content" }, { status: 400 });
   }
 
   const { data: profile } = await supabase

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,9 +27,12 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 }
 
 export async function POST(req: NextRequest) {
-  const { deviceId, spreadsheetId, range } = await req.json();
-  if (!deviceId || !spreadsheetId || !range) {
-    return NextResponse.json({ error: "deviceId, spreadsheetId, and range required" }, { status: 400 });
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { spreadsheetId, range } = await req.json();
+  if (!spreadsheetId || !range) {
+    return NextResponse.json({ error: "spreadsheetId and range required" }, { status: 400 });
   }
 
   // Get stored tokens

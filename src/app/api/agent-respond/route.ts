@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getMoodModifier } from "@/lib/moodPrompt";
 import { fetchUrlContent, extractUrls } from "@/lib/fetchUrl";
 import { parseAgentJSON } from "@/lib/parseAgentJSON";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 export const maxDuration = 120;
 
@@ -132,14 +133,19 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
 // Execute custom tool by calling internal APIs
 async function executeCustomTool(toolName: string, input: Record<string, unknown>, deviceId: string): Promise<string> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
+  const internalHeaders = {
+    "Content-Type": "application/json",
+    "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    "x-verified-user-id": deviceId,
+  };
 
   try {
     switch (toolName) {
       case "sheets_read": {
         const res = await fetch(`${baseUrl}/api/google-sheets/read`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deviceId, spreadsheetId: input.spreadsheetId, range: input.range }),
+          headers: internalHeaders,
+          body: JSON.stringify({ spreadsheetId: input.spreadsheetId, range: input.range }),
         });
         const data = await res.json();
         return JSON.stringify(data);
@@ -147,8 +153,8 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
       case "sheets_create": {
         const res = await fetch(`${baseUrl}/api/google-sheets/create`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deviceId, title: input.title, sheetNames: input.sheetNames }),
+          headers: internalHeaders,
+          body: JSON.stringify({ title: input.title, sheetNames: input.sheetNames }),
         });
         const data = await res.json();
         return JSON.stringify(data);
@@ -156,28 +162,31 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
       case "sheets_write": {
         const res = await fetch(`${baseUrl}/api/google-sheets/write`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deviceId, spreadsheetId: input.spreadsheetId, range: input.range, values: input.values }),
+          headers: internalHeaders,
+          body: JSON.stringify({ spreadsheetId: input.spreadsheetId, range: input.range, values: input.values }),
         });
         const data = await res.json();
         return JSON.stringify(data);
       }
       case "gmail_search": {
-        const res = await fetch(`${baseUrl}/api/gmail/messages?deviceId=${deviceId}&query=${encodeURIComponent(input.query as string)}&maxResults=${input.maxResults || 10}`);
+        const res = await fetch(`${baseUrl}/api/gmail/messages?query=${encodeURIComponent(input.query as string)}&maxResults=${input.maxResults || 10}`, {
+          headers: { "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+        });
         const data = await res.json();
         return JSON.stringify(data);
       }
       case "gmail_read": {
-        const res = await fetch(`${baseUrl}/api/gmail/messages?deviceId=${deviceId}&messageId=${input.messageId}`);
+        const res = await fetch(`${baseUrl}/api/gmail/messages?messageId=${input.messageId}`, {
+          headers: { "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+        });
         const data = await res.json();
         return JSON.stringify(data);
       }
       case "create_automation": {
         const res = await fetch(`${baseUrl}/api/automations`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: internalHeaders,
           body: JSON.stringify({
-            deviceId,
             name: input.name,
             triggerType: "email_match",
             triggerConfig: { query: input.emailQuery },
@@ -195,8 +204,8 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
       case "forget_fact": {
         const res = await fetch(`${baseUrl}/api/project-facts`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deviceId, content: input.factContent }),
+          headers: internalHeaders,
+          body: JSON.stringify({ content: input.factContent }),
         });
         const data = await res.json();
         return JSON.stringify(data);
@@ -308,15 +317,18 @@ musuはソロプレナー向けのAIワークスペース。コンセプトは�
 
 export async function POST(req: NextRequest) {
   try {
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, deviceId, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData, gmailData, sheetsConnected, gmailConnected, stream: wantStream } = await req.json();
+    const deviceId = getVerifiedUserId(req);
+    if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData, gmailData, sheetsConnected, gmailConnected, stream: wantStream } = await req.json();
 
     if (!intentText || !agentName) {
       return NextResponse.json({ error: "required" }, { status: 400 });
     }
 
     // Check credit balance before calling AI
-    if (deviceId) {
-      const balRes = await fetch(new URL(`/api/credits?deviceId=${deviceId}`, req.url).toString());
+    {
+      const balRes = await fetch(new URL("/api/credits", req.url).toString(), { headers: { "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId } });
       if (balRes.ok) {
         const balData = await balRes.json();
         if (balData.balance <= 0) {
@@ -660,9 +672,9 @@ export async function POST(req: NextRequest) {
               const costYen = Math.ceil(costUsd * 150 * MARGIN);
               fetch(new URL("/api/credits", req.url).toString(), {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
                 body: JSON.stringify({
-                  deviceId, inputTokens: totalInputTokens, outputTokens: totalOutputTokens,
+                  inputTokens: totalInputTokens, outputTokens: totalOutputTokens,
                   costYen, model: actualModel, apiRoute: "agent-respond",
                 }),
               }).catch(() => {});
@@ -778,7 +790,7 @@ export async function POST(req: NextRequest) {
       currentMessage = continuation;
     }
 
-    if (deviceId) {
+    {
       const pricing = MODEL_PRICING[actualModel] || MODEL_PRICING["claude-sonnet-4-6"];
       const MARGIN = 1.5;
       const inputCostUsd = allUsagesNS.reduce((sum, u) => sum + getInputCost(u, pricing.input), 0);
@@ -786,9 +798,9 @@ export async function POST(req: NextRequest) {
       const costYen = Math.ceil(costUsd * 150 * MARGIN);
       await fetch(new URL("/api/credits", req.url).toString(), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
         body: JSON.stringify({
-          deviceId, inputTokens: totalInputTokens, outputTokens: totalOutputTokens,
+          inputTokens: totalInputTokens, outputTokens: totalOutputTokens,
           costYen, model, apiRoute: "agent-respond",
         }),
       });

@@ -138,9 +138,8 @@ export async function GET(req: Request) {
         // Append rows to spreadsheet
         const appendRes = await fetch(`${baseUrl}/api/google-sheets/append`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
           body: JSON.stringify({
-            deviceId,
             spreadsheetId: actionConfig.spreadsheetId,
             range: actionConfig.sheetName || "Sheet1",
             values: allExtractedRows,

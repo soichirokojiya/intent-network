@@ -1,8 +1,12 @@
 import { anthropic } from "@/lib/anthropicClient";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
-export async function POST(req: Request) {
-  const { message, agents, conversationHistory, deviceId } = await req.json();
+export async function POST(req: NextRequest) {
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { message, agents, conversationHistory } = await req.json();
 
   if (!message || !agents) {
     return NextResponse.json({ error: "message and agents required" }, { status: 400 });
@@ -64,8 +68,8 @@ ${recentContext ? `直近の会話:\n${recentContext}\n` : ""}
     if (deviceId && costYen > 0) {
       fetch(new URL("/api/credits", req.url).toString(), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deviceId, inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "orchestrator-route" }),
+        headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+        body: JSON.stringify({ inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "orchestrator-route" }),
       }).catch(() => {});
     }
 

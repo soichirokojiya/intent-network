@@ -32,7 +32,7 @@ export async function GET(req: Request) {
         const baseUrl = new URL(req.url).origin;
         const res = await fetch(`${baseUrl}/api/summarize-memory`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": profile.id },
           body: JSON.stringify({ deviceId: profile.id }),
         });
 

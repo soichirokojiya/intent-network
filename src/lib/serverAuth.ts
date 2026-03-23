@@ -1,30 +1,25 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
 /**
- * サーバーサイドでSupabase Authセッションからuser.idを取得する。
- * 認証されていない場合はnullを返す。
- *
- * 使い方:
- *   const userId = await getAuthUserId(req);
- *   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ * Get verified user ID from middleware-injected header.
+ * The middleware validates the Supabase Auth session and sets this header.
  */
-export async function getAuthUserId(req: NextRequest): Promise<string | null> {
-  try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return null;
+export function getVerifiedUserId(req: NextRequest): string | null {
+  return req.headers.get("x-verified-user-id") || null;
+}
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: { headers: { Authorization: authHeader } },
-      },
-    );
+/**
+ * Validate that a string is a valid UUID format
+ */
+export function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    str,
+  );
+}
 
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id || null;
-  } catch {
-    return null;
-  }
+/**
+ * Sanitize string input - remove potential injection characters
+ */
+export function sanitizeInput(str: string, maxLength: number = 1000): string {
+  return str.slice(0, maxLength).replace(/[<>]/g, "");
 }

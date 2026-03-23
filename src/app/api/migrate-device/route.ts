@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,9 +13,12 @@ const supabaseAdmin = createClient(
  */
 export async function POST(req: NextRequest) {
   try {
-    const { oldDeviceId, newDeviceId } = await req.json();
+    const newDeviceId = getVerifiedUserId(req);
+    if (!newDeviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!oldDeviceId || !newDeviceId || oldDeviceId === newDeviceId) {
+    const { oldDeviceId } = await req.json();
+
+    if (!oldDeviceId || oldDeviceId === newDeviceId) {
       return NextResponse.json({ migrated: false });
     }
 

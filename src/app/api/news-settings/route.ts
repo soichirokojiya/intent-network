@@ -1,15 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const deviceId = searchParams.get("deviceId");
-  if (!deviceId) return NextResponse.json({ error: "deviceId required" }, { status: 400 });
+export async function GET(req: NextRequest) {
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data, error } = await supabase
     .from("profiles")
@@ -34,9 +34,11 @@ export async function GET(req: Request) {
   });
 }
 
-export async function POST(req: Request) {
-  const { deviceId, enabled, time, times } = await req.json();
-  if (!deviceId) return NextResponse.json({ error: "deviceId required" }, { status: 400 });
+export async function POST(req: NextRequest) {
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { enabled, time, times } = await req.json();
 
   const effectiveTimes = times || [time || "07:00"];
   const { error } = await supabase

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,8 +8,8 @@ const supabase = createClient(
 );
 
 export async function GET(req: NextRequest) {
-  const deviceId = req.nextUrl.searchParams.get("deviceId");
-  if (!deviceId) return NextResponse.json({ error: "Missing deviceId" }, { status: 400 });
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data } = await supabase
     .from("user_credits")
@@ -74,8 +75,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { deviceId, inputTokens, outputTokens, costYen, model, apiRoute } = await req.json();
-  if (!deviceId || costYen === undefined) {
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { inputTokens, outputTokens, costYen, model, apiRoute } = await req.json();
+  if (costYen === undefined) {
     return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }
 

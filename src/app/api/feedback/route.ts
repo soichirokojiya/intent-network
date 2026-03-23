@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,8 +9,11 @@ const supabase = createClient(
 
 // POST: Save feedback response
 export async function POST(req: NextRequest) {
-  const { deviceId, triggerType, question, answer } = await req.json();
-  if (!deviceId || !triggerType || !answer) {
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { triggerType, question, answer } = await req.json();
+  if (!triggerType || !answer) {
     return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }
 

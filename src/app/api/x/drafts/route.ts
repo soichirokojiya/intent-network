@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { anthropic } from "@/lib/anthropicClient";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,11 +10,11 @@ const supabase = createClient(
 
 // GET: List drafts
 export async function GET(req: NextRequest) {
-  const deviceId = req.nextUrl.searchParams.get("deviceId");
+  const deviceId = getVerifiedUserId(req);
   const status = req.nextUrl.searchParams.get("status") || "pending";
 
   if (!deviceId) {
-    return NextResponse.json({ error: "deviceId required" }, { status: 400 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { data, error } = await supabase
@@ -33,11 +34,10 @@ export async function GET(req: NextRequest) {
 
 // POST: Generate a new draft (Kai creates a tweet proposal)
 export async function POST(req: NextRequest) {
-  const { deviceId, source } = await req.json();
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!deviceId) {
-    return NextResponse.json({ error: "deviceId required" }, { status: 400 });
-  }
+  const { source } = await req.json();
 
   // Load context for Kai
   const [profileRes, factsRes, pastDraftsRes] = await Promise.all([
@@ -105,8 +105,8 @@ ${pastContext}
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
     fetch(`${baseUrl}/api/credits`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deviceId, inputTokens, outputTokens, costYen, model: "claude-haiku-4-5-20251001", apiRoute: "x-drafts" }),
+      headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+      body: JSON.stringify({ inputTokens, outputTokens, costYen, model: "claude-haiku-4-5-20251001", apiRoute: "x-drafts" }),
     }).catch(() => {});
   }
 

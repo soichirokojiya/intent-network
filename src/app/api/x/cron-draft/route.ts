@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
       // Generate draft via the drafts API
       const draftRes = await fetch(`${baseUrl}/api/x/drafts`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deviceId, source: "scheduled" }),
+        headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+        body: JSON.stringify({ source: "scheduled" }),
       });
 
       const draft = await draftRes.json();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,10 +27,13 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 }
 
 export async function POST(req: NextRequest) {
-  const { deviceId, to, subject, body } = await req.json();
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!deviceId || !to || !subject || !body) {
-    return NextResponse.json({ error: "Missing required fields (deviceId, to, subject, body)" }, { status: 400 });
+  const { to, subject, body } = await req.json();
+
+  if (!to || !subject || !body) {
+    return NextResponse.json({ error: "Missing required fields (to, subject, body)" }, { status: 400 });
   }
 
   const { data: profile } = await supabase
@@ -98,8 +102,8 @@ export async function POST(req: NextRequest) {
         .update({ gmail_connected: false, updated_at: new Date().toISOString() })
         .eq("id", deviceId);
     }
-    const err = await res.text();
-    return NextResponse.json({ error: "Failed to send email", details: err }, { status: res.status });
+    await res.text();
+    return NextResponse.json({ error: "Failed to send email" }, { status: res.status });
   }
 
   const result = await res.json();

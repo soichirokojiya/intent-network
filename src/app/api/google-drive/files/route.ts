@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,9 +27,9 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 }
 
 export async function GET(req: NextRequest) {
-  const deviceId = req.nextUrl.searchParams.get("deviceId");
+  const deviceId = getVerifiedUserId(req);
   if (!deviceId) {
-    return NextResponse.json({ error: "deviceId required" }, { status: 400 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Get stored tokens

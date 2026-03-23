@@ -109,8 +109,8 @@ export async function GET(req: Request) {
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
             fetch(`${baseUrl}/api/credits`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ deviceId, inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "daily-news" }),
+              headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+              body: JSON.stringify({ inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "daily-news" }),
             }).catch(() => {});
           }
         }

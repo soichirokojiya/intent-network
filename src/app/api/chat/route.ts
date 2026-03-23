@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,12 +9,12 @@ const supabase = createClient(
 
 // GET: Load chat history
 export async function GET(req: NextRequest) {
-  const deviceId = req.nextUrl.searchParams.get("deviceId");
+  const deviceId = getVerifiedUserId(req);
   const roomId = req.nextUrl.searchParams.get("roomId") || "general";
   const before = req.nextUrl.searchParams.get("before");
   const limit = parseInt(req.nextUrl.searchParams.get("limit") || "30");
 
-  if (!deviceId) return NextResponse.json([]);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let query = supabase
     .from("owner_chats")
@@ -35,10 +36,13 @@ export async function GET(req: NextRequest) {
 
 // POST: Save chat message
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { deviceId, roomId, type, agentId, agentName, agentAvatar, text, tweetPreview } = body;
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!deviceId || !text) return NextResponse.json({ error: "Missing params" }, { status: 400 });
+  const body = await req.json();
+  const { roomId, type, agentId, agentName, agentAvatar, text, tweetPreview } = body;
+
+  if (!text) return NextResponse.json({ error: "Missing params" }, { status: 400 });
 
   const { error } = await supabase.from("owner_chats").insert({
     device_id: deviceId,
@@ -125,8 +129,8 @@ export async function POST(req: NextRequest) {
             const baseUrl = new URL(req.url).origin;
             fetch(`${baseUrl}/api/credits`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ deviceId, inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "instant-fact" }),
+              headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+              body: JSON.stringify({ inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "instant-fact" }),
             }).catch(() => {});
           }
         }
@@ -184,7 +188,7 @@ export async function POST(req: NextRequest) {
         const baseUrl = new URL(req.url).origin;
         fetch(`${baseUrl}/api/summarize-memory`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
           body: JSON.stringify({ deviceId }),
         }).catch(() => {});
       }
@@ -198,8 +202,11 @@ export async function POST(req: NextRequest) {
 
 // PATCH: Toggle liked status on a message
 export async function PATCH(req: NextRequest) {
-  const { deviceId, messageId, liked } = await req.json();
-  if (!deviceId || !messageId) return NextResponse.json({ error: "Missing params" }, { status: 400 });
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { messageId, liked } = await req.json();
+  if (!messageId) return NextResponse.json({ error: "Missing params" }, { status: 400 });
 
   const { error } = await supabase
     .from("owner_chats")
@@ -213,8 +220,10 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE: Remove welcome messages (for re-running welcome sequence)
 export async function DELETE(req: NextRequest) {
-  const { deviceId, roomId } = await req.json();
-  if (!deviceId) return NextResponse.json({ error: "Missing deviceId" }, { status: 400 });
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { roomId } = await req.json();
 
   await supabase
     .from("owner_chats")

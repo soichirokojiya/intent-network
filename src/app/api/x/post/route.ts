@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -93,11 +94,14 @@ async function postTweet(accessToken: string, text: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { deviceId, agentId, text } = await req.json();
+    const deviceId = getVerifiedUserId(req);
+    if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!deviceId || !text) {
+    const { agentId, text } = await req.json();
+
+    if (!text) {
       return NextResponse.json(
-        { error: "deviceId and text required" },
+        { error: "text required" },
         { status: 400 },
       );
     }

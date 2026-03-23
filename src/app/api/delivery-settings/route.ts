@@ -1,18 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { deviceId, action, times, topics } = await req.json();
-
+    const deviceId = getVerifiedUserId(req);
     if (!deviceId) {
-      return NextResponse.json({ error: "deviceId required" }, { status: 400 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { action, times, topics } = await req.json();
 
     if (!["set_times", "set_topics", "enable", "disable", "set_schedule_times", "enable_schedule", "disable_schedule", "set_x_schedule", "disable_x_schedule"].includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });

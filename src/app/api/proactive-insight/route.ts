@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { anthropic } from "@/lib/anthropicClient";
 import { NextRequest, NextResponse } from "next/server";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 export const maxDuration = 60;
 
@@ -11,8 +12,8 @@ const supabase = createClient(
 
 // POST: Trigger proactive insight for a single user (called on login)
 export async function POST(req: NextRequest) {
-  const { deviceId } = await req.json();
-  if (!deviceId) return NextResponse.json({ error: "Missing deviceId" }, { status: 400 });
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     // Check if already sent a proactive message today (JST)
@@ -145,8 +146,8 @@ ${chatHistory || "(なし)"}
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
         fetch(`${baseUrl}/api/credits`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deviceId, inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "proactive-insight" }),
+          headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+          body: JSON.stringify({ inputTokens, outputTokens, costYen, model: modelUsed, apiRoute: "proactive-insight" }),
         }).catch(() => {});
       }
     }

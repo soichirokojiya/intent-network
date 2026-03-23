@@ -46,6 +46,19 @@ export async function POST(req: NextRequest) {
     const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
+    // Validate magic bytes for image files
+    const magicBytes = buffer.slice(0, 4).toString("hex");
+    const validMagic: Record<string, string[]> = {
+      "image/png": ["89504e47"],
+      "image/jpeg": ["ffd8ffe0", "ffd8ffe1", "ffd8ffe2"],
+      "image/gif": ["47494638"],
+      "image/webp": ["52494646"],
+    };
+    const expected = validMagic[file.type];
+    if (expected && !expected.some((m) => magicBytes.startsWith(m))) {
+      return NextResponse.json({ error: "Invalid file content" }, { status: 400 });
+    }
+
     const { error } = await supabaseAdmin.storage
       .from("chat-files")
       .upload(fileName, buffer, {

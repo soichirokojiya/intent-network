@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,8 +8,11 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
-  const { deviceId, name, triggerType, triggerConfig, actionType, actionConfig, agentId } = await req.json();
-  if (!deviceId || !name || !triggerType || !actionType) {
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { name, triggerType, triggerConfig, actionType, actionConfig, agentId } = await req.json();
+  if (!name || !triggerType || !actionType) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
@@ -28,8 +32,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const deviceId = req.nextUrl.searchParams.get("deviceId");
-  if (!deviceId) return NextResponse.json({ error: "deviceId required" }, { status: 400 });
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data } = await supabase.from("automations")
     .select("*")
@@ -40,8 +44,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { deviceId, automationId } = await req.json();
-  if (!deviceId || !automationId) return NextResponse.json({ error: "Missing params" }, { status: 400 });
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { automationId } = await req.json();
+  if (!automationId) return NextResponse.json({ error: "Missing params" }, { status: 400 });
 
   await supabase.from("automations").delete().eq("id", automationId).eq("device_id", deviceId);
   return NextResponse.json({ deleted: true });

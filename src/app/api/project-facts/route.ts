@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,9 +9,9 @@ const supabase = createClient(
 
 export async function GET(req: NextRequest) {
   try {
-    const deviceId = req.nextUrl.searchParams.get("deviceId");
+    const deviceId = getVerifiedUserId(req);
     if (!deviceId) {
-      return NextResponse.json({ error: "deviceId required" }, { status: 400 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { data, error } = await supabase
@@ -33,9 +34,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { deviceId, category, content, sourceAgent } = await req.json();
-    if (!deviceId || !category || !content) {
-      return NextResponse.json({ error: "deviceId, category, content required" }, { status: 400 });
+    const deviceId = getVerifiedUserId(req);
+    if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { category, content, sourceAgent } = await req.json();
+    if (!category || !content) {
+      return NextResponse.json({ error: "category and content required" }, { status: 400 });
     }
 
     const validCategories = ["decision", "spec", "task", "policy"];
@@ -66,8 +70,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { deviceId, content } = await req.json();
-  if (!deviceId || !content) return NextResponse.json({ error: "Missing params" }, { status: 400 });
+  const deviceId = getVerifiedUserId(req);
+  if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { content } = await req.json();
+  if (!content) return NextResponse.json({ error: "Missing params" }, { status: 400 });
 
   // Find and supersede matching facts
   const { data: facts } = await supabase
