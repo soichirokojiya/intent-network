@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
@@ -17,6 +17,11 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [signupEnabled, setSignupEnabled] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/signup-check").then(r => r.json()).then(d => setSignupEnabled(d.signupEnabled)).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +105,7 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
           {isReset ? t("auth.enterEmail") : isSignUp ? "あなただけの仲間を持とう。" : t("auth.signInPlease")}
         </p>
 
-        {!isReset && (
+        {!isReset && (isSignUp ? signupEnabled : true) && (
           <>
             <button
               type="button"
