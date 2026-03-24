@@ -28,7 +28,9 @@ export const metadata: Metadata = {
   description: "musuはソロプレナー・ひとり会社・フリーランスのための専属AIチーム。AI秘書・マーケティング・リサーチ・戦略のエージェントがチームで仕事をサポート。Gmail・Notion・Slack・X連携。月額固定費なし。",
   icons: {
     icon: "/favicon.svg",
+    apple: "/apple-touch-icon.png",
   },
+  manifest: "/manifest.json",
   openGraph: {
     title: "ひとりだけど、ひとりじゃない。- musu",
     description: "AIエージェントチームと一緒に、ひとり会社を回そう。musuはソロプレナーのためのAIワークスペースです。",
