@@ -31,7 +31,7 @@ function LinkifyText({ text }: { text: string }) {
     <p className="text-[14px] leading-snug whitespace-pre-wrap">
       {parts.map((part, i) =>
         urlRegex.test(part) ? (
-          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline break-all">{part}</a>
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline break-all">{part}</a>
         ) : part
       )}
     </p>
