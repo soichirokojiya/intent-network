@@ -1,17 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 import { anthropic } from "@/lib/anthropicClient";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function GET(req: NextRequest) {
-  const password = req.nextUrl.searchParams.get("pw");
-  if (password !== process.env.ADMIN_PASSWORD) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
+
+  const supabase = getSupabase();
 
   // Find any user with Google Calendar connected (ignore schedule_delivery_enabled for test)
   const { data: profiles } = await supabase

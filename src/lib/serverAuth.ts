@@ -1,30 +1,19 @@
 import { NextRequest } from "next/server";
 
 /**
- * Get user ID: prefer middleware-verified user ID, fallback to deviceId from query params.
- * For POST routes, call getVerifiedUserIdWithBody() instead.
+ * Get authenticated user ID from middleware-verified header.
+ * Returns null if not authenticated — no fallback to client-provided IDs.
  */
 export function getVerifiedUserId(req: NextRequest): string | null {
-  // Prefer middleware-verified user ID (set when Supabase Auth session exists)
-  const verified = req.headers.get("x-verified-user-id");
-  if (verified) return verified;
-
-  // Fallback: deviceId from query params (backward compatibility)
-  const fromQuery = req.nextUrl.searchParams.get("deviceId");
-  if (fromQuery) return fromQuery;
-
-  return null;
+  return req.headers.get("x-verified-user-id") || null;
 }
 
 /**
- * Get user ID for POST/PATCH/DELETE routes where deviceId may be in the JSON body.
- * Must be called AFTER parsing the body.
+ * Get authenticated user ID for POST/PATCH/DELETE routes.
+ * Same as getVerifiedUserId — body.deviceId is NOT trusted.
  */
-export function getVerifiedUserIdWithBody(req: NextRequest, body: Record<string, unknown>): string | null {
-  const verified = req.headers.get("x-verified-user-id");
-  if (verified) return verified;
-
-  return (body?.deviceId as string) || null;
+export function getVerifiedUserIdWithBody(req: NextRequest, _body: Record<string, unknown>): string | null {
+  return req.headers.get("x-verified-user-id") || null;
 }
 
 /**

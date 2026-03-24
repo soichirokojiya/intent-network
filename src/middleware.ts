@@ -10,7 +10,6 @@ const PUBLIC_API_PATHS = [
   "/api/feedback-check",
   "/api/cron/",
   "/api/stripe/webhook",
-  "/api/ensure-profile",
 ];
 
 export async function middleware(req: NextRequest) {
@@ -47,8 +46,14 @@ export async function middleware(req: NextRequest) {
   // This must happen for ALL routes (pages + API) so that the session stays alive.
   const { data: { user } } = await supabase.auth.getUser();
 
-  // For non-API routes, just return the response with refreshed cookies
+  // For non-API routes: protect /admin server-side, then return
   if (!req.nextUrl.pathname.startsWith("/api/")) {
+    if (req.nextUrl.pathname.startsWith("/admin")) {
+      const adminUserIds = (process.env.ADMIN_USER_ID || "").split(",").map((s) => s.trim()).filter(Boolean);
+      if (!user || !adminUserIds.includes(user.id)) {
+        return NextResponse.redirect(new URL("/", req.url));
+      }
+    }
     return response;
   }
 
