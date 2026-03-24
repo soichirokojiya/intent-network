@@ -123,16 +123,7 @@ useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return;
 
-      // Password recovery: redirect to change password page (only from actual reset link)
-      if (event === "PASSWORD_RECOVERY" && session?.user) {
-        const hash = window.location.hash || "";
-        const params = new URLSearchParams(window.location.search);
-        if (hash.includes("type=recovery") || params.get("type") === "recovery") {
-          window.location.href = "/settings/account";
-          return;
-        }
-        // Not from a reset link — treat as normal sign-in
-      }
+      // PASSWORD_RECOVERY events are handled normally (user can navigate to settings if needed)
 
       if (cancelled) return;
 
