@@ -109,11 +109,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [bindDeviceId]);
 
 useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         bindDeviceId(session.user.id);
         setUser(session.user);
-        loadProfile(session.user.id, session.user.email || "");
+        try {
+          await loadProfile(session.user.id, session.user.email || "");
+        } catch {}
       } else {
         setUser(null);
       }
@@ -154,7 +156,7 @@ useEffect(() => {
 
       setUser(session?.user ?? null);
       if (session?.user) {
-        loadProfile(session.user.id, session.user.email || "");
+        loadProfile(session.user.id, session.user.email || "").catch(() => {});
       }
     });
 
