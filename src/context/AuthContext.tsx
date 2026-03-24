@@ -119,30 +119,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [bindDeviceId]);
 
 useEffect(() => {
-    // Safety timeout: force loading=false after 5s no matter what
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 5000);
+    let cancelled = false;
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      clearTimeout(timeout);
-      if (session?.user) {
-        bindDeviceId(session.user.id);
-        setUser(session.user);
-        try {
-          await loadProfile(session.user.id, session.user.email || "");
-        } catch {}
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    }).catch(() => {
-      clearTimeout(timeout);
-      setUser(null);
-      setLoading(false);
-    });
-
+    // Use onAuthStateChange as the single source of truth.
+    // It fires INITIAL_SESSION on mount (replaces manual getSession call).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (cancelled) return;
+
       // Password recovery: redirect to change password page
       if (event === "PASSWORD_RECOVERY" && session?.user) {
         window.location.href = "/settings/account";
@@ -153,16 +136,17 @@ useEffect(() => {
       if (event === "SIGNED_IN" && session?.user) {
         const isOAuth = session.user.app_metadata?.provider === "google";
         if (isOAuth) {
-          // Check if this user already has a profile (existing user)
           const { data: existing } = await supabase.from("profiles").select("id").eq("id", session.user.id).single();
           if (!existing) {
-            // New user — check if signup is enabled
             try {
               const checkRes = await fetch("/api/signup-check");
               const checkData = await checkRes.json();
               if (!checkData.signupEnabled) {
                 await supabase.auth.signOut();
-                setUser(null);
+                if (!cancelled) {
+                  setUser(null);
+                  setLoading(false);
+                }
                 alert("現在、新規登録を停止しています。");
                 return;
               }
@@ -171,13 +155,32 @@ useEffect(() => {
         }
       }
 
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id, session.user.email || "").catch(() => {});
+      if (cancelled) return;
+
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        try {
+          await loadProfile(currentUser.id, currentUser.email || "");
+        } catch (err) {
+          console.error("Profile load failed:", err);
+        }
       }
+
+      if (!cancelled) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout: if onAuthStateChange never fires (network issue), unblock UI
+    const timeout = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [loadProfile]);
 
   const signUp = useCallback(async (email: string, password: string) => {

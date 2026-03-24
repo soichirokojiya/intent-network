@@ -7,7 +7,9 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY!);
+}
 
 // Rate limit: max 3 signups per IP per 15 minutes
 const rateLimitMap = new Map<string, number[]>();
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Send confirmation email via Resend
-  const { error: sendError } = await resend.emails.send({
+  const { error: sendError } = await getResend().emails.send({
     from: "musu <admin@musu.world>",
     to: email,
     subject: "メールアドレスの確認 - musu",

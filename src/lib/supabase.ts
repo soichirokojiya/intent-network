@@ -1,13 +1,16 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Cookie-based session: survives refresh, cache clear, and works with middleware
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 /**
- * Fetch wrapper that automatically adds Supabase Auth token.
- * Use this for all /api/* calls to enable middleware authentication.
+ * Fetch wrapper for /api/* calls.
+ * With @supabase/ssr, cookies carry the session automatically.
+ * We still attach a Bearer token as a fallback for edge cases
+ * (e.g., cross-origin or when cookies haven't propagated yet).
  */
 export async function authFetch(url: string, options?: RequestInit): Promise<Response> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -15,5 +18,5 @@ export async function authFetch(url: string, options?: RequestInit): Promise<Res
   if (session?.access_token) {
     headers.set("Authorization", `Bearer ${session.access_token}`);
   }
-  return fetch(url, { ...options, headers });
+  return fetch(url, { ...options, headers, credentials: "same-origin" });
 }

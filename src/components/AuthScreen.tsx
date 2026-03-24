@@ -71,8 +71,12 @@ export function AuthScreen({ defaultMode }: { defaultMode?: "signin" | "signup" 
       setLoading(false);
       return;
     } else {
-      const { error } = await signIn(email, password);
-      if (error) setError(t("auth.invalidCredentials"));
+      try {
+        const { error } = await signIn(email, password);
+        if (error) setError(t("auth.invalidCredentials"));
+      } catch {
+        setError(t("auth.invalidCredentials"));
+      }
     }
     setLoading(false);
   };
