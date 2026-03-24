@@ -280,31 +280,66 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         return JSON.stringify(data);
       }
       case "browser_scrape": {
-        const res = await fetch(`${baseUrl}/api/browser/run`, {
+        const steelKey = process.env.STEEL_API_KEY;
+        if (!steelKey) return JSON.stringify({ error: "Steel API key not configured" });
+        const scrapeRes = await fetch("https://api.steel.dev/v1/scrape", {
           method: "POST",
-          headers: internalHeaders,
-          body: JSON.stringify({ action: "scrape", url: input.url, deviceId }),
+          headers: { "Content-Type": "application/json", "steel-api-key": steelKey },
+          body: JSON.stringify({ url: input.url, delay: 2000 }),
         });
-        const data = await res.json();
-        return JSON.stringify(data);
+        if (!scrapeRes.ok) return JSON.stringify({ error: `Scrape failed: ${scrapeRes.status}` });
+        const scrapeData = await scrapeRes.json();
+        const html = scrapeData.content?.html || scrapeData.content || "";
+        const rawHtml = typeof html === "string" ? html : JSON.stringify(html);
+        const text = rawHtml.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim().slice(0, 15000);
+        return JSON.stringify({ success: true, content: text });
       }
       case "browser_screenshot": {
-        const res = await fetch(`${baseUrl}/api/browser/run`, {
+        const steelKey = process.env.STEEL_API_KEY;
+        if (!steelKey) return JSON.stringify({ error: "Steel API key not configured" });
+        const ssRes = await fetch("https://api.steel.dev/v1/screenshot", {
           method: "POST",
-          headers: internalHeaders,
-          body: JSON.stringify({ action: "screenshot", url: input.url, fullPage: input.fullPage, deviceId }),
+          headers: { "Content-Type": "application/json", "steel-api-key": steelKey },
+          body: JSON.stringify({ url: input.url, fullPage: input.fullPage ?? false }),
         });
-        const data = await res.json();
-        return JSON.stringify(data);
+        if (!ssRes.ok) return JSON.stringify({ error: `Screenshot failed: ${ssRes.status}` });
+        const ssData = await ssRes.json();
+        return JSON.stringify({ success: true, screenshotUrl: ssData.url });
       }
       case "browser_session": {
-        const res = await fetch(`${baseUrl}/api/browser/run`, {
-          method: "POST",
-          headers: internalHeaders,
-          body: JSON.stringify({ action: "session", steps: input.steps, deviceId }),
-        });
-        const data = await res.json();
-        return JSON.stringify(data);
+        const steelKey = process.env.STEEL_API_KEY;
+        if (!steelKey) return JSON.stringify({ error: "Steel API key not configured" });
+        const steps = input.steps as Array<Record<string, unknown>>;
+        if (!steps || !Array.isArray(steps)) return JSON.stringify({ error: "Missing steps" });
+        try {
+          const { default: Steel } = await import("steel-sdk");
+          const { chromium } = await import("playwright-core");
+          const steel = new Steel({ steelAPIKey: steelKey });
+          const session = await steel.sessions.create({ timeout: 50000 });
+          try {
+            const browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${steelKey}&sessionId=${session.id}`);
+            const context = browser.contexts()[0];
+            const page = context.pages()[0] || await context.newPage();
+            const results: string[] = [];
+            for (const step of steps) {
+              switch (step.type) {
+                case "goto": await page.goto(step.url as string, { waitUntil: "domcontentloaded", timeout: 15000 }); results.push(`Navigated to ${step.url}`); break;
+                case "click": await page.click(step.selector as string, { timeout: 10000 }); results.push(`Clicked ${step.selector}`); break;
+                case "type": await page.fill(step.selector as string, step.text as string, { timeout: 10000 }); results.push(`Typed into ${step.selector}`); break;
+                case "wait": await page.waitForSelector(step.selector as string, { timeout: 10000 }); results.push(`Found ${step.selector}`); break;
+                case "delay": await page.waitForTimeout(Math.min((step.ms as number) || 2000, 5000)); results.push(`Waited`); break;
+                case "scrape": { const h = await page.content(); results.push(`Page content: ${h.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 15000)}`); break; }
+                default: results.push(`Unknown step: ${step.type}`);
+              }
+            }
+            await browser.close();
+            return JSON.stringify({ success: true, results });
+          } finally {
+            await steel.sessions.release(session.id).catch(() => {});
+          }
+        } catch (err) {
+          return JSON.stringify({ error: `Session failed: ${err instanceof Error ? err.message : String(err)}` });
+        }
       }
       case "save_credential": {
         const res = await fetch(`${baseUrl}/api/credentials`, {
