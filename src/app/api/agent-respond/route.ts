@@ -498,7 +498,9 @@ const STATIC_RULES = `重要ルール:
 - プレーンテキストのみ。箇条書きは「・」を使う。強調は「」で囲む
 - 〈〉【】などの装飾括弧も使わない。シンプルに書く
 - 必ず日本語で回答すること。英語は固有名詞のみ許可
-- ユーザーが「忘れて」「もう違う」「その方針は変えた」等と言った場合、forget_factツールを使って該当ファクトを無効化すること`;
+- ユーザーが「忘れて」「もう違う」「その方針は変えた」等と言った場合、forget_factツールを使って該当ファクトを無効化すること
+- browser_sessionでサイトを操作する時は自律的に行動すること。ページ内容やリンク一覧が返ってくるので、それを読んでナビゲーションリンクをクリックしたり、目的のページに自力で辿り着くこと。URLやセレクタをユーザーに聞くのは最終手段。まず自分でページを探索する
+- ログイン情報（ID/パスワード）はチャットに絶対に表示しない。get_credentialで取得した情報はbrowser_sessionのtype操作にのみ使い、toOwnerの返答には含めないこと`;
 
 // Extended app info (only included for non-simple queries to save tokens)
 const MUSU_APP_INFO = `
@@ -730,7 +732,10 @@ export async function POST(req: NextRequest) {
     const customTools = buildCustomTools(!!sheetsConnected, !!gmailConnected);
     const hasCustomTools = customTools.length > 0;
     const model = selectModel(complexity || "moderate", needsSearch, hasCustomTools);
-    const maxTokens = requestTweet ? 500 : (hasCustomTools ? 1500 : 800);
+    // Browser browsing needs more tokens for reasoning about page content
+    const browserKeywords = ["ログイン", "ブラウザ", "操作", "開いて", "アクセス", "サイト", "ページ", "スクレイピング", "調べて"];
+    const needsBrowser = browserKeywords.some((kw) => allText.includes(kw));
+    const maxTokens = requestTweet ? 500 : (needsBrowser ? 2500 : hasCustomTools ? 1500 : 800);
 
     const tools: (Anthropic.Messages.Tool | { type: "web_search_20250305"; name: "web_search"; max_uses: number })[] = [
       ...(needsSearch ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }] : []),
