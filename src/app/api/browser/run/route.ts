@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUserId } from "@/lib/serverAuth";
-import { chromium } from "playwright-core";
-import Steel from "steel-sdk";
 
 export const maxDuration = 60;
 
@@ -105,6 +103,9 @@ export async function POST(req: NextRequest) {
         if (!steps || !Array.isArray(steps) || steps.length === 0) {
           return NextResponse.json({ error: "Missing steps array for session action" }, { status: 400 });
         }
+
+        const { default: Steel } = await import("steel-sdk");
+        const { chromium } = await import("playwright-core");
 
         const steel = new Steel({ steelAPIKey: apiKey });
         const session = await steel.sessions.create({ timeout: 50000 });
