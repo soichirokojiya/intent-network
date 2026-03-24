@@ -130,9 +130,15 @@ useEffect(() => {
         setUser(currentUser);
         setLoading(false);
       } else if (event === "INITIAL_SESSION") {
-        // No session on initial load — this is definitive, show login
-        setUser(null);
-        setLoading(false);
+        // No session on initial load — wait briefly for cookie-based session to arrive
+        // (createBrowserClient may fire INITIAL_SESSION before cookies are fully parsed)
+        setTimeout(() => {
+          if (!cancelled) {
+            setUser(null);
+            setLoading(false);
+          }
+        }, 300);
+        return;
       } else {
         // SIGNED_OUT etc — clear user
         setUser(null);
