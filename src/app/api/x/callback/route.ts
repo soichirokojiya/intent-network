@@ -12,25 +12,23 @@ export async function GET(req: NextRequest) {
   const state = req.nextUrl.searchParams.get("state");
   const error = req.nextUrl.searchParams.get("error");
 
+  // Try to extract agentId from state for redirect
+  const stateData = state ? verifyOAuthState(state) : null;
+  const agentId = stateData?.agentId as string | null;
+
   if (error) {
-    // User cancelled or denied — redirect back without affecting musu session
-    const cancelled = error === "access_denied";
-    return NextResponse.redirect(new URL(`/integrations?x=${cancelled ? "cancelled" : "error"}`, req.url));
+    // User cancelled or denied — redirect back to agent page
+    const redirectPath = agentId ? `/agent?id=${agentId}&x=cancelled` : "/agent";
+    return NextResponse.redirect(new URL(redirectPath, req.url));
   }
 
-  if (!code || !state) {
-    return NextResponse.redirect(new URL("/integrations?x=error", req.url));
-  }
-
-  // Verify signed state (CSRF protection)
-  const stateData = verifyOAuthState(state);
-  if (!stateData) {
-    return NextResponse.redirect(new URL("/integrations?x=error", req.url));
+  if (!code || !stateData) {
+    const redirectPath = agentId ? `/agent?id=${agentId}&x=error` : "/agent";
+    return NextResponse.redirect(new URL(redirectPath, req.url));
   }
 
   const deviceId = stateData.deviceId as string;
   const codeVerifier = stateData.codeVerifier as string;
-  const agentId = (stateData.agentId as string) || null;
 
   try {
     const clientId = process.env.X_CLIENT_ID!;
