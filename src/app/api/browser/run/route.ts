@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVerifiedUserId } from "@/lib/serverAuth";
+import { getVerifiedUserIdWithBody } from "@/lib/serverAuth";
 
 export const maxDuration = 60;
 
@@ -38,7 +38,9 @@ async function logBrowserUsage(deviceId: string, action: string, costYen: number
 }
 
 export async function POST(req: NextRequest) {
-  const deviceId = getVerifiedUserId(req);
+  const body = await req.json();
+  const { action, url, fullPage, steps } = body;
+  const deviceId = getVerifiedUserIdWithBody(req, body);
   if (!deviceId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -47,8 +49,6 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json({ error: "Steel API key not configured" }, { status: 500 });
   }
-
-  const { action, url, fullPage, steps } = await req.json();
 
   if (!action) {
     return NextResponse.json({ error: "Missing action" }, { status: 400 });

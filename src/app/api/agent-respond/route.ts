@@ -283,7 +283,7 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const res = await fetch(`${baseUrl}/api/browser/run`, {
           method: "POST",
           headers: internalHeaders,
-          body: JSON.stringify({ action: "scrape", url: input.url }),
+          body: JSON.stringify({ action: "scrape", url: input.url, deviceId }),
         });
         const data = await res.json();
         return JSON.stringify(data);
@@ -292,7 +292,7 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const res = await fetch(`${baseUrl}/api/browser/run`, {
           method: "POST",
           headers: internalHeaders,
-          body: JSON.stringify({ action: "screenshot", url: input.url, fullPage: input.fullPage }),
+          body: JSON.stringify({ action: "screenshot", url: input.url, fullPage: input.fullPage, deviceId }),
         });
         const data = await res.json();
         return JSON.stringify(data);
@@ -301,7 +301,7 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const res = await fetch(`${baseUrl}/api/browser/run`, {
           method: "POST",
           headers: internalHeaders,
-          body: JSON.stringify({ action: "session", steps: input.steps }),
+          body: JSON.stringify({ action: "session", steps: input.steps, deviceId }),
         });
         const data = await res.json();
         return JSON.stringify(data);
