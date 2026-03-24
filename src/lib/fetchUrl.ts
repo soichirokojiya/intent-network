@@ -22,7 +22,17 @@ export async function fetchUrlContent(url: string): Promise<string> {
       });
       if (res.ok) {
         const data = await res.json();
-        let text = typeof data.content === "string" ? data.content : JSON.stringify(data);
+        // Steel returns { content: { html: "..." }, metadata: { title: "..." }, ... }
+        const html = data.content?.html || data.content || "";
+        const rawHtml = typeof html === "string" ? html : JSON.stringify(html);
+        // Strip HTML tags to get clean text
+        let text = rawHtml
+          .replace(/<script[\s\S]*?<\/script>/gi, "")
+          .replace(/<style[\s\S]*?<\/style>/gi, "")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
         if (text.length > 2000) text = text.slice(0, 2000) + "...（以下省略）";
         return text || `（${url}のコンテンツを取得できませんでした）`;
       }

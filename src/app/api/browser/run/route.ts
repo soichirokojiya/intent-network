@@ -63,7 +63,16 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: `Steel scrape failed: ${errText}` }, { status: res.status });
         }
         const data = await res.json();
-        const content = typeof data.content === "string" ? data.content.slice(0, 15000) : JSON.stringify(data).slice(0, 15000);
+        const html = data.content?.html || data.content || "";
+        const rawHtml = typeof html === "string" ? html : JSON.stringify(html);
+        const content = rawHtml
+          .replace(/<script[\s\S]*?<\/script>/gi, "")
+          .replace(/<style[\s\S]*?<\/style>/gi, "")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 15000);
         // Log usage after successful scrape
         await logBrowserUsage(deviceId, action, url, baseUrl);
         return NextResponse.json({ success: true, content });
