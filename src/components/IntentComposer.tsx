@@ -387,12 +387,22 @@ function detectScheduleIntent(text: string): { action: "set_schedule_times"; tim
   return null;
 }
 
-// Detect @mention in message text
+// Detect @mention in message text (supports names with spaces)
 function detectMention(text: string, agents: { id: string; config: { name: string } }[]): string | null {
+  if (!text.includes("@")) return null;
+  // Try matching against each agent name (longest first to avoid partial matches)
+  const sorted = [...agents].sort((a, b) => b.config.name.length - a.config.name.length);
+  for (const agent of sorted) {
+    const name = agent.config.name;
+    if (text.toLowerCase().includes(`@${name.toLowerCase()}`)) {
+      return agent.id;
+    }
+  }
+  // Fallback: try single-word @mention
   const match = text.match(/@(\S+)/);
   if (!match) return null;
   const mentionName = match[1].toLowerCase();
-  const agent = agents.find((a) => a.config.name.toLowerCase() === mentionName);
+  const agent = agents.find((a) => a.config.name.toLowerCase().startsWith(mentionName));
   return agent?.id || null;
 }
 
