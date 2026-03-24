@@ -123,15 +123,21 @@ useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return;
 
-      // PASSWORD_RECOVERY events are handled normally (user can navigate to settings if needed)
-
-      if (cancelled) return;
-
       const currentUser = session?.user ?? null;
 
-      // Set user and loading immediately (don't block UI)
-      setUser(currentUser);
-      setLoading(false);
+      if (currentUser) {
+        // User is authenticated — show app immediately
+        setUser(currentUser);
+        setLoading(false);
+      } else if (event === "INITIAL_SESSION") {
+        // No session on initial load — this is definitive, show login
+        setUser(null);
+        setLoading(false);
+      } else {
+        // SIGNED_OUT etc — clear user
+        setUser(null);
+        setLoading(false);
+      }
 
       if (currentUser) {
         // Block new Google signups when registration is disabled
