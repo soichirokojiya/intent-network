@@ -109,7 +109,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [bindDeviceId]);
 
 useEffect(() => {
+    // Safety timeout: force loading=false after 5s no matter what
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      clearTimeout(timeout);
       if (session?.user) {
         bindDeviceId(session.user.id);
         setUser(session.user);
@@ -121,6 +127,7 @@ useEffect(() => {
       }
       setLoading(false);
     }).catch(() => {
+      clearTimeout(timeout);
       setUser(null);
       setLoading(false);
     });
