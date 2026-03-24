@@ -115,6 +115,18 @@ const features = [
   {
     icon: (
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+        <path d="M2 7h20" />
+        <circle cx="5" cy="5" r=".5" fill="currentColor" />
+        <circle cx="8" cy="5" r=".5" fill="currentColor" />
+      </svg>
+    ),
+    title: "Webブラウザ操作",
+    desc: "情報収集、フォーム入力、予約手続き。エージェントがブラウザを自律的に操作して、あなたの代わりにWebの作業をこなします。",
+  },
+  {
+    icon: (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       </svg>
     ),
@@ -355,6 +367,39 @@ export default function AboutPage() {
             </Link>
           </div>
 
+          {/* Case 3: ブラウザ操作 */}
+          <div className="border border-gray-200 rounded-2xl p-6 md:p-8 mb-6">
+            <h3 className="font-extrabold text-lg mb-4">「このサイトの情報をまとめて」「飛行機の予約を取って」</h3>
+            <div className="bg-[#f0f4f8] rounded-2xl p-5 mb-6">
+              <div className="space-y-3">
+                <div className="flex justify-end gap-2">
+                  <div className="bg-[#4A99E9] text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[80%]">
+                    この3サイトの料金プランを比較して、表にまとめて
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className="w-7 h-7 bg-[#4A99E9] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">R</div>
+                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%] shadow-sm">
+                    3サイトをブラウザで確認したよ。料金・機能・制限を比較表にまとめたから、見てみて。
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-900 text-white rounded-xl p-5 mb-5">
+              <div className="flex justify-between py-2 text-sm">
+                <span className="opacity-60">対応可能な操作</span>
+                <span className="font-bold text-[#5dca8a]">スクレイピング・フォーム入力・予約</span>
+              </div>
+              <div className="flex justify-between py-2 text-sm border-t border-white/10">
+                <span className="opacity-60">仕組み</span>
+                <span className="font-bold text-[#5dca8a]">AI がブラウザを自律操作</span>
+              </div>
+            </div>
+            <p className="text-[14px] text-gray-500 leading-relaxed">
+              Webサイトの情報収集、競合調査、フォーム入力、航空券やホテルの予約手続きなど、エージェントがブラウザを操作して代行します。CSSセレクタの知識は不要。自然言語で指示するだけです。
+            </p>
+          </div>
+
           <div className="bg-blue-50 border-l-4 border-[#4A99E9] rounded-r-xl p-5">
             <p className="text-[#1a3a6e] text-sm font-medium leading-relaxed">
               「育てるほど、任せられる」というmusuのコンセプトはここにある。最初は確認しながら、慣れてきたら自動実行へ。信頼を積み重ねながら、少しずつ任せる範囲を広げていける。
@@ -445,6 +490,7 @@ export default function AboutPage() {
                 "AIチームメンバー無制限",
                 "全アプリ連携対応",
                 "メール・SNS投稿機能",
+                "Webブラウザ操作（スクレイピング・予約）",
                 "記憶・ナレッジ共有",
                 "毎朝のブリーフィング",
               ].map((item) => (
