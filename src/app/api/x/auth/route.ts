@@ -38,6 +38,6 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.redirect(
-    `https://twitter.com/i/oauth2/authorize?${params.toString()}`,
+    `https://twitter.com/i/oauth2/authorize?${params.toString()}&force_login=true`,
   );
 }

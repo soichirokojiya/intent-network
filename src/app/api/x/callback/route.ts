@@ -13,7 +13,9 @@ export async function GET(req: NextRequest) {
   const error = req.nextUrl.searchParams.get("error");
 
   if (error) {
-    return NextResponse.redirect(new URL("/integrations?x=error", req.url));
+    // User cancelled or denied — redirect back without affecting musu session
+    const cancelled = error === "access_denied";
+    return NextResponse.redirect(new URL(`/integrations?x=${cancelled ? "cancelled" : "error"}`, req.url));
   }
 
   if (!code || !state) {
