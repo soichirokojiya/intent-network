@@ -10,6 +10,7 @@ const PUBLIC_API_PATHS = [
   "/api/feedback-check",
   "/api/cron/",
   "/api/stripe/webhook",
+  "/api/ensure-profile",
 ];
 
 export async function middleware(req: NextRequest) {

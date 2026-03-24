@@ -78,13 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("musu_business_info");
     localStorage.removeItem("musu_memory_summary");
     bindDeviceId(userId);
-    // Retry profile fetch (session may not be ready on first attempt)
+    // Fetch profile (1 attempt, then fallback to ensure-profile)
     let data = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const res = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
-      if (res.data) { data = res.data; break; }
-      if (attempt < 2) await new Promise((r) => setTimeout(r, 500));
-    }
+    const profileRes = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
+    data = profileRes.data;
     // Auto-create profile only if it truly doesn't exist (e.g. first Google login)
     // Use service-side API to avoid RLS issues
     if (!data) {
@@ -159,16 +156,14 @@ useEffect(() => {
 
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+      setLoading(false);
 
+      // Load profile in background (don't block UI transition)
       if (currentUser) {
-        try {
-          await loadProfile(currentUser.id, currentUser.email || "");
-        } catch (err) {
+        loadProfile(currentUser.id, currentUser.email || "").catch((err) => {
           console.error("Profile load failed:", err);
-        }
+        });
       }
-
-      if (!cancelled) setLoading(false);
     });
 
     // Safety timeout: if onAuthStateChange never fires (network issue), unblock UI
@@ -211,7 +206,7 @@ useEffect(() => {
   const signInWithGoogle = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     return { error: error?.message || null };
   }, []);
