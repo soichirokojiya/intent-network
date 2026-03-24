@@ -68,12 +68,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Server-side auth check: tell client if user is logged in (avoids flash)
+  // Server-side auth check: tell client if user is likely logged in (avoids flash)
   let serverAuthenticated = false;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    serverAuthenticated = !!user;
+    if (user) {
+      serverAuthenticated = true;
+    } else {
+      // getUser() failed but cookies might exist (token refresh pending)
+      const { cookies: getCookies } = await import("next/headers");
+      const cookieStore = await getCookies();
+      serverAuthenticated = cookieStore.getAll().some((c) => c.name.startsWith("sb-"));
+    }
   } catch {}
 
   const jsonLd = {

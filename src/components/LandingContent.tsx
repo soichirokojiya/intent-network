@@ -14,7 +14,7 @@ export function LandingContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const [signupEnabled, setSignupEnabled] = useState(false);
+  const [signupEnabled, setSignupEnabled] = useState(true); // Default to true to avoid flash of "closed" message
   const [showLoginForm, setShowLoginForm] = useState(false);
 
   useEffect(() => {
