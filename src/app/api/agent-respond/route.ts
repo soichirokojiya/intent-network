@@ -24,7 +24,7 @@ function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: b
 }
 
 // Custom tool definitions
-const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact", "browser_scrape", "browser_screenshot"] as const;
+const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact", "browser_scrape", "browser_screenshot", "browser_session", "save_credential", "get_credential"] as const;
 
 function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): Anthropic.Messages.Tool[] {
   const tools: Anthropic.Messages.Tool[] = [];
@@ -139,6 +139,59 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
     },
   });
 
+  tools.push({
+    name: "browser_session",
+    description: "ブラウザでログインや複数ステップの操作を実行する。ログインが必要なサイトのデータ取得、フォーム入力・送信、複数ページの遷移などに使う。stepsは順番に実行される。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        steps: {
+          type: "array",
+          description: "実行するステップの配列",
+          items: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["goto", "click", "type", "wait", "delay", "scrape"], description: "ステップの種類" },
+              url: { type: "string", description: "遷移先URL（goto時）" },
+              selector: { type: "string", description: "CSSセレクタ（click/type/wait時）" },
+              text: { type: "string", description: "入力テキスト（type時）" },
+              ms: { type: "number", description: "待機ミリ秒（delay時、最大5000）" },
+            },
+            required: ["type"],
+          },
+        },
+      },
+      required: ["steps"],
+    },
+  });
+
+  // Credential management tools
+  tools.push({
+    name: "save_credential",
+    description: "サイトのログイン情報（ID/パスワード）を暗号化して安全に保存する。ユーザーが「○○のログイン情報を覚えて」と言った時に使う。保存前に必ずユーザーに確認すること。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        siteName: { type: "string", description: "サイト名（例: 楽天, Amazon, 管理画面）" },
+        siteUrl: { type: "string", description: "サイトのログインURL" },
+        username: { type: "string", description: "ユーザー名/メールアドレス" },
+        password: { type: "string", description: "パスワード" },
+      },
+      required: ["siteName", "username", "password"],
+    },
+  });
+  tools.push({
+    name: "get_credential",
+    description: "保存済みのログイン情報を取得する。browser_sessionでログインする前に使う。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        siteName: { type: "string", description: "サイト名（部分一致で検索）" },
+      },
+      required: ["siteName"],
+    },
+  });
+
   // forget_fact is always available (no integration gate)
   tools.push({
     name: "forget_fact",
@@ -240,6 +293,38 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
           method: "POST",
           headers: internalHeaders,
           body: JSON.stringify({ action: "screenshot", url: input.url, fullPage: input.fullPage }),
+        });
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "browser_session": {
+        const res = await fetch(`${baseUrl}/api/browser/run`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({ action: "session", steps: input.steps }),
+        });
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "save_credential": {
+        const res = await fetch(`${baseUrl}/api/credentials`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({
+            siteName: input.siteName,
+            siteUrl: input.siteUrl,
+            username: input.username,
+            password: input.password,
+          }),
+        });
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "get_credential": {
+        const res = await fetch(`${baseUrl}/api/credentials/decrypt`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({ siteName: input.siteName }),
         });
         const data = await res.json();
         return JSON.stringify(data);

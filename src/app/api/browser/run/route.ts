@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUserId } from "@/lib/serverAuth";
+import { chromium } from "playwright-core";
+import Steel from "steel-sdk";
 
 export const maxDuration = 60;
 
 const STEEL_API_URL = "https://api.steel.dev/v1";
-const BROWSER_COST_YEN = 10; // 1回あたり約10円
+const BROWSER_COST_YEN = 10;
+const SESSION_COST_YEN = 20; // セッション操作は高め
 
-async function logBrowserUsage(deviceId: string, action: string, url: string, baseUrl: string) {
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function logBrowserUsage(deviceId: string, action: string, costYen: number, baseUrl: string) {
   try {
     await fetch(`${baseUrl}/api/credits`, {
       method: "POST",
@@ -18,7 +31,7 @@ async function logBrowserUsage(deviceId: string, action: string, url: string, ba
       body: JSON.stringify({
         inputTokens: 0,
         outputTokens: 0,
-        costYen: BROWSER_COST_YEN,
+        costYen,
         model: `steel-${action}`,
         apiRoute: "browser/run",
       }),
@@ -37,13 +50,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Steel API key not configured" }, { status: 500 });
   }
 
-  const { action, url, fullPage } = await req.json();
+  const { action, url, fullPage, steps } = await req.json();
 
-  if (!url || !action) {
-    return NextResponse.json({ error: "Missing url or action" }, { status: 400 });
+  if (!action) {
+    return NextResponse.json({ error: "Missing action" }, { status: 400 });
   }
 
-  const headers = {
+  const steelHeaders = {
     "Content-Type": "application/json",
     "Steel-Api-Key": apiKey,
   };
@@ -52,10 +65,12 @@ export async function POST(req: NextRequest) {
 
   try {
     switch (action) {
+      // Simple stateless actions (no session needed)
       case "scrape": {
+        if (!url) return NextResponse.json({ error: "Missing url" }, { status: 400 });
         const res = await fetch(`${STEEL_API_URL}/scrape`, {
           method: "POST",
-          headers,
+          headers: steelHeaders,
           body: JSON.stringify({ url, delay: 2000 }),
         });
         if (!res.ok) {
@@ -64,40 +79,94 @@ export async function POST(req: NextRequest) {
         }
         const data = await res.json();
         const html = data.content?.html || data.content || "";
-        const rawHtml = typeof html === "string" ? html : JSON.stringify(html);
-        const content = rawHtml
-          .replace(/<script[\s\S]*?<\/script>/gi, "")
-          .replace(/<style[\s\S]*?<\/style>/gi, "")
-          .replace(/<[^>]+>/g, " ")
-          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 15000);
-        // Log usage after successful scrape
-        await logBrowserUsage(deviceId, action, url, baseUrl);
+        const content = stripHtml(typeof html === "string" ? html : JSON.stringify(html)).slice(0, 15000);
+        await logBrowserUsage(deviceId, action, BROWSER_COST_YEN, baseUrl);
         return NextResponse.json({ success: true, content });
       }
 
       case "screenshot": {
+        if (!url) return NextResponse.json({ error: "Missing url" }, { status: 400 });
         const res = await fetch(`${STEEL_API_URL}/screenshot`, {
           method: "POST",
-          headers,
+          headers: steelHeaders,
           body: JSON.stringify({ url, fullPage: fullPage ?? false }),
         });
         if (!res.ok) {
           const errText = await res.text();
           return NextResponse.json({ error: `Steel screenshot failed: ${errText}` }, { status: res.status });
         }
-        // Steel returns { url: "https://images.steel.dev/..." }
         const data = await res.json();
-        const screenshotUrl = data.url;
-        // Log usage after successful screenshot
-        await logBrowserUsage(deviceId, action, url, baseUrl);
-        return NextResponse.json({ success: true, screenshotUrl });
+        await logBrowserUsage(deviceId, action, BROWSER_COST_YEN, baseUrl);
+        return NextResponse.json({ success: true, screenshotUrl: data.url });
+      }
+
+      // Interactive session: login, click, type, navigate, then scrape
+      case "session": {
+        if (!steps || !Array.isArray(steps) || steps.length === 0) {
+          return NextResponse.json({ error: "Missing steps array for session action" }, { status: 400 });
+        }
+
+        const steel = new Steel({ steelAPIKey: apiKey });
+        const session = await steel.sessions.create({ timeout: 50000 });
+
+        try {
+          const browser = await chromium.connectOverCDP(
+            `wss://connect.steel.dev?apiKey=${apiKey}&sessionId=${session.id}`
+          );
+          const context = browser.contexts()[0];
+          const page = context.pages()[0] || await context.newPage();
+
+          const results: string[] = [];
+
+          for (const step of steps) {
+            switch (step.type) {
+              case "goto":
+                await page.goto(step.url, { waitUntil: "domcontentloaded", timeout: 15000 });
+                results.push(`Navigated to ${step.url}`);
+                break;
+              case "click":
+                await page.click(step.selector, { timeout: 10000 });
+                results.push(`Clicked ${step.selector}`);
+                break;
+              case "type":
+                await page.fill(step.selector, step.text, { timeout: 10000 });
+                results.push(`Typed into ${step.selector}`);
+                break;
+              case "wait":
+                await page.waitForSelector(step.selector, { timeout: 10000 });
+                results.push(`Found ${step.selector}`);
+                break;
+              case "delay":
+                await page.waitForTimeout(Math.min(step.ms || 2000, 5000));
+                results.push(`Waited ${step.ms || 2000}ms`);
+                break;
+              case "scrape": {
+                const html = await page.content();
+                const text = stripHtml(html).slice(0, 15000);
+                results.push(`Page content: ${text}`);
+                break;
+              }
+              case "screenshot": {
+                // Take screenshot via Steel API for the current session page
+                const currentUrl = page.url();
+                results.push(`Current URL: ${currentUrl}`);
+                break;
+              }
+              default:
+                results.push(`Unknown step type: ${step.type}`);
+            }
+          }
+
+          await browser.close();
+          await logBrowserUsage(deviceId, action, SESSION_COST_YEN, baseUrl);
+          return NextResponse.json({ success: true, results });
+        } finally {
+          await steel.sessions.release(session.id).catch(() => {});
+        }
       }
 
       default:
-        return NextResponse.json({ error: `Unknown action: ${action}. Supported: scrape, screenshot` }, { status: 400 });
+        return NextResponse.json({ error: `Unknown action: ${action}. Supported: scrape, screenshot, session` }, { status: 400 });
     }
   } catch (err) {
     return NextResponse.json(
