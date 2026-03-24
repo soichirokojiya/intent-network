@@ -39,6 +39,10 @@ export async function GET(req: NextRequest) {
     chatworkConnected: data?.chatwork_connected ?? false,
     freeeConnected: data?.freee_connected ?? false,
     squareConnected: data?.square_connected ?? false,
+    metaConnected: data?.meta_connected ?? false,
+    metaPageName: data?.meta_page_name || "",
+    youtubeConnected: data?.youtube_connected ?? false,
+    youtubeChannelName: data?.youtube_channel_name || "",
     memorySummary: data?.memory_summary || "",
   });
 }

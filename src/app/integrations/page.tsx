@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line" | "sheets" | "chatwork" | "freee" | "square";
+type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line" | "sheets" | "chatwork" | "freee" | "square" | "meta" | "youtube";
 
 interface Integration {
   key: IntegrationKey;
@@ -39,6 +39,8 @@ const LOGO_MAP: Record<IntegrationKey, string> = {
   chatwork: "/logos/chatwork.png",
   freee: "/logos/freee.png",
   square: "/logos/square.jpg",
+  meta: "/logos/meta.png",
+  youtube: "/logos/youtube.png",
 };
 
 const integrations: Integration[] = [
@@ -141,6 +143,24 @@ const integrations: Integration[] = [
     category: "accounting",
     icon: <img src={LOGO_MAP.square} alt="Square" width={20} height={20} className="rounded" />,
   },
+  {
+    key: "meta",
+    name: "Meta (Instagram / Facebook)",
+    description: "Instagram・Facebookページへの投稿ができるようになります。",
+    authPath: "/api/meta/auth",
+    disconnectPath: "/api/meta/disconnect",
+    category: "sns",
+    icon: <img src={LOGO_MAP.meta} alt="Meta" width={20} height={20} className="rounded" />,
+  },
+  {
+    key: "youtube",
+    name: "YouTube",
+    description: "動画アップロード・チャンネル管理・アナリティクスが使えます。",
+    authPath: "/api/youtube/auth",
+    disconnectPath: "/api/youtube/disconnect",
+    category: "sns",
+    icon: <img src={LOGO_MAP.youtube} alt="YouTube" width={20} height={20} className="rounded" />,
+  },
 ];
 
 const STATUS_MAP: Record<IntegrationKey, string> = {
@@ -156,6 +176,8 @@ const STATUS_MAP: Record<IntegrationKey, string> = {
   chatwork: "chatworkConnected",
   freee: "freeeConnected",
   square: "squareConnected",
+  meta: "metaConnected",
+  youtube: "youtubeConnected",
 };
 
 export default function IntegrationsPage() {
@@ -165,7 +187,7 @@ export default function IntegrationsPage() {
   const searchParams = useSearchParams();
 
   const [connected, setConnected] = useState<Record<IntegrationKey, boolean>>({
-    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false, sheets: false, chatwork: false, freee: false, square: false,
+    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false, sheets: false, chatwork: false, freee: false, square: false, meta: false, youtube: false,
   });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [notionAutoSave, setNotionAutoSave] = useState(false);
@@ -196,7 +218,7 @@ export default function IntegrationsPage() {
 
   // Handle all OAuth callbacks
   useEffect(() => {
-    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line", "sheets", "chatwork", "freee", "square"];
+    const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line", "sheets", "chatwork", "freee", "square", "meta", "youtube"];
     for (const key of callbackKeys) {
       const param = searchParams.get(key);
       if (param === "connected") {
