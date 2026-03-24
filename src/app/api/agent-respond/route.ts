@@ -2,11 +2,27 @@ import { anthropic as client } from "@/lib/anthropicClient";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { getMoodModifier } from "@/lib/moodPrompt";
-import { fetchUrlContent, extractUrls } from "@/lib/fetchUrl";
+import { fetchUrlContent, extractUrls, stripHtml } from "@/lib/fetchUrl";
 import { parseAgentJSON } from "@/lib/parseAgentJSON";
 import { getVerifiedUserId } from "@/lib/serverAuth";
 
 export const maxDuration = 120;
+
+// Extract text + links from HTML page content
+function extractPageInfo(html: string): { text: string; links: string[] } {
+  const linkPattern = /<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi;
+  const links: string[] = [];
+  let match;
+  while ((match = linkPattern.exec(html)) !== null && links.length < 30) {
+    const href = match[1];
+    const linkText = match[2].replace(/<[^>]+>/g, "").trim();
+    if (linkText && !href.startsWith("#") && !href.startsWith("javascript:")) {
+      links.push(`${linkText} → ${href}`);
+    }
+  }
+  const text = stripHtml(html, 10000);
+  return { text, links };
+}
 
 
 // Model pricing for billing
@@ -292,19 +308,9 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         return JSON.stringify(data);
       }
       case "browser_scrape": {
-        const steelKey = process.env.STEEL_API_KEY;
-        if (!steelKey) return JSON.stringify({ error: "Steel API key not configured" });
-        const scrapeRes = await fetch("https://api.steel.dev/v1/scrape", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "steel-api-key": steelKey },
-          body: JSON.stringify({ url: input.url, delay: 2000 }),
-        });
-        if (!scrapeRes.ok) return JSON.stringify({ error: `Scrape failed: ${scrapeRes.status}` });
-        const scrapeData = await scrapeRes.json();
-        const html = scrapeData.content?.html || scrapeData.content || "";
-        const rawHtml = typeof html === "string" ? html : JSON.stringify(html);
-        const text = rawHtml.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim().slice(0, 15000);
-        return JSON.stringify({ success: true, content: text });
+        // Use shared fetchUrlContent (with cache + smart Steel/fetch routing)
+        const content = await fetchUrlContent(input.url as string);
+        return JSON.stringify({ success: true, content });
       }
       case "browser_screenshot": {
         const steelKey = process.env.STEEL_API_KEY;
@@ -356,20 +362,9 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
               case "scrape": {
                 hasScrape = true;
                 const h = await page.content();
-                // Return links/hrefs and text for autonomous navigation
-                const linkPattern = /<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi;
-                const links: string[] = [];
-                let match;
-                while ((match = linkPattern.exec(h)) !== null && links.length < 30) {
-                  const href = match[1];
-                  const linkText = match[2].replace(/<[^>]+>/g, "").trim();
-                  if (linkText && !href.startsWith("#") && !href.startsWith("javascript:")) {
-                    links.push(`${linkText} → ${href}`);
-                  }
-                }
-                const text = h.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 10000);
-                results.push(`Page content: ${text}`);
-                if (links.length > 0) results.push(`Links on page:\n${links.join("\n")}`);
+                const { text: pageText, links: pageLinks } = extractPageInfo(h);
+                results.push(`Page content: ${pageText}`);
+                if (pageLinks.length > 0) results.push(`Links on page:\n${pageLinks.join("\n")}`);
                 break;
               }
               default: results.push(`Unknown step: ${step.type}`);
@@ -379,20 +374,10 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
           if (!hasScrape) {
             const currentUrl = page.url();
             const h = await page.content();
-            const linkPattern = /<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi;
-            const links: string[] = [];
-            let match;
-            while ((match = linkPattern.exec(h)) !== null && links.length < 30) {
-              const href = match[1];
-              const linkText = match[2].replace(/<[^>]+>/g, "").trim();
-              if (linkText && !href.startsWith("#") && !href.startsWith("javascript:")) {
-                links.push(`${linkText} → ${href}`);
-              }
-            }
-            const text = h.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 8000);
+            const { text: pageText, links: pageLinks } = extractPageInfo(h);
             results.push(`Current URL: ${currentUrl}`);
-            results.push(`Page content: ${text}`);
-            if (links.length > 0) results.push(`Links on page:\n${links.join("\n")}`);
+            results.push(`Page content: ${pageText}`);
+            if (pageLinks.length > 0) results.push(`Links on page:\n${pageLinks.join("\n")}`);
           }
           // Don't close browser - keep alive for next tool call
           return JSON.stringify({ success: true, results });

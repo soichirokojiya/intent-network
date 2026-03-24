@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUserIdWithBody } from "@/lib/serverAuth";
+import { stripHtml } from "@/lib/fetchUrl";
 
 export const maxDuration = 60;
 
 const STEEL_API_URL = "https://api.steel.dev/v1";
 const BROWSER_COST_YEN = 10;
 const SESSION_COST_YEN = 20; // セッション操作は高め
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 async function logBrowserUsage(deviceId: string, action: string, costYen: number, baseUrl: string) {
   try {
@@ -69,7 +60,7 @@ export async function POST(req: NextRequest) {
         const res = await fetch(`${STEEL_API_URL}/scrape`, {
           method: "POST",
           headers: steelHeaders,
-          body: JSON.stringify({ url, delay: 2000 }),
+          body: JSON.stringify({ url, delay: 0 }),
         });
         if (!res.ok) {
           const errText = await res.text();
@@ -77,7 +68,7 @@ export async function POST(req: NextRequest) {
         }
         const data = await res.json();
         const html = data.content?.html || data.content || "";
-        const content = stripHtml(typeof html === "string" ? html : JSON.stringify(html)).slice(0, 15000);
+        const content = stripHtml(typeof html === "string" ? html : JSON.stringify(html), 15000);
         await logBrowserUsage(deviceId, action, BROWSER_COST_YEN, baseUrl);
         return NextResponse.json({ success: true, content });
       }
@@ -143,7 +134,7 @@ export async function POST(req: NextRequest) {
                 break;
               case "scrape": {
                 const html = await page.content();
-                const text = stripHtml(html).slice(0, 15000);
+                const text = stripHtml(html, 15000);
                 results.push(`Page content: ${text}`);
                 break;
               }
