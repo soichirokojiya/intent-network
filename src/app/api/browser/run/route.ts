@@ -88,11 +88,12 @@ export async function POST(req: NextRequest) {
           const errText = await res.text();
           return NextResponse.json({ error: `Steel screenshot failed: ${errText}` }, { status: res.status });
         }
-        const buffer = await res.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString("base64");
+        // Steel returns { url: "https://images.steel.dev/..." }
+        const data = await res.json();
+        const screenshotUrl = data.url;
         // Log usage after successful screenshot
         await logBrowserUsage(deviceId, action, url, baseUrl);
-        return NextResponse.json({ success: true, screenshot: `data:image/png;base64,${base64}` });
+        return NextResponse.json({ success: true, screenshotUrl });
       }
 
       default:
