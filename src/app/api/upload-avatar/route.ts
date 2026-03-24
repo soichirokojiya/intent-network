@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,12 +9,16 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = getVerifiedUserId(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const userId = formData.get("userId") as string | null;
 
-    if (!file || !userId) {
-      return NextResponse.json({ error: "Missing file or userId" }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: "Missing file" }, { status: 400 });
     }
 
     if (file.size > 2 * 1024 * 1024) {

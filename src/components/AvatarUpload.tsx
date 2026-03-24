@@ -17,16 +17,16 @@ export function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUploadProp
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
+    if (!user) { alert("ログインしてください"); return; }
 
-    if (!file.type.startsWith("image/")) return;
+    if (!file.type.startsWith("image/")) { alert("画像ファイルを選択してください"); return; }
     if (file.size > 2 * 1024 * 1024) { alert("Max 2MB"); return; }
 
     setUploading(true);
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("userId", user.id);
 
     try {
       const res = await authFetch("/api/upload-avatar", { method: "POST", body: formData });
@@ -34,9 +34,11 @@ export function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUploadProp
       if (res.ok && data.url) {
         onAvatarChange(data.url);
       } else {
+        console.error("Upload failed:", data);
         alert(data.error || "Upload failed");
       }
-    } catch {
+    } catch (err) {
+      console.error("Upload error:", err);
       alert("Upload failed");
     }
 

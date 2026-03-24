@@ -427,7 +427,12 @@ function useMessageQueue(setChatHistory: React.Dispatch<React.SetStateAction<Cha
     // Step 3: Replace with actual message after 1.2-2s
     const typingDelay = Math.min(1000, 400 + msg.text.length * 5);
     setTimeout(() => {
-      setChatHistory((prev) => prev.filter((m) => m.id !== `typing-${msg.id}`).concat([msg]));
+      setChatHistory((prev) => {
+        const filtered = prev.filter((m) => m.id !== `typing-${msg.id}`);
+        const insertIdx = filtered.findIndex((m) => m.timestamp > msg.timestamp);
+        if (insertIdx === -1) return [...filtered, msg];
+        return [...filtered.slice(0, insertIdx), msg, ...filtered.slice(insertIdx)];
+      });
       saveChatMessage({
         id: msg.id, type: msg.type as "user" | "agent", text: msg.text,
         agentName: msg.agentName, agentAvatar: msg.agentAvatar,
@@ -644,8 +649,12 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
       // If this agent was streaming, skip the queue animation and add directly
       if (streamedAgentIds.current.has(resp.agentId)) {
         streamedAgentIds.current.delete(resp.agentId);
-        // Add to history first, then clear streaming (same render cycle = no layout shift)
-        setChatHistory((prev) => [...prev, msg]);
+        // Insert at correct chronological position (user may have sent messages during streaming)
+        setChatHistory((prev) => {
+          const insertIdx = prev.findIndex((m) => m.timestamp > msg.timestamp);
+          if (insertIdx === -1) return [...prev, msg];
+          return [...prev.slice(0, insertIdx), msg, ...prev.slice(insertIdx)];
+        });
         clearStreamingMessage();
         saveChatMessage({
           id: msg.id, type: "agent", text: msg.text,

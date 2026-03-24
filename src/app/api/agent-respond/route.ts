@@ -141,13 +141,13 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
 
   tools.push({
     name: "browser_session",
-    description: "ブラウザでログインや複数ステップの操作を実行する。ログインが必要なサイトのデータ取得、フォーム入力・送信、複数ページの遷移などに使う。stepsは順番に実行される。",
+    description: "ブラウザでログインや複数ステップの操作を実行する。セッションはリクエスト内で維持されるので、複数回呼び出してもログイン状態が保持される。ページ内容は自動で返されるので、それを見て次のアクションを判断し、再度このツールを呼び出す。自律的にページを探索・ナビゲーションして目的の情報を見つけること。リンクのhrefやボタンのセレクタはscrape結果のHTMLから読み取れる。",
     input_schema: {
       type: "object" as const,
       properties: {
         steps: {
           type: "array",
-          description: "実行するステップの配列",
+          description: "実行するステップの配列。最後にscrapeステップがなくても自動でページ内容が返される",
           items: {
             type: "object",
             properties: {
@@ -208,8 +208,20 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
   return tools;
 }
 
+// Persistent browser session context (shared across tool calls within one request)
+interface BrowserSessionContext {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  steel: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  browser: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  page: any;
+}
+
 // Execute custom tool by calling internal APIs
-async function executeCustomTool(toolName: string, input: Record<string, unknown>, deviceId: string): Promise<string> {
+async function executeCustomTool(toolName: string, input: Record<string, unknown>, deviceId: string, browserCtx?: BrowserSessionContext): Promise<string> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
   const internalHeaders = {
     "Content-Type": "application/json",
@@ -312,31 +324,78 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const steps = input.steps as Array<Record<string, unknown>>;
         if (!steps || !Array.isArray(steps)) return JSON.stringify({ error: "Missing steps" });
         try {
-          const { default: Steel } = await import("steel-sdk");
-          const { chromium } = await import("playwright-core");
-          const steel = new Steel({ steelAPIKey: steelKey });
-          const session = await steel.sessions.create({ timeout: 50000 });
-          try {
+          let page = browserCtx?.page;
+          // Reuse existing session or create new one
+          if (!browserCtx?.browser) {
+            const { default: Steel } = await import("steel-sdk");
+            const { chromium } = await import("playwright-core");
+            const steel = new Steel({ steelAPIKey: steelKey });
+            const session = await steel.sessions.create({ timeout: 90000 });
             const browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${steelKey}&sessionId=${session.id}`);
             const context = browser.contexts()[0];
-            const page = context.pages()[0] || await context.newPage();
-            const results: string[] = [];
-            for (const step of steps) {
-              switch (step.type) {
-                case "goto": await page.goto(step.url as string, { waitUntil: "domcontentloaded", timeout: 15000 }); results.push(`Navigated to ${step.url}`); break;
-                case "click": await page.click(step.selector as string, { timeout: 10000 }); results.push(`Clicked ${step.selector}`); break;
-                case "type": await page.fill(step.selector as string, step.text as string, { timeout: 10000 }); results.push(`Typed into ${step.selector}`); break;
-                case "wait": await page.waitForSelector(step.selector as string, { timeout: 10000 }); results.push(`Found ${step.selector}`); break;
-                case "delay": await page.waitForTimeout(Math.min((step.ms as number) || 2000, 5000)); results.push(`Waited`); break;
-                case "scrape": { const h = await page.content(); results.push(`Page content: ${h.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 15000)}`); break; }
-                default: results.push(`Unknown step: ${step.type}`);
+            page = context.pages()[0] || await context.newPage();
+            // Store in shared context for reuse
+            if (browserCtx) {
+              browserCtx.steel = steel;
+              browserCtx.session = session;
+              browserCtx.browser = browser;
+              browserCtx.page = page;
+            }
+          }
+          if (!page) return JSON.stringify({ error: "No browser page available" });
+
+          const results: string[] = [];
+          let hasScrape = false;
+          for (const step of steps) {
+            switch (step.type) {
+              case "goto": await page.goto(step.url as string, { waitUntil: "domcontentloaded", timeout: 15000 }); results.push(`Navigated to ${step.url}`); break;
+              case "click": await page.click(step.selector as string, { timeout: 10000 }); results.push(`Clicked ${step.selector}`); break;
+              case "type": await page.fill(step.selector as string, step.text as string, { timeout: 10000 }); results.push(`Typed into ${step.selector}`); break;
+              case "wait": await page.waitForSelector(step.selector as string, { timeout: 10000 }); results.push(`Found ${step.selector}`); break;
+              case "delay": await page.waitForTimeout(Math.min((step.ms as number) || 2000, 5000)); results.push(`Waited`); break;
+              case "scrape": {
+                hasScrape = true;
+                const h = await page.content();
+                // Return links/hrefs and text for autonomous navigation
+                const linkPattern = /<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi;
+                const links: string[] = [];
+                let match;
+                while ((match = linkPattern.exec(h)) !== null && links.length < 30) {
+                  const href = match[1];
+                  const linkText = match[2].replace(/<[^>]+>/g, "").trim();
+                  if (linkText && !href.startsWith("#") && !href.startsWith("javascript:")) {
+                    links.push(`${linkText} → ${href}`);
+                  }
+                }
+                const text = h.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 10000);
+                results.push(`Page content: ${text}`);
+                if (links.length > 0) results.push(`Links on page:\n${links.join("\n")}`);
+                break;
+              }
+              default: results.push(`Unknown step: ${step.type}`);
+            }
+          }
+          // Auto-scrape if no explicit scrape step (so agent can see where it is)
+          if (!hasScrape) {
+            const currentUrl = page.url();
+            const h = await page.content();
+            const linkPattern = /<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi;
+            const links: string[] = [];
+            let match;
+            while ((match = linkPattern.exec(h)) !== null && links.length < 30) {
+              const href = match[1];
+              const linkText = match[2].replace(/<[^>]+>/g, "").trim();
+              if (linkText && !href.startsWith("#") && !href.startsWith("javascript:")) {
+                links.push(`${linkText} → ${href}`);
               }
             }
-            await browser.close();
-            return JSON.stringify({ success: true, results });
-          } finally {
-            await steel.sessions.release(session.id).catch(() => {});
+            const text = h.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 8000);
+            results.push(`Current URL: ${currentUrl}`);
+            results.push(`Page content: ${text}`);
+            if (links.length > 0) results.push(`Links on page:\n${links.join("\n")}`);
           }
+          // Don't close browser - keep alive for next tool call
+          return JSON.stringify({ success: true, results });
         } catch (err) {
           return JSON.stringify({ error: `Session failed: ${err instanceof Error ? err.message : String(err)}` });
         }
@@ -384,12 +443,13 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
 // Build tool_result entries for custom tool_use blocks
 async function processCustomToolUses(
   toolUseBlocks: Anthropic.Messages.ToolUseBlock[],
-  deviceId: string
+  deviceId: string,
+  browserCtx?: BrowserSessionContext
 ): Promise<Anthropic.Messages.ToolResultBlockParam[]> {
   const results: Anthropic.Messages.ToolResultBlockParam[] = [];
   for (const toolUse of toolUseBlocks) {
     if ((CUSTOM_TOOL_NAMES as readonly string[]).includes(toolUse.name)) {
-      const result = await executeCustomTool(toolUse.name, toolUse.input as Record<string, unknown>, deviceId);
+      const result = await executeCustomTool(toolUse.name, toolUse.input as Record<string, unknown>, deviceId, browserCtx);
       results.push({
         type: "tool_result" as const,
         tool_use_id: toolUse.id,
@@ -682,6 +742,8 @@ export async function POST(req: NextRequest) {
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
         async start(controller) {
+          // Shared browser session context (persists across tool call rounds)
+          const browserCtx: BrowserSessionContext = { steel: null, session: null, browser: null, page: null };
           try {
             let actualModel = model;
             let fullText = "";
@@ -730,7 +792,7 @@ export async function POST(req: NextRequest) {
               // Tool use continuation loop (supports multiple rounds for web_search + custom tools)
               let messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userPrompt }];
               let currentAssistantContent = assistantContent;
-              let maxToolRounds = 5;
+              let maxToolRounds = 8;
 
               while (needsContinuation && maxToolRounds > 0) {
                 maxToolRounds--;
@@ -751,7 +813,7 @@ export async function POST(req: NextRequest) {
                   }));
 
                 // Custom tool results (execute via internal APIs)
-                const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId);
+                const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtx);
 
                 const allToolResults = [...webSearchResults, ...customToolResults];
                 if (allToolResults.length === 0) break;
@@ -844,11 +906,26 @@ export async function POST(req: NextRequest) {
               }).catch(() => {});
             }
 
+            // Clean up browser session if one was created
+            if (browserCtx.browser) {
+              try { await browserCtx.browser.close(); } catch {}
+            }
+            if (browserCtx.steel && browserCtx.session) {
+              try { await browserCtx.steel.sessions.release(browserCtx.session.id); } catch {}
+            }
+
             // Send final parsed result
             const parsed = parseAgentJSON(fullText);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", ...parsed })}\n\n`));
             controller.close();
           } catch (error) {
+            // Clean up browser session on error too
+            if (browserCtx.browser) {
+              try { await browserCtx.browser.close(); } catch {}
+            }
+            if (browserCtx.steel && browserCtx.session) {
+              try { await browserCtx.steel.sessions.release(browserCtx.session.id); } catch {}
+            }
             const msg = error instanceof Error ? error.message : String(error);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: msg })}\n\n`));
             controller.close();
@@ -866,6 +943,7 @@ export async function POST(req: NextRequest) {
     }
 
     // === NON-STREAMING MODE (legacy) ===
+    const browserCtxNS: BrowserSessionContext = { steel: null, session: null, browser: null, page: null };
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
     const allUsagesNS: Anthropic.Messages.Usage[] = [];
@@ -906,7 +984,7 @@ export async function POST(req: NextRequest) {
     // Tool use continuation loop (supports multiple rounds)
     let currentMessage = message;
     let messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userPrompt }];
-    let maxToolRounds = 5;
+    let maxToolRounds = 8;
 
     while (currentMessage.stop_reason === "tool_use" && maxToolRounds > 0) {
       maxToolRounds--;
@@ -925,7 +1003,7 @@ export async function POST(req: NextRequest) {
         }));
 
       // Custom tool results
-      const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId);
+      const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtxNS);
 
       const allToolResults = [...webSearchResults, ...customToolResults];
       if (allToolResults.length === 0) break;
@@ -968,6 +1046,14 @@ export async function POST(req: NextRequest) {
           costYen, model, apiRoute: "agent-respond",
         }),
       });
+    }
+
+    // Clean up browser session
+    if (browserCtxNS.browser) {
+      try { await browserCtxNS.browser.close(); } catch {}
+    }
+    if (browserCtxNS.steel && browserCtxNS.session) {
+      try { await browserCtxNS.steel.sessions.release(browserCtxNS.session.id); } catch {}
     }
 
     const parsed = parseAgentJSON(finalText);
