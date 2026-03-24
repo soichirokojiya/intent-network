@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { authFetch } from "@/lib/supabase";
 
 export default function BillingPage() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function BillingPage() {
   useEffect(() => {
     const deviceId = localStorage.getItem("musu_device_id");
     if (deviceId) {
-      fetch(`/api/credits?deviceId=${deviceId}`).then((r) => r.json()).then((d) => {
+      authFetch(`/api/credits?deviceId=${deviceId}`).then((r) => r.json()).then((d) => {
         setBalance(d.balance);
         setTotalUsed(d.totalUsed);
         setTotalCharged(d.totalCharged);

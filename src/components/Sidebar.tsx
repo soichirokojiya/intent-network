@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { authFetch } from "@/lib/supabase";
 import { useLocale } from "@/context/LocaleContext";
 import { useState, useEffect } from "react";
 
@@ -38,7 +39,7 @@ export function Sidebar() {
   useEffect(() => {
     const deviceId = localStorage.getItem("musu_device_id");
     if (deviceId) {
-      fetch(`/api/credits?deviceId=${deviceId}`).then((r) => r.json()).then((d) => setBalance(d.balance));
+      authFetch(`/api/credits?deviceId=${deviceId}`).then((r) => r.json()).then((d) => setBalance(d.balance));
     }
   }, []);
 
