@@ -8,6 +8,7 @@ import { IntentProvider } from "@/context/IntentContext";
 import { LocaleProvider } from "@/context/LocaleContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { AuthGate } from "@/components/AuthGate";
+import { createClient } from "@/lib/supabase/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,11 +63,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Server-side auth check: pass user to client to avoid flash of unauthenticated content
+  let initialUser = null;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    initialUser = user;
+  } catch {}
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
@@ -98,7 +107,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
+        <AuthProvider initialUser={initialUser}>
         <LocaleProvider>
         <AuthGate
           publicChildren={

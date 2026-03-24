@@ -31,8 +31,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children, initialUser }: { children: React.ReactNode; initialUser?: User | null }) {
+  const [user, setUser] = useState<User | null>(initialUser ?? null);
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [businessInfo, setBusinessInfo] = useState("");
@@ -43,7 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
   const [trelloConnected, setTrelloConnected] = useState(false);
   const [scheduleDeliveryEnabled, setScheduleDeliveryEnabled] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // If server provided a user, no loading needed
+  const [loading, setLoading] = useState(initialUser === undefined);
 
   // Bind device_id to user ID (ensures data persists across browsers/sessions)
   const bindDeviceId = useCallback((userId: string) => {
@@ -118,49 +119,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 useEffect(() => {
     let cancelled = false;
 
-    // Use onAuthStateChange as the single source of truth.
-    // It fires INITIAL_SESSION on mount (replaces manual getSession call).
+    // Load profile for server-provided initial user
+    if (initialUser) {
+      loadProfile(initialUser.id, initialUser.email || "").catch((err) => {
+        console.error("Profile load failed:", err);
+      });
+    }
+
+    // Listen for auth state changes (login, logout, token refresh)
+    // Skip INITIAL_SESSION since server already provided the user
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return;
+      if (event === "INITIAL_SESSION") return; // Server already handled this
 
       const currentUser = session?.user ?? null;
-
-      if (currentUser) {
-        // User is authenticated — show app immediately
-        setUser(currentUser);
-        setLoading(false);
-      } else if (event === "INITIAL_SESSION") {
-        // No session on initial load — wait briefly for cookie-based session to arrive
-        // (createBrowserClient may fire INITIAL_SESSION before cookies are fully parsed)
-        setTimeout(() => {
-          if (!cancelled) {
-            setUser(null);
-            setLoading(false);
-          }
-        }, 300);
-        return;
-      } else {
-        // SIGNED_OUT etc — clear user
-        setUser(null);
-        setLoading(false);
-      }
+      setUser(currentUser);
+      setLoading(false);
 
       if (currentUser) {
         // Block new Google signups when registration is disabled
-        // Use creation timestamp (instant, no DB query needed)
         if (event === "SIGNED_IN") {
           const isOAuth = currentUser.app_metadata?.provider === "google";
           const createdAt = new Date(currentUser.created_at).getTime();
-          const isNewUser = (Date.now() - createdAt) < 30000; // Created within 30s
+          const isNewUser = (Date.now() - createdAt) < 30000;
           if (isOAuth && isNewUser) {
             try {
               const checkRes = await fetch("/api/signup-check");
               const checkData = await checkRes.json();
               if (!checkData.signupEnabled) {
                 await supabase.auth.signOut();
-                if (!cancelled) {
-                  setUser(null);
-                }
+                if (!cancelled) setUser(null);
                 alert("現在、新規登録を停止しています。");
                 return;
               }
@@ -168,24 +156,18 @@ useEffect(() => {
           }
         }
 
-        // Load profile in background (don't block UI transition)
+        // Load profile in background
         loadProfile(currentUser.id, currentUser.email || "").catch((err) => {
           console.error("Profile load failed:", err);
         });
       }
     });
 
-    // Safety timeout: if onAuthStateChange never fires (network issue), unblock UI
-    const timeout = setTimeout(() => {
-      if (!cancelled) setLoading(false);
-    }, 5000);
-
     return () => {
       cancelled = true;
-      clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [initialUser, loadProfile]);
 
   const signUp = useCallback(async (email: string, password: string) => {
     // Check if signup is enabled
