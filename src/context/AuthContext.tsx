@@ -54,9 +54,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (currentDeviceId && currentDeviceId !== userId) {
       const keysToKeep = ["musu_auth_migrated"];
       const allKeys = Object.keys(localStorage).filter(
-        (k) => !k.startsWith("sb-") && !keysToKeep.includes(k),
+        (k) => !k.startsWith("sb-") && !keysToKeep.includes(k) && !k.startsWith("musu_welcome_done_"),
       );
       allKeys.forEach((k) => localStorage.removeItem(k));
+      // Set welcome_done for the new user ID (existing user re-login should not see welcome)
+      localStorage.setItem(`musu_welcome_done_${userId}`, "1");
 
       // Migrate old data in background (fire and forget)
       authFetch("/api/migrate-device", {
@@ -76,17 +78,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("musu_business_info");
     localStorage.removeItem("musu_memory_summary");
     bindDeviceId(userId);
-    let { data } = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
-    // Auto-create profile if it doesn't exist (e.g. first Google login)
-    if (!data) {
-      await supabase.from("profiles").insert({
-        id: userId,
-        display_name: email.split("@")[0],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+    // Retry profile fetch (session may not be ready on first attempt)
+    let data = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
       const res = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
-      data = res.data;
+      if (res.data) { data = res.data; break; }
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 500));
+    }
+    // Auto-create profile only if it truly doesn't exist (e.g. first Google login)
+    // Use service-side API to avoid RLS issues
+    if (!data) {
+      try {
+        await authFetch("/api/ensure-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ displayName: email.split("@")[0] }),
+        });
+        const res = await supabase.from("profiles").select("display_name, avatar_url, business_info, memory_summary, news_enabled, news_time, news_times, google_calendar_connected, trello_connected, schedule_delivery_enabled").eq("id", userId).single();
+        data = res.data;
+      } catch {}
     }
     setDisplayName(data?.display_name || email.split("@")[0]);
     setAvatarUrl(data?.avatar_url || "");
