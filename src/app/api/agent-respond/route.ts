@@ -8,21 +8,6 @@ import { getVerifiedUserId } from "@/lib/serverAuth";
 
 export const maxDuration = 120;
 
-// Extract text + links from HTML page content
-function extractPageInfo(html: string): { text: string; links: string[] } {
-  const linkPattern = /<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi;
-  const links: string[] = [];
-  let match;
-  while ((match = linkPattern.exec(html)) !== null && links.length < 30) {
-    const href = match[1];
-    const linkText = match[2].replace(/<[^>]+>/g, "").trim();
-    if (linkText && !href.startsWith("#") && !href.startsWith("javascript:")) {
-      links.push(`${linkText} → ${href}`);
-    }
-  }
-  const text = stripHtml(html, 10000);
-  return { text, links };
-}
 
 
 // Model pricing for billing
@@ -40,7 +25,7 @@ function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: b
 }
 
 // Custom tool definitions
-const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact", "browser_scrape", "browser_screenshot", "browser_session", "save_credential", "get_credential"] as const;
+const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact", "browser_scrape", "browser_screenshot", "browser_action", "save_credential", "get_credential"] as const;
 
 function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): Anthropic.Messages.Tool[] {
   const tools: Anthropic.Messages.Tool[] = [];
@@ -156,28 +141,15 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
   });
 
   tools.push({
-    name: "browser_session",
-    description: "ブラウザでログインや複数ステップの操作を実行する。セッションはリクエスト内で維持されるので、複数回呼び出してもログイン状態が保持される。ページ内容は自動で返されるので、それを見て次のアクションを判断し、再度このツールを呼び出す。自律的にページを探索・ナビゲーションして目的の情報を見つけること。リンクのhrefやボタンのセレクタはscrape結果のHTMLから読み取れる。",
+    name: "browser_action",
+    description: "ブラウザで自然言語の指示を実行する。ページ上の要素をAIが自動検出し、適切な操作（クリック、入力、選択）を実行する。CSSセレクタの指定は不要。セッションはリクエスト内で維持される。操作結果は自動検証される。",
     input_schema: {
       type: "object" as const,
       properties: {
-        steps: {
-          type: "array",
-          description: "実行するステップの配列。最後にscrapeステップがなくても自動でページ内容が返される",
-          items: {
-            type: "object",
-            properties: {
-              type: { type: "string", enum: ["goto", "click", "type", "wait", "delay", "scrape"], description: "ステップの種類" },
-              url: { type: "string", description: "遷移先URL（goto時）" },
-              selector: { type: "string", description: "CSSセレクタ（click/type/wait時）" },
-              text: { type: "string", description: "入力テキスト（type時）" },
-              ms: { type: "number", description: "待機ミリ秒（delay時、最大5000）" },
-            },
-            required: ["type"],
-          },
-        },
+        url: { type: "string", description: "最初に移動するURL（省略時は現在のページで操作）" },
+        instruction: { type: "string", description: "実行したい操作の自然言語指示（例: メール欄にtest@example.comと入力してログインボタンを押す）" },
       },
-      required: ["steps"],
+      required: ["instruction"],
     },
   });
 
@@ -324,11 +296,9 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const ssData = await ssRes.json();
         return JSON.stringify({ success: true, screenshotUrl: ssData.url });
       }
-      case "browser_session": {
+      case "browser_action": {
         const steelKey = process.env.STEEL_API_KEY;
         if (!steelKey) return JSON.stringify({ error: "Steel API key not configured" });
-        const steps = input.steps as Array<Record<string, unknown>>;
-        if (!steps || !Array.isArray(steps)) return JSON.stringify({ error: "Missing steps" });
         try {
           let page = browserCtx?.page;
           // Reuse existing session or create new one
@@ -340,7 +310,6 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
             const browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${steelKey}&sessionId=${session.id}`);
             const context = browser.contexts()[0];
             page = context.pages()[0] || await context.newPage();
-            // Store in shared context for reuse
             if (browserCtx) {
               browserCtx.steel = steel;
               browserCtx.session = session;
@@ -350,39 +319,16 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
           }
           if (!page) return JSON.stringify({ error: "No browser page available" });
 
-          const results: string[] = [];
-          let hasScrape = false;
-          for (const step of steps) {
-            switch (step.type) {
-              case "goto": await page.goto(step.url as string, { waitUntil: "domcontentloaded", timeout: 15000 }); results.push(`Navigated to ${step.url}`); break;
-              case "click": await page.click(step.selector as string, { timeout: 10000 }); results.push(`Clicked ${step.selector}`); break;
-              case "type": await page.fill(step.selector as string, step.text as string, { timeout: 10000 }); results.push(`Typed into ${step.selector}`); break;
-              case "wait": await page.waitForSelector(step.selector as string, { timeout: 10000 }); results.push(`Found ${step.selector}`); break;
-              case "delay": await page.waitForTimeout(Math.min((step.ms as number) || 2000, 5000)); results.push(`Waited`); break;
-              case "scrape": {
-                hasScrape = true;
-                const h = await page.content();
-                const { text: pageText, links: pageLinks } = extractPageInfo(h);
-                results.push(`Page content: ${pageText}`);
-                if (pageLinks.length > 0) results.push(`Links on page:\n${pageLinks.join("\n")}`);
-                break;
-              }
-              default: results.push(`Unknown step: ${step.type}`);
-            }
+          // Navigate if URL provided
+          if (input.url) {
+            await page.goto(input.url as string, { waitUntil: "domcontentloaded", timeout: 15000 });
           }
-          // Auto-scrape if no explicit scrape step (so agent can see where it is)
-          if (!hasScrape) {
-            const currentUrl = page.url();
-            const h = await page.content();
-            const { text: pageText, links: pageLinks } = extractPageInfo(h);
-            results.push(`Current URL: ${currentUrl}`);
-            results.push(`Page content: ${pageText}`);
-            if (pageLinks.length > 0) results.push(`Links on page:\n${pageLinks.join("\n")}`);
-          }
-          // Don't close browser - keep alive for next tool call
-          return JSON.stringify({ success: true, results });
+
+          const { executeBrowserAction } = await import("@/lib/browserAction");
+          const result = await executeBrowserAction(page, input.instruction as string, client);
+          return JSON.stringify(result);
         } catch (err) {
-          return JSON.stringify({ error: `Session failed: ${err instanceof Error ? err.message : String(err)}` });
+          return JSON.stringify({ error: `Browser action failed: ${err instanceof Error ? err.message : String(err)}` });
         }
       }
       case "save_credential": {
@@ -484,10 +430,9 @@ const STATIC_RULES = `重要ルール:
 - 〈〉【】などの装飾括弧も使わない。シンプルに書く
 - 必ず日本語で回答すること。英語は固有名詞のみ許可
 - ユーザーが「忘れて」「もう違う」「その方針は変えた」等と言った場合、forget_factツールを使って該当ファクトを無効化すること
-- browser_sessionでサイトを操作する時は自律的に行動すること。ページ内容やリンク一覧が返ってくるので、それを読んでナビゲーションリンクをクリックしたり、目的のページに自力で辿り着くこと。URLやセレクタをユーザーに聞くのは最終手段。まず自分でページを探索する
-- browser_sessionで書き込み・フォーム送信した後は、必ずもう一度scrapeして結果を確認すること。確認せずに「完了した」と報告するのは禁止。実際に反映されたかをページ内容で検証する
-- browser_sessionのtool結果に「error」や「failed」が含まれていたら正直にユーザーに伝えること。成功していないのに成功したと言わない
-- ログイン情報（ID/パスワード）はチャットに絶対に表示しない。get_credentialで取得した情報はbrowser_sessionのtype操作にのみ使い、toOwnerの返答には含めないこと`;
+- browser_actionは自然言語で指示するだけでAIが自動で要素を見つけて操作する。CSSセレクタの指定は不要
+- browser_actionの結果のsummaryとpageTextを確認し、successがfalseならユーザーに正直に伝えること
+- ログイン情報はget_credentialで取得し、browser_actionのinstructionに含めて渡す（例: 「メール欄にxxx、パスワード欄にyyyを入力してログイン」）。toOwnerの返答にはパスワードを含めないこと`;
 
 // Extended app info (only included for non-simple queries to save tokens)
 const MUSU_APP_INFO = `
