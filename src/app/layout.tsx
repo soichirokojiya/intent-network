@@ -68,12 +68,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Server-side auth check: pass user to client to avoid flash of unauthenticated content
-  let initialUser = null;
+  // Server-side auth check: tell client if user is logged in (avoids flash)
+  let serverAuthenticated = false;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    initialUser = user;
+    serverAuthenticated = !!user;
   } catch {}
 
   const jsonLd = {
@@ -107,7 +107,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider initialUser={initialUser}>
+        <AuthProvider serverAuthenticated={serverAuthenticated}>
         <LocaleProvider>
         <AuthGate
           publicChildren={

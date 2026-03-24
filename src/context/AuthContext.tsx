@@ -31,8 +31,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children, initialUser }: { children: React.ReactNode; initialUser?: User | null }) {
-  const [user, setUser] = useState<User | null>(initialUser ?? null);
+export function AuthProvider({ children, serverAuthenticated = false }: { children: React.ReactNode; serverAuthenticated?: boolean }) {
+  const [user, setUser] = useState<User | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [businessInfo, setBusinessInfo] = useState("");
@@ -43,8 +43,9 @@ export function AuthProvider({ children, initialUser }: { children: React.ReactN
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
   const [trelloConnected, setTrelloConnected] = useState(false);
   const [scheduleDeliveryEnabled, setScheduleDeliveryEnabled] = useState(false);
-  // If server provided a user, no loading needed
-  const [loading, setLoading] = useState(initialUser === undefined);
+  // If server says user is authenticated, keep loading=true until client confirms
+  // If server says not authenticated, show landing immediately (no flash)
+  const [loading, setLoading] = useState(serverAuthenticated);
 
   // Bind device_id to user ID (ensures data persists across browsers/sessions)
   const bindDeviceId = useCallback((userId: string) => {
@@ -119,18 +120,8 @@ export function AuthProvider({ children, initialUser }: { children: React.ReactN
 useEffect(() => {
     let cancelled = false;
 
-    // Load profile for server-provided initial user
-    if (initialUser) {
-      loadProfile(initialUser.id, initialUser.email || "").catch((err) => {
-        console.error("Profile load failed:", err);
-      });
-    }
-
-    // Listen for auth state changes (login, logout, token refresh)
-    // Skip INITIAL_SESSION since server already provided the user
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return;
-      if (event === "INITIAL_SESSION") return; // Server already handled this
 
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -163,11 +154,17 @@ useEffect(() => {
       }
     });
 
+    // Safety timeout: if auth never resolves, show landing
+    const timeout = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 3000);
+
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [initialUser, loadProfile]);
+  }, [loadProfile]);
 
   const signUp = useCallback(async (email: string, password: string) => {
     // Check if signup is enabled
