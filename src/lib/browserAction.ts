@@ -75,7 +75,7 @@ async function planActions(
   const elementList = formatElements(elements);
 
   const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model: "claude-sonnet-4-6",
     max_tokens: 300,
     system: `You control a browser. Given interactable elements and a goal, return a JSON array of actions.
 Each action: {"action":"click"|"type"|"select"|"wait","id":<element_id>,"value":"<text>"}
@@ -112,7 +112,7 @@ async function verifyGoal(
   pageUrl: string,
 ): Promise<{ done: boolean; summary: string }> {
   const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model: "claude-sonnet-4-6",
     max_tokens: 200,
     messages: [{
       role: "user",
