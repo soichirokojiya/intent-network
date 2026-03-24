@@ -129,12 +129,22 @@ useEffect(() => {
         return;
       }
 
-      // Block new Google signups when registration is disabled
-      if (event === "SIGNED_IN" && session?.user) {
-        const isOAuth = session.user.app_metadata?.provider === "google";
-        if (isOAuth) {
-          const { data: existing } = await supabase.from("profiles").select("id").eq("id", session.user.id).single();
-          if (!existing) {
+      if (cancelled) return;
+
+      const currentUser = session?.user ?? null;
+
+      // Set user and loading immediately (don't block UI)
+      setUser(currentUser);
+      setLoading(false);
+
+      if (currentUser) {
+        // Block new Google signups when registration is disabled
+        // Use creation timestamp (instant, no DB query needed)
+        if (event === "SIGNED_IN") {
+          const isOAuth = currentUser.app_metadata?.provider === "google";
+          const createdAt = new Date(currentUser.created_at).getTime();
+          const isNewUser = (Date.now() - createdAt) < 30000; // Created within 30s
+          if (isOAuth && isNewUser) {
             try {
               const checkRes = await fetch("/api/signup-check");
               const checkData = await checkRes.json();
@@ -142,7 +152,6 @@ useEffect(() => {
                 await supabase.auth.signOut();
                 if (!cancelled) {
                   setUser(null);
-                  setLoading(false);
                 }
                 alert("現在、新規登録を停止しています。");
                 return;
@@ -150,16 +159,8 @@ useEffect(() => {
             } catch {}
           }
         }
-      }
 
-      if (cancelled) return;
-
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      setLoading(false);
-
-      // Load profile in background (don't block UI transition)
-      if (currentUser) {
+        // Load profile in background (don't block UI transition)
         loadProfile(currentUser.id, currentUser.email || "").catch((err) => {
           console.error("Profile load failed:", err);
         });
