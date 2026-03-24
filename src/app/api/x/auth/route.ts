@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { createOAuthState } from "@/lib/oauthState";
 
 export async function GET(req: NextRequest) {
   const deviceId = req.nextUrl.searchParams.get("deviceId");
@@ -20,10 +21,8 @@ export async function GET(req: NextRequest) {
     .update(codeVerifier)
     .digest("base64url");
 
-  // Encode deviceId + codeVerifier + agentId in state (base64url)
-  const stateData = Buffer.from(
-    JSON.stringify({ deviceId, codeVerifier, agentId: agentId || null }),
-  ).toString("base64url");
+  // Signed state with nonce (CSRF protection)
+  const stateData = createOAuthState({ deviceId, codeVerifier, agentId: agentId || null });
 
   const redirectUri = "https://musu.world/api/x/callback";
   const scope = "tweet.read tweet.write users.read offline.access";

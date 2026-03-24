@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createOAuthState } from "@/lib/oauthState";
 
 export async function GET(req: NextRequest) {
   const deviceId = req.nextUrl.searchParams.get("deviceId");
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
     response_type: "code",
     client_id: clientId,
     redirect_uri: "https://musu.world/api/freee/callback",
-    state: deviceId,
+    state: createOAuthState({ deviceId }),
   });
 
   return NextResponse.redirect(`https://accounts.secure.freee.co.jp/public_api/authorize?${params.toString()}`);

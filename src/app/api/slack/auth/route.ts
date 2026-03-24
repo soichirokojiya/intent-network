@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createOAuthState } from "@/lib/oauthState";
 
 export async function GET(req: NextRequest) {
   const deviceId = req.nextUrl.searchParams.get("deviceId");
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
     client_id: clientId,
     redirect_uri: redirectUri,
     scope,
-    state: deviceId,
+    state: createOAuthState({ deviceId }),
   });
 
   return NextResponse.redirect(`https://slack.com/oauth/v2/authorize?${params.toString()}`);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyOAuthState } from "@/lib/oauthState";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,7 +20,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/integrations?notion=error", req.url));
   }
 
-  const deviceId = state;
+  const stateData = verifyOAuthState(state || "");
+  if (!stateData) {
+    return NextResponse.redirect(new URL("/integrations?error=invalid_state", req.url));
+  }
+  const deviceId = stateData.deviceId as string;
 
   try {
     // Notion uses Basic auth: base64(client_id:client_secret)

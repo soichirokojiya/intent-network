@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyOAuthState } from "@/lib/oauthState";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,20 +20,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/integrations?x=error", req.url));
   }
 
-  // Decode state to get deviceId, codeVerifier, and optional agentId
-  let deviceId: string;
-  let codeVerifier: string;
-  let agentId: string | null = null;
-  try {
-    const stateData = JSON.parse(
-      Buffer.from(state, "base64url").toString("utf-8"),
-    );
-    deviceId = stateData.deviceId;
-    codeVerifier = stateData.codeVerifier;
-    agentId = stateData.agentId || null;
-  } catch {
+  // Verify signed state (CSRF protection)
+  const stateData = verifyOAuthState(state);
+  if (!stateData) {
     return NextResponse.redirect(new URL("/integrations?x=error", req.url));
   }
+
+  const deviceId = stateData.deviceId as string;
+  const codeVerifier = stateData.codeVerifier as string;
+  const agentId = (stateData.agentId as string) || null;
 
   try {
     const clientId = process.env.X_CLIENT_ID!;

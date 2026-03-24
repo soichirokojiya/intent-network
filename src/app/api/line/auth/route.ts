@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createOAuthState } from "@/lib/oauthState";
 
 export async function GET(req: NextRequest) {
   const deviceId = req.nextUrl.searchParams.get("deviceId");
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   const redirectUri = "https://musu.world/api/line/callback";
   const scope = "profile openid";
-  const state = deviceId;
+  const state = createOAuthState({ deviceId });
 
   const params = new URLSearchParams({
     client_id: clientId,
