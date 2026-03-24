@@ -500,6 +500,8 @@ const STATIC_RULES = `重要ルール:
 - 必ず日本語で回答すること。英語は固有名詞のみ許可
 - ユーザーが「忘れて」「もう違う」「その方針は変えた」等と言った場合、forget_factツールを使って該当ファクトを無効化すること
 - browser_sessionでサイトを操作する時は自律的に行動すること。ページ内容やリンク一覧が返ってくるので、それを読んでナビゲーションリンクをクリックしたり、目的のページに自力で辿り着くこと。URLやセレクタをユーザーに聞くのは最終手段。まず自分でページを探索する
+- browser_sessionで書き込み・フォーム送信した後は、必ずもう一度scrapeして結果を確認すること。確認せずに「完了した」と報告するのは禁止。実際に反映されたかをページ内容で検証する
+- browser_sessionのtool結果に「error」や「failed」が含まれていたら正直にユーザーに伝えること。成功していないのに成功したと言わない
 - ログイン情報（ID/パスワード）はチャットに絶対に表示しない。get_credentialで取得した情報はbrowser_sessionのtype操作にのみ使い、toOwnerの返答には含めないこと`;
 
 // Extended app info (only included for non-simple queries to save tokens)
