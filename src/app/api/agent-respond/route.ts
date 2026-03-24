@@ -24,7 +24,7 @@ function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: b
 }
 
 // Custom tool definitions
-const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact"] as const;
+const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact", "browser_scrape", "browser_screenshot"] as const;
 
 function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): Anthropic.Messages.Tool[] {
   const tools: Anthropic.Messages.Tool[] = [];
@@ -114,6 +114,31 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
     });
   }
 
+  // Browser tools — always available (uses Steel.dev cloud browser)
+  tools.push({
+    name: "browser_scrape",
+    description: "指定URLのWebページの内容をテキストで取得する。競合調査、価格調査、ニュース記事の取得など。web_searchで見つけたURLの詳細を取得する時にも使える。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        url: { type: "string", description: "スクレイピング対象のURL" },
+      },
+      required: ["url"],
+    },
+  });
+  tools.push({
+    name: "browser_screenshot",
+    description: "指定URLのWebページのスクリーンショットを撮影する。ページの見た目やレイアウトを確認したい時に使う。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        url: { type: "string", description: "スクリーンショット対象のURL" },
+        fullPage: { type: "boolean", description: "ページ全体をキャプチャするか（デフォルト: false）" },
+      },
+      required: ["url"],
+    },
+  });
+
   // forget_fact is always available (no integration gate)
   tools.push({
     name: "forget_fact",
@@ -197,6 +222,24 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
               extractPrompt: input.extractPrompt,
             },
           }),
+        });
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "browser_scrape": {
+        const res = await fetch(`${baseUrl}/api/browser/run`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({ action: "scrape", url: input.url }),
+        });
+        const data = await res.json();
+        return JSON.stringify(data);
+      }
+      case "browser_screenshot": {
+        const res = await fetch(`${baseUrl}/api/browser/run`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({ action: "screenshot", url: input.url, fullPage: input.fullPage }),
         });
         const data = await res.json();
         return JSON.stringify(data);
