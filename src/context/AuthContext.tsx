@@ -50,17 +50,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return;
     const currentDeviceId = localStorage.getItem("musu_device_id");
 
-    // Set device_id to user ID IMMEDIATELY (sync) before any data loading
-    localStorage.setItem("musu_device_id", userId);
-
-    // Migrate old data in background (fire and forget)
+    // Clear all cached data when switching accounts
     if (currentDeviceId && currentDeviceId !== userId) {
+      const keysToKeep = ["musu_auth_migrated"];
+      const allKeys = Object.keys(localStorage).filter(
+        (k) => !k.startsWith("sb-") && !keysToKeep.includes(k),
+      );
+      allKeys.forEach((k) => localStorage.removeItem(k));
+
+      // Migrate old data in background (fire and forget)
       authFetch("/api/migrate-device", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ oldDeviceId: currentDeviceId, newDeviceId: userId }),
       }).catch(() => {});
     }
+
+    // Set device_id to user ID
+    localStorage.setItem("musu_device_id", userId);
   }, []);
 
   // Load profile from profiles table
