@@ -416,6 +416,8 @@ function getInputCost(usage: Anthropic.Messages.Usage | undefined, pricePerToken
 // Context about musu.world (the product these agents serve)
 // Static rules (cached across requests)
 const STATIC_RULES = `重要ルール:
+- パスワード・ID・認証情報・APIキー・シークレットをユーザーに聞くことは絶対禁止。外部サービス（X、Gmail、Slack等）はすべてOAuth連携済みであり、ログイン情報は不要。「パスワードを教えて」「IDを教えて」「ログイン情報を教えて」のような発言は絶対にしてはいけない
+- X（Twitter）への投稿はOAuthトークンで行う。ログインできない場合は「アプリ連携（設定→アカウント設定→アプリ連携）からXを再連携してください」と案内する。パスワードを聞いたり、代わりにログインすると言ったりしてはいけない
 - これはチャットである。レポートではない。回答は最大300文字。簡潔に要点だけ伝える
 - 「了解」「承知」「わかった」「まとめたよ」で始めない。いきなり本題に入る
 - 「〜するね」「〜しておく」「まとめておく」「調べておく」「報告する」など予告・未来形は禁止。やった結果だけ書く
@@ -487,7 +489,7 @@ export async function POST(req: NextRequest) {
     const deviceId = getVerifiedUserId(req) || body.deviceId;
     if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData, gmailData, sheetsConnected, gmailConnected, stream: wantStream } = body;
+    const { intentText, agentName, agentPersonality, agentExpertise, agentTone, agentBeliefs, agentMood, requestTweet, conversationHistory, complexity, ownerBusinessInfo, memorySummary, projectFacts, calendarEvents, trelloData, gmailData, sheetsConnected, gmailConnected, integrationStatus, stream: wantStream } = body;
 
     if (!intentText || !agentName) {
       return NextResponse.json({ error: "required" }, { status: 400 });
@@ -609,8 +611,34 @@ export async function POST(req: NextRequest) {
     const appInfo = isSimpleQ ? "" : MUSU_APP_INFO;
     const staticLayer = `${STATIC_RULES}${appInfo}${sheetsWriteRule}`;
 
+    // Build integration status context so agent knows what's connected
+    const iStatus = integrationStatus || {};
+    const connectedServices: string[] = [];
+    const disconnectedServices: string[] = [];
+    const serviceMap: Record<string, string> = {
+      xConnected: "X（Twitter）投稿",
+      gmailConnected: "Gmail",
+      sheetsConnected: "Googleスプレッドシート",
+      googleCalendarConnected: "Googleカレンダー",
+      trelloConnected: "Trello",
+      slackConnected: "Slack",
+      notionConnected: "Notion",
+      metaConnected: "Meta（Instagram/Facebook）",
+      youtubeConnected: "YouTube",
+      chatworkConnected: "Chatwork",
+      freeeConnected: "freee",
+      squareConnected: "Square",
+    };
+    for (const [key, label] of Object.entries(serviceMap)) {
+      if (iStatus[key]) connectedServices.push(label);
+      else disconnectedServices.push(label);
+    }
+    const integrationContext = connectedServices.length > 0
+      ? `\n【現在のアプリ連携状況】\n連携済み: ${connectedServices.join("、")}\n未連携: ${disconnectedServices.join("、")}\n※連携済みサービスはOAuth認証済み。パスワードやIDを聞く必要はない。未連携サービスは「設定→アカウント設定→アプリ連携から連携してください」と案内する`
+      : "";
+
     // Layer 2: Agent persona + user memory (same per agent+user combo)
-    const personaLayer = `\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${compressedMemory ? `\n【オーナーの記憶】${compressedMemory}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
+    const personaLayer = `\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${integrationContext}${compressedMemory ? `\n【オーナーの記憶】${compressedMemory}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
 
     const systemPromptParts: Anthropic.Messages.TextBlockParam[] = [
       {
@@ -678,7 +706,16 @@ export async function POST(req: NextRequest) {
     const imageUrls = imageMatches.map((m) => m[2]);
     const msgText = intentText.replace(/\[ファイル: .+?\]\(.+?\)/g, "").trim() || intentText;
 
-    const userPromptText = wantsPost
+    // 指示語検出: ユーザーが既存の内容をそのまま投稿したい場合
+    const referencePattern = /^(@\S+\s+)?(これで|それで|この内容で|上の内容で|さっきの|そのまま).*(投稿|ツイート|ポスト|tweet|post)/i;
+    const isReferencePost = wantsPost && referencePattern.test(msgText);
+    const lastUserContent = isReferencePost
+      ? [...history].reverse().find((m) => m.role === "user" && m.text !== msgText && m.text.length > 5)?.text || ""
+      : "";
+
+    const userPromptText = (wantsPost && isReferencePost && lastUserContent)
+      ? `オーナーが以下の内容をそのままX（Twitter）に投稿したいと言っています。\n\n投稿内容:\n「${lastUserContent}」\n\nこの内容をそのまま使ってください。勝手に変更・要約・リライトしないでください。\nJSON（コードブロック不要）:\n{"toOwner": "これでいく？\\n\\n「${lastUserContent.replace(/"/g, '\\"').replace(/\n/g, '\\n')}」", "toTimeline": "${lastUserContent.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}`
+      : wantsPost
       ? `オーナーのメッセージ:\n「${msgText}」\n\nオーナーがX（Twitter）への投稿を依頼しています。投稿文を作成してください。\nJSON（コードブロック不要）:\n{"toOwner": "これでいく？\\n\\n「投稿文をここに書く」", "toTimeline": "投稿文（140文字以内、ハッシュタグ含めてOK）"}\n\n注意:\n- /post の後の内容を元に投稿文を作成する\n- 内容が曖昧でも推測して作成する。聞き返さない\n- オーナーの事業情報や文脈に合った投稿にする\n- toOwnerには必ず投稿文を「」で囲んで含める`
       : requestTweet
       ? `オーナーがツイートの作成を依頼しました:\n「${msgText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "これでいく？\\n\\n「ツイート文をここに書く」", "toTimeline": "ツイート文（140文字以内）"}\n\n注意: toOwnerには必ず投稿文を「」で囲んで含める`
@@ -721,6 +758,32 @@ export async function POST(req: NextRequest) {
       ...customTools,
     ];
 
+    // Build messages array: include conversation history for tool-use requests (wantsPost, wantsEmail, requestTweet)
+    // so the agent can resolve references like "これで投稿して" (post this)
+    const needsHistoryInMessages = wantsPost || wantsEmail || requestTweet;
+    const apiMessages: Anthropic.Messages.MessageParam[] = [];
+    if (needsHistoryInMessages && history.length > 0) {
+      // Include last few turns as actual messages for better context resolution
+      const recentHistory = history.slice(-6);
+      for (const msg of recentHistory) {
+        const role = msg.role === "user" ? "user" : "assistant";
+        // Ensure alternating roles by skipping consecutive same-role messages
+        if (apiMessages.length > 0 && apiMessages[apiMessages.length - 1].role === role) {
+          // Merge with previous same-role message
+          const prev = apiMessages[apiMessages.length - 1];
+          prev.content = (prev.content as string) + "\n" + msg.text;
+        } else {
+          apiMessages.push({ role: role as "user" | "assistant", content: msg.text });
+        }
+      }
+      // Ensure first message is from user (Claude API requirement)
+      if (apiMessages.length > 0 && apiMessages[0].role === "assistant") {
+        apiMessages.shift();
+      }
+    }
+    // Add current user message
+    apiMessages.push({ role: "user", content: userPrompt });
+
     // === STREAMING MODE ===
     if (wantStream) {
       const encoder = new TextEncoder();
@@ -742,7 +805,7 @@ export async function POST(req: NextRequest) {
                 max_tokens: maxTokens,
                 system: systemPromptParts,
                 ...(tools.length > 0 ? { tools } : {}),
-                messages: [{ role: "user", content: userPrompt }],
+                messages: apiMessages,
               });
 
               // Collect tool_use blocks for continuation
@@ -774,7 +837,7 @@ export async function POST(req: NextRequest) {
               totalOutputTokens += finalMessage.usage?.output_tokens || 0;
 
               // Tool use continuation loop (supports multiple rounds for web_search + custom tools)
-              let messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userPrompt }];
+              let messages: Anthropic.Messages.MessageParam[] = [...apiMessages];
               let currentAssistantContent = assistantContent;
               let maxToolRounds = 8;
 
@@ -853,7 +916,7 @@ export async function POST(req: NextRequest) {
                   max_tokens: maxTokens,
                   system: systemPromptParts,
                   ...(tools.length > 0 ? { tools } : {}),
-                  messages: [{ role: "user", content: userPrompt }],
+                  messages: apiMessages,
                 });
                 for await (const event of fallbackStream) {
                   if (event.type === "content_block_delta") {
@@ -939,7 +1002,7 @@ export async function POST(req: NextRequest) {
         max_tokens: maxTokens,
         system: systemPromptParts,
         ...(tools.length > 0 ? { tools } : {}),
-        messages: [{ role: "user", content: userPrompt }],
+        messages: apiMessages,
       });
     } catch (primaryError) {
       if (model !== "claude-sonnet-4-6") {
@@ -950,7 +1013,7 @@ export async function POST(req: NextRequest) {
           max_tokens: maxTokens,
           system: systemPromptParts,
           ...(tools.length > 0 ? { tools } : {}),
-          messages: [{ role: "user", content: userPrompt }],
+          messages: apiMessages,
         });
       } else {
         throw primaryError;
@@ -967,7 +1030,7 @@ export async function POST(req: NextRequest) {
 
     // Tool use continuation loop (supports multiple rounds)
     let currentMessage = message;
-    let messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userPrompt }];
+    let messages: Anthropic.Messages.MessageParam[] = [...apiMessages];
     let maxToolRounds = 8;
 
     while (currentMessage.stop_reason === "tool_use" && maxToolRounds > 0) {

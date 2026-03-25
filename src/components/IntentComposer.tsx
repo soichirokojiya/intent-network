@@ -1390,7 +1390,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
           );
           if (suggestions.length === 0) return null;
           return (
-            <div className="absolute bottom-full left-4 mb-1 bg-[var(--background)] border border-[var(--card-border)] rounded-xl shadow-lg overflow-hidden z-50">
+            <div className="absolute bottom-full left-4 mb-1 bg-[var(--background)] border border-[var(--card-border)] rounded-xl shadow-lg overflow-y-auto max-h-[60vh] z-50">
               {suggestions.map((agent) => (
                 <button
                   key={agent.id}

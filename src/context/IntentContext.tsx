@@ -694,6 +694,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
     let gmailData: { messages: { id: string; subject: string; from: string; date: string; snippet: string }[] } | undefined;
     let sheetsConnected = false;
     let fetchedMemorySummary = "";
+    let integrationStatus: Record<string, unknown> = {};
     try {
       const deviceId = typeof window !== "undefined" ? localStorage.getItem("musu_device_id") : null;
       if (deviceId) {
@@ -707,6 +708,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
           const statusData = await statusRes.json();
           sheetsConnected = !!statusData.sheetsConnected;
           fetchedMemorySummary = statusData.memorySummary || "";
+          integrationStatus = statusData;
         }
         if (calRes?.ok) {
           const calData = await calRes.json();
@@ -748,6 +750,7 @@ export function IntentProvider({ children }: { children: React.ReactNode }) {
       gmailData,
       gmailConnected: !!gmailData,
       sheetsConnected,
+      integrationStatus,
       stream: true,
     });
 
