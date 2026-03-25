@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { supabase, authFetch } from "@/lib/supabase";
+import { useRouter, usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -46,6 +47,9 @@ export function AuthProvider({ children, serverAuthenticated = false }: { childr
   // If server says user is authenticated, keep loading=true until client confirms
   // If server says not authenticated, show landing immediately (no flash)
   const [loading, setLoading] = useState(serverAuthenticated);
+  const router = useRouter();
+  const pathname = usePathname();
+  const wasSignedOut = useRef(!serverAuthenticated);
 
   // Bind device_id to user ID (ensures data persists across browsers/sessions)
   const bindDeviceId = useCallback((userId: string) => {
@@ -147,10 +151,18 @@ useEffect(() => {
           }
         }
 
+        // Redirect to home if user just signed in (was previously signed out)
+        if (event === "SIGNED_IN" && wasSignedOut.current) {
+          router.replace("/");
+        }
+        wasSignedOut.current = false;
+
         // Load profile in background
         loadProfile(currentUser.id, currentUser.email || "").catch((err) => {
           console.error("Profile load failed:", err);
         });
+      } else {
+        wasSignedOut.current = true;
       }
     });
 
