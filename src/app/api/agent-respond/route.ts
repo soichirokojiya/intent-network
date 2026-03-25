@@ -674,7 +674,7 @@ export async function POST(req: NextRequest) {
     const hasCustomTools = customTools.length > 0;
     const model = selectModel(complexity || "moderate", needsSearch, hasCustomTools);
     // Browser browsing needs more tokens for reasoning about page content
-    const browserKeywords = ["ログイン", "ブラウザ", "操作", "開いて", "アクセス", "サイト", "ページ", "スクレイピング", "調べて"];
+    const browserKeywords = ["ログイン", "ブラウザ", "操作", "開いて", "アクセス", "サイト", "ページ", "スクレイピング", "調べて", "飛行機", "航空", "フライト", "予約", "ホテル", "旅行", "チケット"];
     const needsBrowser = browserKeywords.some((kw) => allText.includes(kw));
     const maxTokens = requestTweet ? 500 : (needsBrowser ? 2500 : hasCustomTools ? 1500 : 800);
 
