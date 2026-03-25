@@ -48,12 +48,7 @@ export async function middleware(req: NextRequest) {
 
   // For non-API routes: protect /admin server-side, then return
   if (!req.nextUrl.pathname.startsWith("/api/")) {
-    if (req.nextUrl.pathname.startsWith("/admin")) {
-      const adminUserIds = (process.env.ADMIN_USER_ID || "").split(",").map((s) => s.trim()).filter(Boolean);
-      if (!user || !adminUserIds.includes(user.id)) {
-        return NextResponse.redirect(new URL("/", req.url));
-      }
-    }
+    // /admin はページ側で独自認証するため、ミドルウェアではブロックしない
     return response;
   }
 
