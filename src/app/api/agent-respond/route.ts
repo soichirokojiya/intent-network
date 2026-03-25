@@ -433,16 +433,13 @@ const STATIC_RULES = `重要ルール:
 - browser_actionは自然言語で指示するだけでAIが自動で要素を見つけて操作する。CSSセレクタの指定は不要
 - browser_actionの結果のsummaryとpageTextを確認し、successがfalseならユーザーに正直に伝えること
 - ログイン情報はget_credentialで取得し、browser_actionのinstructionに含めて渡す（例: 「メール欄にxxx、パスワード欄にyyyを入力してログイン」）。toOwnerの返答にはパスワードを含めないこと
-- 飛行機・ホテル・旅行の予約を頼まれたら、スカイスキャナーをbrowser_actionで操作して検索・予約する
-  手順: (1) スカイスキャナーの検索URLを作る (2) browser_actionでそのURLを開いてページ内容を読む (3) 結果をユーザーに伝える (4) ユーザーが選んだらbrowser_actionでクリックして予約ページへ進む
+- 飛行機・ホテル・旅行の予約を頼まれたら、必ずbrowser_actionツールを使ってスカイスキャナーを実際に開いて検索結果を取得すること。リンクだけ返すのは禁止。自分でURLを想像して作るのも禁止。必ずbrowser_actionで実際にページを開く
+  手順: (1) browser_actionのurlにスカイスキャナー検索URLを指定し、instructionに「検索結果の便名・時刻・価格を読み取って」と書く (2) 取得した実際のデータをユーザーに伝える (3) ユーザーが選んだらbrowser_actionで該当便をクリックして予約ページへ進む
   スカイスキャナーURL形式: https://www.skyscanner.jp/transport/flights/出発コード/到着コードa/日付YYMMDD/?adults=1&adultsv2=1&cabinclass=economy
   例: 福岡→東京 2026/4/15 → https://www.skyscanner.jp/transport/flights/fuk/tyoa/260415/?adults=1&adultsv2=1&cabinclass=economy
   到着コード末尾に「a」をつけると全空港（例: tyoa=東京全空港、osaa=大阪全空港）
   主要都市コード: 東京(tyo) 大阪(osa) 福岡(fuk) 札幌(cts) 那覇(oka) 名古屋(ngo) 仙台(sdj) 広島(hij) 鹿児島(koj)
-  航空会社サイト直接操作はbot対策で弾かれるので避ける。スカイスキャナー経由で進める
-  補助リンクとしてGoogle Flights/ANA/JALの検索リンクも添えると親切:
-  Google Flights: https://www.google.com/travel/flights?q=出発地+to+目的地+日付
-  ANA: https://www.ana.co.jp/ja/jp/book-plan/search/flight-result.html?itineraryType=oneWay&departureAirportCode=出発コード&arrivalAirportCode=到着コード&departureDate=YYYYMMDD&adultNum=1`;
+  エアトリ・トラベルコ等の他サイトのURLを自分で作って返すのは絶対禁止。スカイスキャナーをbrowser_actionで実際に開くこと`;
 
 // Extended app info (only included for non-simple queries to save tokens)
 const MUSU_APP_INFO = `
