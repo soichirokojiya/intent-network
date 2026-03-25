@@ -148,10 +148,8 @@ export function RightPanel() {
               <Link href={`/agent?id=${agent.id}`} className={`flex items-center gap-3 flex-1 min-w-0 ${!activeAgentIds.has(agent.id) ? "opacity-40" : ""}`}>
                 <AgentAvatarDisplay avatar={agent.config.avatar} size={36} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold truncate">{agent.config.name}</span>
-                    {(agent.config.role || agent.config.expertise) && <span className="text-[11px] text-[var(--muted)]">{translateRole(agent.config.role || agent.config.expertise, locale)}</span>}
-                  </div>
+                  <div className="text-sm font-bold truncate">{agent.config.name}</div>
+                  {(agent.config.role || agent.config.expertise) && <div className="text-[11px] text-[var(--muted)] truncate">{translateRole(agent.config.role || agent.config.expertise, locale)}</div>}
                 </div>
               </Link>
               {!agent.config.isOrchestrator && <button

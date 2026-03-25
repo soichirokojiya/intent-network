@@ -646,7 +646,7 @@ export async function POST(req: NextRequest) {
       ? `オーナーがツイートの作成を依頼しました:\n「${msgText}」\n\n2つの返答をJSON形式で出力してください（他の文字不要）:\n{"toOwner": "これでいく？\\n\\n「ツイート文をここに書く」", "toTimeline": "ツイート文（140文字以内）"}\n\n注意: toOwnerには必ず投稿文を「」で囲んで含める`
       : wantsEmail
       ? `オーナーのメッセージ:\n「${msgText}」\n\nオーナーがメール送信を依頼しています。必ずemailAction付きのJSONを出力してください。\n件名や本文が指定されていなくても、文脈やオーナーの事業情報から推測して適切な件名・本文を自分で考えて作成すること。「教えてください」と聞き返すのは禁止。\n\nJSON（コードブロック不要）:\n{"toOwner": "メールを作成しました（1文）", "emailAction": {"to": "宛先メールアドレス", "subject": "件名", "body": "本文（ビジネスメールとして丁寧に）"}}\n\n注意:\n- 宛先が不明な場合のみtoOwnerで宛先を聞く（emailActionは含めない）\n- それ以外は必ずemailActionを含めること`
-      : `オーナーのメッセージ:\n「${msgText}」${imageUrls.length > 0 ? "\n\n添付された画像の内容も確認して、返事に反映してください。" : ""}\n\nこれはチャットです。友達とLINEするくらいの感覚で、3-5文で簡潔に答えて。長文レポート禁止。前置き不要、いきなり本題。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "返事"}`;
+      : `オーナーのメッセージ:\n「${msgText}」${imageUrls.length > 0 ? "\n\n添付された画像の内容も確認して、返事に反映してください。" : ""}${flightContext}\n\nこれはチャットです。友達とLINEするくらいの感覚で、3-5文で簡潔に答えて。長文レポート禁止。前置き不要、いきなり本題。改行は\\nを使う。\nJSON（コードブロック不要）:\n{"toOwner": "返事"}`;
 
     // Build user message: text + images (multimodal, base64)
     const imageBlocks: Anthropic.Messages.ContentBlockParam[] = [];
@@ -677,6 +677,42 @@ export async function POST(req: NextRequest) {
     const browserKeywords = ["ログイン", "ブラウザ", "操作", "開いて", "アクセス", "サイト", "ページ", "スクレイピング", "調べて", "飛行機", "航空", "フライト", "予約", "ホテル", "旅行", "チケット"];
     const needsBrowser = browserKeywords.some((kw) => allText.includes(kw));
     const maxTokens = requestTweet ? 500 : (needsBrowser ? 2500 : hasCustomTools ? 1500 : 800);
+
+    // Pre-fetch Skyscanner results for flight queries
+    let flightContext = "";
+    const flightKeywords = ["飛行機", "航空", "フライト", "航空券"];
+    const isFlightQuery = flightKeywords.some((kw) => intentText.includes(kw));
+    if (isFlightQuery) {
+      try {
+        const flightMatch = intentText.match(/(\d{1,2})[\/月](\d{1,2})/);
+        const cityMap: Record<string, string> = { "東京": "tyoa", "大阪": "osaa", "福岡": "fuk", "札幌": "ctsa", "那覇": "okaa", "名古屋": "ngoa", "仙台": "sdja", "広島": "hija", "鹿児島": "koja", "成田": "nrta", "京都": "osaa", "沖縄": "okaa", "北海道": "ctsa" };
+        let from = "", to = "";
+        for (const [city, code] of Object.entries(cityMap)) {
+          if (intentText.includes(city)) {
+            if (!from) from = code;
+            else to = code;
+          }
+        }
+        // Try "AからBへ" pattern
+        const routeMatch = intentText.match(/([\u4e00-\u9fff]+?)(?:から|発)([\u4e00-\u9fff]+?)(?:へ|行き|着|の|まで)/);
+        if (routeMatch) {
+          from = cityMap[routeMatch[1]] || from;
+          to = cityMap[routeMatch[2]] || to;
+        }
+        if (from && to && flightMatch) {
+          const now = new Date();
+          const month = parseInt(flightMatch[1]);
+          const day = parseInt(flightMatch[2]);
+          const year = month < now.getMonth() + 1 ? now.getFullYear() + 1 : now.getFullYear();
+          const dateStr = `${String(year).slice(2)}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`;
+          const skyUrl = `https://www.skyscanner.jp/transport/flights/${from}/${to}/${dateStr}/?adults=1&adultsv2=1&cabinclass=economy`;
+          const content = await fetchUrlContent(skyUrl);
+          if (content && content.length > 100) {
+            flightContext = `\n\n【スカイスキャナー検索結果（${skyUrl}）】\n${content}\n\n上記はスカイスキャナーの実際の検索結果です。この情報をもとに回答してください。スカイスキャナーのURL（${skyUrl}）を予約リンクとして提示してください。トラベルコやエアトリのURLは作らないでください。`;
+          }
+        }
+      } catch {}
+    }
 
     const tools: (Anthropic.Messages.Tool | { type: "web_search_20250305"; name: "web_search"; max_uses: number })[] = [
       ...(needsSearch ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }] : []),
