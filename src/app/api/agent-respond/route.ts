@@ -634,6 +634,44 @@ export async function POST(req: NextRequest) {
     // Detect X/Twitter post request: /post command or keywords
     const wantsPost = intentText.startsWith("/post") || ["ツイート", "投稿して", "Xに投稿", "tweetして", "ポストして"].some((kw) => intentText.includes(kw));
 
+    // Pre-fetch Skyscanner results for flight queries
+    let flightContext = "";
+    const flightKeywords = ["飛行機", "航空", "フライト", "航空券"];
+    const isFlightQuery = flightKeywords.some((kw) => intentText.includes(kw));
+    if (isFlightQuery) {
+      try {
+        const flightMatch = intentText.match(/(\d{1,2})[\/月](\d{1,2})/);
+        const cityMap: Record<string, string> = { "東京": "tyoa", "大阪": "osaa", "福岡": "fuk", "札幌": "ctsa", "那覇": "okaa", "名古屋": "ngoa", "仙台": "sdja", "広島": "hija", "鹿児島": "koja", "成田": "nrta", "京都": "osaa", "沖縄": "okaa", "北海道": "ctsa" };
+        let from = "", to = "";
+        // Try "AからBへ" pattern first
+        const routeMatch = intentText.match(/([\u4e00-\u9fff]+?)(?:から|発)([\u4e00-\u9fff]+?)(?:へ|行き|着|の|まで)/);
+        if (routeMatch) {
+          from = cityMap[routeMatch[1]] || "";
+          to = cityMap[routeMatch[2]] || "";
+        }
+        if (!from || !to) {
+          for (const [city, code] of Object.entries(cityMap)) {
+            if (intentText.includes(city)) {
+              if (!from) from = code;
+              else if (!to) to = code;
+            }
+          }
+        }
+        if (from && to && flightMatch) {
+          const now = new Date();
+          const month = parseInt(flightMatch[1]);
+          const day = parseInt(flightMatch[2]);
+          const year = month < now.getMonth() + 1 ? now.getFullYear() + 1 : now.getFullYear();
+          const dateStr = `${String(year).slice(2)}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`;
+          const skyUrl = `https://www.skyscanner.jp/transport/flights/${from}/${to}/${dateStr}/?adults=1&adultsv2=1&cabinclass=economy`;
+          const content = await fetchUrlContent(skyUrl);
+          if (content && content.length > 100) {
+            flightContext = `\n\n【スカイスキャナー検索結果（${skyUrl}）】\n${content}\n\n上記はスカイスキャナーの実際の検索結果です。この情報をもとに回答してください。スカイスキャナーのURL（${skyUrl}）を予約リンクとして提示してください。トラベルコやエアトリのURLは作らないでください。`;
+          }
+        }
+      } catch {}
+    }
+
     // Extract image URLs from the message and build multimodal content
     const IMAGE_PATTERN = /\[ファイル: .+?\.(png|jpg|jpeg|gif|webp)\]\((.+?)\)/gi;
     const imageMatches = [...intentText.matchAll(IMAGE_PATTERN)];
@@ -677,42 +715,6 @@ export async function POST(req: NextRequest) {
     const browserKeywords = ["ログイン", "ブラウザ", "操作", "開いて", "アクセス", "サイト", "ページ", "スクレイピング", "調べて", "飛行機", "航空", "フライト", "予約", "ホテル", "旅行", "チケット"];
     const needsBrowser = browserKeywords.some((kw) => allText.includes(kw));
     const maxTokens = requestTweet ? 500 : (needsBrowser ? 2500 : hasCustomTools ? 1500 : 800);
-
-    // Pre-fetch Skyscanner results for flight queries
-    let flightContext = "";
-    const flightKeywords = ["飛行機", "航空", "フライト", "航空券"];
-    const isFlightQuery = flightKeywords.some((kw) => intentText.includes(kw));
-    if (isFlightQuery) {
-      try {
-        const flightMatch = intentText.match(/(\d{1,2})[\/月](\d{1,2})/);
-        const cityMap: Record<string, string> = { "東京": "tyoa", "大阪": "osaa", "福岡": "fuk", "札幌": "ctsa", "那覇": "okaa", "名古屋": "ngoa", "仙台": "sdja", "広島": "hija", "鹿児島": "koja", "成田": "nrta", "京都": "osaa", "沖縄": "okaa", "北海道": "ctsa" };
-        let from = "", to = "";
-        for (const [city, code] of Object.entries(cityMap)) {
-          if (intentText.includes(city)) {
-            if (!from) from = code;
-            else to = code;
-          }
-        }
-        // Try "AからBへ" pattern
-        const routeMatch = intentText.match(/([\u4e00-\u9fff]+?)(?:から|発)([\u4e00-\u9fff]+?)(?:へ|行き|着|の|まで)/);
-        if (routeMatch) {
-          from = cityMap[routeMatch[1]] || from;
-          to = cityMap[routeMatch[2]] || to;
-        }
-        if (from && to && flightMatch) {
-          const now = new Date();
-          const month = parseInt(flightMatch[1]);
-          const day = parseInt(flightMatch[2]);
-          const year = month < now.getMonth() + 1 ? now.getFullYear() + 1 : now.getFullYear();
-          const dateStr = `${String(year).slice(2)}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`;
-          const skyUrl = `https://www.skyscanner.jp/transport/flights/${from}/${to}/${dateStr}/?adults=1&adultsv2=1&cabinclass=economy`;
-          const content = await fetchUrlContent(skyUrl);
-          if (content && content.length > 100) {
-            flightContext = `\n\n【スカイスキャナー検索結果（${skyUrl}）】\n${content}\n\n上記はスカイスキャナーの実際の検索結果です。この情報をもとに回答してください。スカイスキャナーのURL（${skyUrl}）を予約リンクとして提示してください。トラベルコやエアトリのURLは作らないでください。`;
-          }
-        }
-      } catch {}
-    }
 
     const tools: (Anthropic.Messages.Tool | { type: "web_search_20250305"; name: "web_search"; max_uses: number })[] = [
       ...(needsSearch ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }] : []),
