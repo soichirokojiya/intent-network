@@ -522,30 +522,39 @@ export async function POST(req: NextRequest) {
 
     const moodContext = getMoodModifier(agentMood || "normal");
 
-    // Check this agent's own X connection status
+    // Check if any agent in team has X token (try both deviceId sources)
     let agentHasXToken = false;
-    try {
-      const { data: agentRow } = await supabase
-        .from("owner_agents")
-        .select("x_access_token")
-        .eq("device_id", deviceId)
-        .eq("name", agentName)
-        .not("x_access_token", "is", null)
-        .maybeSingle();
-      agentHasXToken = !!(agentRow?.x_access_token);
-    } catch { /* ignore */ }
-    // Also check if ANY agent in the team has X token (user-level fallback)
-    if (!agentHasXToken) {
+    const possibleIds = [deviceId, body.deviceId].filter((id): id is string => !!id && id !== deviceId || id === deviceId);
+    const uniqueIds = [...new Set(possibleIds.filter(Boolean))];
+    for (const id of uniqueIds) {
+      if (agentHasXToken) break;
       try {
         const { data: anyAgent } = await supabase
           .from("owner_agents")
-          .select("x_access_token, name")
-          .eq("device_id", deviceId)
+          .select("x_access_token")
+          .eq("device_id", id)
           .not("x_access_token", "is", null)
           .limit(1)
           .maybeSingle();
         if (anyAgent?.x_access_token) {
           agentHasXToken = true;
+        }
+      } catch { /* ignore */ }
+    }
+    // Also check profiles table x_access_token directly
+    if (!agentHasXToken) {
+      try {
+        for (const id of uniqueIds) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("x_access_token")
+            .eq("id", id)
+            .not("x_access_token", "is", null)
+            .maybeSingle();
+          if (prof?.x_access_token) {
+            agentHasXToken = true;
+            break;
+          }
         }
       } catch { /* ignore */ }
     }
@@ -650,11 +659,16 @@ export async function POST(req: NextRequest) {
     // Fetch directly from DB (don't rely on client-passed integrationStatus)
     let iStatus: Record<string, boolean> = {};
     try {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("google_calendar_connected, trello_connected, google_drive_connected, notion_connected, x_connected, gmail_connected, slack_connected, line_connected, google_sheets_connected, chatwork_connected, freee_connected, square_connected, meta_connected, youtube_connected")
-        .eq("id", deviceId)
-        .single();
+      // Try both possible IDs (middleware verified ID and client deviceId)
+      let profileData = null;
+      for (const id of uniqueIds) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("google_calendar_connected, trello_connected, google_drive_connected, notion_connected, x_connected, gmail_connected, slack_connected, line_connected, google_sheets_connected, chatwork_connected, freee_connected, square_connected, meta_connected, youtube_connected")
+          .eq("id", id)
+          .maybeSingle();
+        if (data) { profileData = data; break; }
+      }
       if (profileData) {
         iStatus = {
           xConnected: !!profileData.x_connected,
