@@ -79,17 +79,70 @@ async function refreshAgentAccessToken(agentId: string, refreshToken: string) {
   return tokens.access_token as string;
 }
 
-async function postTweet(accessToken: string, text: string) {
+async function postTweet(accessToken: string, text: string, mediaIds?: string[]) {
+  const tweetBody: Record<string, unknown> = { text };
+  if (mediaIds && mediaIds.length > 0) {
+    tweetBody.media = { media_ids: mediaIds };
+  }
   const res = await fetch("https://api.x.com/2/tweets", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify(tweetBody),
   });
 
   return { status: res.status, data: await res.json() };
+}
+
+async function uploadMediaToX(accessToken: string, imageUrl: string): Promise<string | null> {
+  try {
+    // Download image from URL
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) {
+      console.error("[x/media] Failed to fetch image:", imageUrl, imgRes.status);
+      return null;
+    }
+    const buffer = Buffer.from(await imgRes.arrayBuffer());
+    const contentType = imgRes.headers.get("content-type") || "image/png";
+
+    // Upload to X via v1.1 media upload (supports OAuth 2.0 Bearer)
+    const formData = new FormData();
+    formData.append("media_data", buffer.toString("base64"));
+    formData.append("media_category", "tweet_image");
+
+    const uploadRes = await fetch("https://upload.twitter.com/1.1/media/upload.json", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    });
+
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      console.error("[x/media] Upload failed:", uploadRes.status, errText);
+      // Fallback: try with app-level OAuth 1.0a via twitter-api-v2
+      try {
+        const { getAppClient } = await import("@/lib/twitter");
+        const appClient = getAppClient();
+        const mediaId = await appClient.v1.uploadMedia(buffer, { mimeType: contentType as "image/png" | "image/jpeg" | "image/gif" | "image/webp" });
+        console.log("[x/media] Uploaded via app client, mediaId:", mediaId);
+        return mediaId;
+      } catch (appErr) {
+        console.error("[x/media] App client upload also failed:", appErr);
+        return null;
+      }
+    }
+
+    const uploadData = await uploadRes.json();
+    console.log("[x/media] Uploaded, mediaId:", uploadData.media_id_string);
+    return uploadData.media_id_string;
+  } catch (err) {
+    console.error("[x/media] Upload error:", err);
+    return null;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -98,7 +151,7 @@ export async function POST(req: NextRequest) {
     const deviceId = getVerifiedUserId(req) || body.deviceId;
     if (!deviceId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { agentId, text } = body;
+    const { agentId, text, mediaUrls } = body;
 
     if (!text) {
       return NextResponse.json(
@@ -109,6 +162,7 @@ export async function POST(req: NextRequest) {
 
     // Try both possible device IDs (middleware verified + client-provided)
     const possibleIds = [...new Set([deviceId, body.deviceId].filter(Boolean))];
+    console.log("[x/post] possibleIds:", possibleIds, "agentId:", agentId);
 
     // Try agent-level token first, then user-level
     let accessToken: string | null = null;
@@ -174,14 +228,29 @@ export async function POST(req: NextRequest) {
     }
 
     if (!accessToken) {
+      console.error("[x/post] No X token found for any of:", possibleIds);
       return NextResponse.json(
         { error: "X未連携です。設定→アカウント設定→アプリ連携からXを連携してください" },
         { status: 401 },
       );
     }
 
+    console.log("[x/post] Token found, source:", tokenSource, "posting text length:", text.length);
+
+    // Upload media if provided
+    let mediaIds: string[] | undefined;
+    if (mediaUrls && Array.isArray(mediaUrls) && mediaUrls.length > 0) {
+      const uploadedIds: string[] = [];
+      for (const url of mediaUrls.slice(0, 4)) { // X allows max 4 images
+        const mediaId = await uploadMediaToX(accessToken!, url);
+        if (mediaId) uploadedIds.push(mediaId);
+      }
+      if (uploadedIds.length > 0) mediaIds = uploadedIds;
+      console.log("[x/post] Uploaded media:", uploadedIds.length, "of", mediaUrls.length);
+    }
+
     // Try posting
-    let result = await postTweet(accessToken!, text);
+    let result = await postTweet(accessToken!, text, mediaIds);
 
     // Handle 401 with refresh token
     if (result.status === 401 && refreshToken) {

@@ -1153,11 +1153,16 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                           // Find agent with X connected (twitterEnabled)
                           const xAgent = configured.find((a) => a.config.twitterEnabled || a.config.twitterUsername);
                           const postAgentId = xAgent?.id || msg.agentId;
+                          // Extract image URLs from recent messages for media attachment
+                          const imagePattern = /\[ファイル: .+?\.(png|jpg|jpeg|gif|webp)\]\((.+?)\)/gi;
+                          const recentMsgs = chatHistory.slice(-10).map((m) => m.text).join(" ");
+                          const mediaMatches = [...recentMsgs.matchAll(imagePattern)];
+                          const mediaUrls = mediaMatches.map((m) => m[2]).slice(0, 4);
                           try {
                             const res = await authFetch("/api/x/post", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ deviceId, agentId: postAgentId, text: tweetText }),
+                              body: JSON.stringify({ deviceId, agentId: postAgentId, text: tweetText, ...(mediaUrls.length > 0 ? { mediaUrls } : {}) }),
                             });
                             const data = await res.json();
                             // Hide buttons after action
