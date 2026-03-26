@@ -525,13 +525,29 @@ export async function POST(req: NextRequest) {
     let agentHasXToken = false;
     try {
       const { data: agentRow } = await supabase
-        .from("agents")
+        .from("owner_agents")
         .select("x_access_token")
-        .eq("owner_id", deviceId)
+        .eq("device_id", deviceId)
         .eq("name", agentName)
-        .single();
+        .not("x_access_token", "is", null)
+        .maybeSingle();
       agentHasXToken = !!(agentRow?.x_access_token);
     } catch { /* ignore */ }
+    // Also check if ANY agent in the team has X token (user-level fallback)
+    if (!agentHasXToken) {
+      try {
+        const { data: anyAgent } = await supabase
+          .from("owner_agents")
+          .select("x_access_token, name")
+          .eq("device_id", deviceId)
+          .not("x_access_token", "is", null)
+          .limit(1)
+          .maybeSingle();
+        if (anyAgent?.x_access_token) {
+          agentHasXToken = true;
+        }
+      } catch { /* ignore */ }
+    }
 
     // Build conversation context: dynamic history size based on complexity
     const isSimpleQ = (complexity || "moderate") === "simple";
