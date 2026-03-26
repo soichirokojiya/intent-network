@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     // Load profile
     const { data: profile } = await supabase
       .from("profiles")
-      .select("memory_summary, business_info")
+      .select("memory_summary, business_info, google_calendar_connected")
       .eq("id", deviceId)
       .single();
 
@@ -61,17 +61,24 @@ export async function POST(req: NextRequest) {
     // Pick a random agent
     const senderAgent = agents[Math.floor(Math.random() * agents.length)];
 
-    // Load project_facts
+    // Load project_facts (separate actions from other facts)
     const { data: facts } = await supabase
       .from("project_facts")
-      .select("category, content")
+      .select("category, content, created_at")
       .eq("device_id", deviceId)
       .eq("status", "active")
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(30);
 
-    const factsText = facts && facts.length > 0
-      ? facts.map((f) => `[${f.category}] ${f.content}`).join("\n")
+    const actionFacts = (facts || []).filter(f => f.category === "action").slice(0, 10);
+    const otherFacts = (facts || []).filter(f => f.category !== "action").slice(0, 15);
+
+    const factsText = otherFacts.length > 0
+      ? otherFacts.map((f) => `[${f.category}] ${f.content}`).join("\n")
+      : "";
+
+    const actionText = actionFacts.length > 0
+      ? actionFacts.map((f) => f.content).join("\n")
       : "";
 
     // Load recent chat history
@@ -92,6 +99,26 @@ export async function POST(req: NextRequest) {
           .join("\n")
       : "";
 
+    // Load today's calendar events if connected
+    let calendarText = "";
+    if (profile && (profile as Record<string, unknown>).google_calendar_connected) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
+        const calRes = await fetch(`${baseUrl}/api/google/calendar?deviceId=${deviceId}`, {
+          headers: { "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+        });
+        if (calRes.ok) {
+          const calData = await calRes.json();
+          if (calData.connected && calData.events?.length > 0) {
+            calendarText = calData.events.slice(0, 5).map((e: { title: string; start: string }) => {
+              const time = e.start ? new Date(e.start).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" }) : "終日";
+              return `${time} ${e.title}`;
+            }).join("\n");
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
     if (!profile.memory_summary && !factsText && !chatHistory) {
       return NextResponse.json({ sent: false, reason: "no_context" });
     }
@@ -100,24 +127,39 @@ export async function POST(req: NextRequest) {
     const agentRole = senderAgent.config?.role || "";
 
     const prompt = `あなたは「${agentName}」というAIエージェント${agentRole ? `（役割: ${agentRole}）` : ""}です。
-ユーザーのチームメイトとして、自然にひとこと声をかけてください。
+ユーザーのチームメイトとして、声かけ＋気づき1つを伝えてください。
 
-【ユーザーの記憶サマリー】
+【ユーザーの記憶・事業情報】
 ${profile.memory_summary || "(なし)"}
+${(profile as Record<string, unknown>).business_info ? `事業: ${(profile as Record<string, unknown>).business_info}` : ""}
 
 【プロジェクトファクト】
 ${factsText || "(なし)"}
 
+【最近の行動履歴】
+${actionText || "(なし)"}
+${calendarText ? `\n【今日の予定】\n${calendarText}` : ""}
+
 【最近の会話（直近30件）】
 ${chatHistory || "(なし)"}
 
-【ルール】
-- 1〜2文だけ。LINEで同僚に送るくらいカジュアルに。
-- 挨拶禁止（おはよう、こんにちは等）。レポート形式禁止。箇条書き禁止。
-- 「前に話してた〇〇」「そういえば〇〇」みたいな切り出し方。
-- 具体的な内容に触れること（汎用的な応援メッセージはNG）。
-- 例: 「前に話してた◯◯、そろそろ期限じゃない？」「最近◯◯についてよく話してるけど、◯◯も考えてみた？」「◯◯の件、その後どうなった？」
-- Markdown禁止。プレーンテキストのみ。`;
+【出力ルール】
+声かけ＋気づきを合わせて2〜3文で。LINEで同僚に送る感覚で。
+
+声かけ: 「前に話してた〇〇」「そういえば〇〇」みたいな切り出し。
+気づき: 以下のどれか1つだけ添える。無理に全部入れなくていい。
+- 行動パターンから: 同じ作業を何度もやっていたら「自動化できそう」と提案
+- 予定から: 今日の予定に関連する準備や資料の提案
+- 事業データから: 売上や問い合わせの傾向、異常値の指摘
+- 最近の会話から: 話していた課題の進捗確認や別角度の提案
+- 行動履歴から: 最近やったことの振り返りや次のアクション提案
+
+【禁止事項】
+- 挨拶（おはよう、こんにちは等）
+- レポート形式、箇条書き
+- 汎用的な応援メッセージ（「頑張って！」等）
+- Markdown
+- 4文以上`;
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",

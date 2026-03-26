@@ -163,6 +163,59 @@ export async function GET(req: Request) {
             ? agents.find((a) => a.id === automation.agent_id)?.config
             : agents[0]?.config;
 
+          // Generate insight from the data (Phase 2: analysis with report)
+          let reportText = `${automation.name}を実行したよ。${allExtractedRows.length}件のデータを追加した。`;
+          if (allExtractedRows.length > 0) {
+            try {
+              const { data: profileData } = await supabase
+                .from("profiles")
+                .select("business_info")
+                .eq("id", deviceId)
+                .single();
+
+              const dataPreview = allExtractedRows.slice(0, 10).map(row =>
+                Array.isArray(row) ? row.join(", ") : String(row)
+              ).join("\n");
+
+              const insightRes = await anthropic.messages.create({
+                model: "claude-haiku-4-5-20251001",
+                max_tokens: 200,
+                messages: [{
+                  role: "user",
+                  content: `以下は自動化「${automation.name}」で今回追加された${allExtractedRows.length}件のデータです。
+
+データ:
+${dataPreview}
+
+${profileData?.business_info ? `事業情報: ${profileData.business_info}` : ""}
+
+このデータを見て、オーナーに伝えると役立ちそうな気づきを1つだけ書いてください。
+例: 数値の傾向、前回との比較、注意すべき点、フォローアップの提案など。
+1文で。カジュアルに。「ちなみに」「あと」で始めるとよい。
+気づきがない場合は「特になし」と書く。`
+                }],
+              });
+
+              // Billing for insight
+              const usage = insightRes.usage;
+              const costYen = Math.ceil(((usage?.input_tokens || 0) * 1 / 1_000_000 + (usage?.output_tokens || 0) * 5 / 1_000_000) * 150 * 1.5);
+              if (costYen > 0) {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
+                fetch(`${baseUrl}/api/credits`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "x-internal-secret": process.env.SUPABASE_SERVICE_ROLE_KEY!, "x-verified-user-id": deviceId },
+                  body: JSON.stringify({ inputTokens: usage?.input_tokens || 0, outputTokens: usage?.output_tokens || 0, costYen, model: "claude-haiku-4-5-20251001", apiRoute: "run-automations-insight" }),
+                }).catch(() => {});
+              }
+
+              const insightBlock = insightRes.content.find(b => b.type === "text");
+              const insight = insightBlock ? (insightBlock as { type: "text"; text: string }).text.trim() : "";
+              if (insight && insight !== "特になし") {
+                reportText += `\n${insight}`;
+              }
+            } catch { /* insight generation failed, use basic report */ }
+          }
+
           await supabase.from("owner_chats").insert({
             device_id: deviceId,
             user_id: deviceId,
@@ -171,7 +224,7 @@ export async function GET(req: Request) {
             agent_name: agentConfig?.name || "エージェント",
             agent_avatar: agentConfig?.avatar || "",
             agent_id: automation.agent_id || agents[0]?.id,
-            text: `${automation.name}を実行しました。${allExtractedRows.length}件のデータをスプレッドシートに追加しました。`,
+            text: reportText,
           });
         }
 
