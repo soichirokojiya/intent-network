@@ -190,28 +190,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fallback: find any agent with X token for this user
-    if (!accessToken) {
-      for (const id of possibleIds) {
-        if (accessToken) break;
-        const { data: anyAgent } = await supabase
-          .from("owner_agents")
-          .select("id, x_access_token, x_refresh_token")
-          .eq("device_id", id)
-          .not("x_access_token", "is", null)
-          .limit(1)
-          .maybeSingle();
-
-        if (anyAgent?.x_access_token) {
-          accessToken = anyAgent.x_access_token;
-          refreshToken = anyAgent.x_refresh_token;
-          resolvedAgentId = anyAgent.id;
-          tokenSource = "agent";
-        }
-      }
-    }
-
-    if (!accessToken) {
+    // Fallback: user-level profile token (only if no agentId specified)
+    if (!accessToken && !agentId) {
       for (const id of possibleIds) {
         if (accessToken) break;
         const { data: profile } = await supabase
@@ -228,11 +208,23 @@ export async function POST(req: NextRequest) {
     }
 
     if (!accessToken) {
-      console.error("[x/post] No X token found for any of:", possibleIds);
-      return NextResponse.json(
-        { error: "X未連携です。設定→アカウント設定→アプリ連携からXを連携してください" },
-        { status: 401 },
-      );
+      // Find which agent HAS X connected to give a helpful message
+      let xConnectedAgentName = "";
+      for (const id of possibleIds) {
+        const { data: xAgent } = await supabase
+          .from("owner_agents")
+          .select("config, x_access_token")
+          .eq("device_id", id)
+          .not("x_access_token", "is", null)
+          .limit(1)
+          .maybeSingle();
+        if (xAgent?.config?.name) { xConnectedAgentName = xAgent.config.name; break; }
+      }
+      const hint = xConnectedAgentName
+        ? `このメンバーはX未連携だよ。@${xConnectedAgentName} に頼んでみて`
+        : "X未連携です。設定→アカウント設定→アプリ連携からXを連携してください";
+      console.error("[x/post] No X token for agent:", agentId, "hint:", hint);
+      return NextResponse.json({ error: hint }, { status: 401 });
     }
 
     console.log("[x/post] Token found, source:", tokenSource, "posting text length:", text.length);

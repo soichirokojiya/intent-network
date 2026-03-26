@@ -522,38 +522,31 @@ export async function POST(req: NextRequest) {
 
     const moodContext = getMoodModifier(agentMood || "normal");
 
-    // Check if any agent in team has X token (try both deviceId sources)
+    // Check THIS agent's own X token (config->name matches agentName)
     let agentHasXToken = false;
-    const possibleIds = [deviceId, body.deviceId].filter((id): id is string => !!id && id !== deviceId || id === deviceId);
-    const uniqueIds = [...new Set(possibleIds.filter(Boolean))];
+    let xConnectedAgentName = "";
+    const possibleIds = [...new Set([deviceId, body.deviceId].filter(Boolean))];
+    const uniqueIds = possibleIds;
+    // Fetch all agents for this user, find by config->name
     for (const id of uniqueIds) {
       if (agentHasXToken) break;
       try {
-        const { data: anyAgent } = await supabase
+        const { data: allAgents } = await supabase
           .from("owner_agents")
-          .select("x_access_token")
-          .eq("device_id", id)
-          .not("x_access_token", "is", null)
-          .limit(1)
-          .maybeSingle();
-        if (anyAgent?.x_access_token) {
-          agentHasXToken = true;
-        }
-      } catch { /* ignore */ }
-    }
-    // Also check profiles table x_access_token directly
-    if (!agentHasXToken) {
-      try {
-        for (const id of uniqueIds) {
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("x_access_token")
-            .eq("id", id)
-            .not("x_access_token", "is", null)
-            .maybeSingle();
-          if (prof?.x_access_token) {
-            agentHasXToken = true;
-            break;
+          .select("config, x_access_token")
+          .eq("device_id", id);
+        if (allAgents) {
+          for (const a of allAgents) {
+            const name = a.config?.name || "";
+            if (name === agentName && a.x_access_token) {
+              agentHasXToken = true;
+              break;
+            }
+          }
+          // Find who has X connected (for helpful message if this agent doesn't)
+          if (!agentHasXToken) {
+            const xAgent = allAgents.find(a => a.x_access_token && a.config?.name !== agentName);
+            if (xAgent?.config?.name) xConnectedAgentName = xAgent.config.name;
           }
         }
       } catch { /* ignore */ }
@@ -710,7 +703,12 @@ export async function POST(req: NextRequest) {
       if (iStatus[key]) connectedServices.push(label);
       else disconnectedServices.push(label);
     }
-    const integrationContext = `\n【現在のアプリ連携状況】\n連携済み: ${connectedServices.length > 0 ? connectedServices.join("、") : "なし"}\n未連携: ${disconnectedServices.length > 0 ? disconnectedServices.join("、") : "なし"}\n※連携済みサービスはOAuth認証済み。パスワードやIDを聞く必要はない。未連携サービスは「設定→アカウント設定→アプリ連携から連携してください」と案内する\n※あなた自身がX投稿${agentHasXToken ? "可能（OAuth連携済み）" : "不可（未連携）"}です`;
+    const xStatusLine = agentHasXToken
+      ? "あなた自身がX投稿可能（OAuth連携済み）"
+      : xConnectedAgentName
+        ? `あなたはX未連携。X投稿は @${xConnectedAgentName} が連携済みなので、X投稿の依頼は @${xConnectedAgentName} に頼むようオーナーに案内すること`
+        : "チーム全体でX未連携。設定→アプリ連携からXを連携するよう案内すること";
+    const integrationContext = `\n【現在のアプリ連携状況】\n連携済み: ${connectedServices.length > 0 ? connectedServices.join("、") : "なし"}\n未連携: ${disconnectedServices.length > 0 ? disconnectedServices.join("、") : "なし"}\n※連携済みサービスはOAuth認証済み。パスワードやIDを聞く必要はない。未連携サービスは「設定→アカウント設定→アプリ連携から連携してください」と案内する\n※${xStatusLine}`;
 
     // Layer 2: Agent persona + user memory (same per agent+user combo)
     const personaLayer = `\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${integrationContext}${compressedMemory ? `\n【オーナーの記憶】${compressedMemory}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
