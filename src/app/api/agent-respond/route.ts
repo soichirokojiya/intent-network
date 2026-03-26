@@ -708,6 +708,26 @@ export async function POST(req: NextRequest) {
     }
     const integrationContext = `\n【チーム共通の連携サービス】\n連携済み: ${connectedServices.length > 0 ? connectedServices.join("、") : "なし"}\n未連携: ${disconnectedServices.length > 0 ? disconnectedServices.join("、") : "なし"}\n※連携済みサービスはOAuth認証済み。パスワードやIDを聞く必要はない\n※X投稿はエージェントごとに個別連携。チームメンバー一覧で誰が連携しているか確認すること${teamContext}`;
 
+    // Build tool availability context
+    const availableToolNames: string[] = ["web_search（Web検索 — 最新情報が必要な時に自分の判断で使う）"];
+    const unavailableToolNames: string[] = [];
+    if (sheetsConnected) {
+      availableToolNames.push("sheets_read / sheets_write / sheets_create（スプレッドシート操作）");
+    } else {
+      unavailableToolNames.push("スプレッドシート操作 → Sheets未連携。「設定→アプリ連携」を案内");
+    }
+    if (gmailConnected) {
+      availableToolNames.push("gmail_search / gmail_read（メール検索・閲覧）");
+    } else {
+      unavailableToolNames.push("メール検索・閲覧 → Gmail未連携。「設定→アプリ連携」を案内");
+    }
+    if (sheetsConnected && gmailConnected) {
+      availableToolNames.push("create_automation（メール→シート自動化ルール作成）");
+    }
+    availableToolNames.push("browser_scrape / browser_screenshot / browser_action（Web閲覧・操作）");
+    availableToolNames.push("forget_fact（記憶の削除）");
+    const toolContext = `\n【今使えるツール】\n${availableToolNames.map(t => "・" + t).join("\n")}${unavailableToolNames.length > 0 ? `\n【使えないツール】\n${unavailableToolNames.map(t => "・" + t).join("\n")}` : ""}`;
+
     // Layer 2: Agent persona + user memory (same per agent+user combo)
     const personaLayer = `\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${integrationContext}${compressedMemory ? `\n【オーナーの記憶】${compressedMemory}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
 
@@ -724,7 +744,7 @@ export async function POST(req: NextRequest) {
       },
       {
         type: "text" as const,
-        text: `現在の日付: ${today}${calendarContext}${trelloContext}${gmailContext}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
+        text: `現在の日付: ${today}${toolContext}${calendarContext}${trelloContext}${gmailContext}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
       },
     ];
 
@@ -812,20 +832,20 @@ export async function POST(req: NextRequest) {
       ? [...imageBlocks, { type: "text" as const, text: userPromptText }]
       : userPromptText;
 
-    // Smart model routing - check task + conversation history for search triggers
+    // web_search is always available (agent decides when to use it)
     const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http", "https", ".com", ".jp", ".world", ".io"];
     const allText = intentText + " " + (history || []).map((h: { text: string }) => h.text).join(" ");
-    const needsSearch = searchKeywords.some((kw) => allText.includes(kw));
+    const needsSearchModel = searchKeywords.some((kw) => allText.includes(kw));
     const customTools = buildCustomTools(!!sheetsConnected, !!gmailConnected);
     const hasCustomTools = customTools.length > 0;
-    const model = selectModel(complexity || "moderate", needsSearch, hasCustomTools);
+    const model = selectModel(complexity || "moderate", needsSearchModel, hasCustomTools);
     // Browser browsing needs more tokens for reasoning about page content
     const browserKeywords = ["ログイン", "ブラウザ", "操作", "開いて", "アクセス", "サイト", "ページ", "スクレイピング", "調べて", "飛行機", "航空", "フライト", "予約", "ホテル", "旅行", "チケット"];
     const needsBrowser = browserKeywords.some((kw) => allText.includes(kw));
     const maxTokens = requestTweet ? 500 : (needsBrowser ? 2500 : hasCustomTools ? 1500 : 800);
 
     const tools: (Anthropic.Messages.Tool | { type: "web_search_20250305"; name: "web_search"; max_uses: number })[] = [
-      ...(needsSearch ? [{ type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 }] : []),
+      { type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 },
       ...customTools,
     ];
 
