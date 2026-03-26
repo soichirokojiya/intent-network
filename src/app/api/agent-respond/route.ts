@@ -646,7 +646,31 @@ export async function POST(req: NextRequest) {
     const staticLayer = `${STATIC_RULES}${appInfo}${sheetsWriteRule}`;
 
     // Build integration status context so agent knows what's connected
-    const iStatus = integrationStatus || {};
+    // Fetch directly from DB (don't rely on client-passed integrationStatus)
+    let iStatus: Record<string, boolean> = {};
+    try {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("google_calendar_connected, trello_connected, google_drive_connected, notion_connected, x_connected, gmail_connected, slack_connected, line_connected, google_sheets_connected, chatwork_connected, freee_connected, square_connected, meta_connected, youtube_connected")
+        .eq("id", deviceId)
+        .single();
+      if (profileData) {
+        iStatus = {
+          xConnected: !!profileData.x_connected,
+          gmailConnected: !!profileData.gmail_connected,
+          sheetsConnected: !!profileData.google_sheets_connected,
+          googleCalendarConnected: !!profileData.google_calendar_connected,
+          trelloConnected: !!profileData.trello_connected,
+          slackConnected: !!profileData.slack_connected,
+          notionConnected: !!profileData.notion_connected,
+          metaConnected: !!profileData.meta_connected,
+          youtubeConnected: !!profileData.youtube_connected,
+          chatworkConnected: !!profileData.chatwork_connected,
+          freeeConnected: !!profileData.freee_connected,
+          squareConnected: !!profileData.square_connected,
+        };
+      }
+    } catch { /* ignore */ }
     const connectedServices: string[] = [];
     const disconnectedServices: string[] = [];
     const serviceMap: Record<string, string> = {
