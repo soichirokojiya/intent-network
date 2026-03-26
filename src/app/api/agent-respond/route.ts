@@ -5,6 +5,12 @@ import { getMoodModifier } from "@/lib/moodPrompt";
 import { fetchUrlContent, extractUrls, stripHtml } from "@/lib/fetchUrl";
 import { parseAgentJSON } from "@/lib/parseAgentJSON";
 import { getVerifiedUserId } from "@/lib/serverAuth";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export const maxDuration = 120;
 
@@ -515,6 +521,18 @@ export async function POST(req: NextRequest) {
 
     const moodContext = getMoodModifier(agentMood || "normal");
 
+    // Check this agent's own X connection status
+    let agentHasXToken = false;
+    try {
+      const { data: agentRow } = await supabase
+        .from("agents")
+        .select("x_access_token")
+        .eq("owner_id", deviceId)
+        .eq("name", agentName)
+        .single();
+      agentHasXToken = !!(agentRow?.x_access_token);
+    } catch { /* ignore */ }
+
     // Build conversation context: dynamic history size based on complexity
     const isSimpleQ = (complexity || "moderate") === "simple";
     const historySize = isSimpleQ ? 5 : 15;
@@ -629,13 +647,15 @@ export async function POST(req: NextRequest) {
       freeeConnected: "freee",
       squareConnected: "Square",
     };
+    // Override X status with agent-level token if available
+    if (agentHasXToken) {
+      iStatus["xConnected"] = true;
+    }
     for (const [key, label] of Object.entries(serviceMap)) {
       if (iStatus[key]) connectedServices.push(label);
       else disconnectedServices.push(label);
     }
-    const integrationContext = connectedServices.length > 0
-      ? `\n【現在のアプリ連携状況】\n連携済み: ${connectedServices.join("、")}\n未連携: ${disconnectedServices.join("、")}\n※連携済みサービスはOAuth認証済み。パスワードやIDを聞く必要はない。未連携サービスは「設定→アカウント設定→アプリ連携から連携してください」と案内する`
-      : "";
+    const integrationContext = `\n【現在のアプリ連携状況】\n連携済み: ${connectedServices.length > 0 ? connectedServices.join("、") : "なし"}\n未連携: ${disconnectedServices.length > 0 ? disconnectedServices.join("、") : "なし"}\n※連携済みサービスはOAuth認証済み。パスワードやIDを聞く必要はない。未連携サービスは「設定→アカウント設定→アプリ連携から連携してください」と案内する\n※あなた自身がX投稿${agentHasXToken ? "可能（OAuth連携済み）" : "不可（未連携）"}です`;
 
     // Layer 2: Agent persona + user memory (same per agent+user combo)
     const personaLayer = `\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${integrationContext}${compressedMemory ? `\n【オーナーの記憶】${compressedMemory}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
@@ -781,8 +801,12 @@ export async function POST(req: NextRequest) {
         apiMessages.shift();
       }
     }
-    // Add current user message
-    apiMessages.push({ role: "user", content: userPrompt });
+    // Add current user message (merge if last message is also user to avoid consecutive same-role)
+    if (apiMessages.length > 0 && apiMessages[apiMessages.length - 1].role === "user") {
+      apiMessages[apiMessages.length - 1].content = (apiMessages[apiMessages.length - 1].content as string) + "\n\n" + userPrompt;
+    } else {
+      apiMessages.push({ role: "user", content: userPrompt });
+    }
 
     // === STREAMING MODE ===
     if (wantStream) {
