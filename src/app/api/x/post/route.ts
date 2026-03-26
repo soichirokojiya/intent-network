@@ -107,59 +107,77 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Try both possible device IDs (middleware verified + client-provided)
+    const possibleIds = [...new Set([deviceId, body.deviceId].filter(Boolean))];
+
     // Try agent-level token first, then user-level
     let accessToken: string | null = null;
     let refreshToken: string | null = null;
     let tokenSource: "agent" | "profile" = "profile";
+    let resolvedAgentId: string | null = agentId || null;
 
     // Try specific agent first, then any agent with X token for this user
-    if (agentId) {
-      const { data: agent } = await supabase
-        .from("owner_agents")
-        .select("id, x_access_token, x_refresh_token")
-        .eq("id", agentId)
-        .eq("device_id", deviceId)
-        .single();
+    for (const id of possibleIds) {
+      if (accessToken) break;
+      if (agentId) {
+        const { data: agent } = await supabase
+          .from("owner_agents")
+          .select("id, x_access_token, x_refresh_token")
+          .eq("id", agentId)
+          .eq("device_id", id)
+          .maybeSingle();
 
-      if (agent?.x_access_token) {
-        accessToken = agent.x_access_token;
-        refreshToken = agent.x_refresh_token;
-        tokenSource = "agent";
+        if (agent?.x_access_token) {
+          accessToken = agent.x_access_token;
+          refreshToken = agent.x_refresh_token;
+          resolvedAgentId = agent.id;
+          tokenSource = "agent";
+        }
       }
     }
 
     // Fallback: find any agent with X token for this user
     if (!accessToken) {
-      const { data: anyAgent } = await supabase
-        .from("owner_agents")
-        .select("id, x_access_token, x_refresh_token")
-        .eq("device_id", deviceId)
-        .not("x_access_token", "is", null)
-        .limit(1)
-        .single();
+      for (const id of possibleIds) {
+        if (accessToken) break;
+        const { data: anyAgent } = await supabase
+          .from("owner_agents")
+          .select("id, x_access_token, x_refresh_token")
+          .eq("device_id", id)
+          .not("x_access_token", "is", null)
+          .limit(1)
+          .maybeSingle();
 
-      if (anyAgent?.x_access_token) {
-        accessToken = anyAgent.x_access_token;
-        refreshToken = anyAgent.x_refresh_token;
-        tokenSource = "agent";
+        if (anyAgent?.x_access_token) {
+          accessToken = anyAgent.x_access_token;
+          refreshToken = anyAgent.x_refresh_token;
+          resolvedAgentId = anyAgent.id;
+          tokenSource = "agent";
+        }
       }
     }
 
     if (!accessToken) {
-      const { data: profile, error: dbError } = await supabase
-        .from("profiles")
-        .select("x_access_token, x_refresh_token")
-        .eq("id", deviceId)
-        .single();
+      for (const id of possibleIds) {
+        if (accessToken) break;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("x_access_token, x_refresh_token")
+          .eq("id", id)
+          .maybeSingle();
 
-      if (dbError || !profile?.x_access_token) {
-        return NextResponse.json(
-          { error: "X not connected" },
-          { status: 401 },
-        );
+        if (profile?.x_access_token) {
+          accessToken = profile.x_access_token;
+          refreshToken = profile.x_refresh_token;
+        }
       }
-      accessToken = profile.x_access_token;
-      refreshToken = profile.x_refresh_token;
+    }
+
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: "X未連携です。設定→アカウント設定→アプリ連携からXを連携してください" },
+        { status: 401 },
+      );
     }
 
     // Try posting
@@ -167,19 +185,27 @@ export async function POST(req: NextRequest) {
 
     // Handle 401 with refresh token
     if (result.status === 401 && refreshToken) {
-      if (tokenSource === "agent" && agentId) {
-        // Refresh agent token
-        accessToken = await refreshAgentAccessToken(agentId, refreshToken);
-      } else {
-        accessToken = await refreshAccessToken(deviceId, refreshToken);
+      try {
+        if (tokenSource === "agent" && resolvedAgentId) {
+          accessToken = await refreshAgentAccessToken(resolvedAgentId, refreshToken);
+        } else {
+          accessToken = await refreshAccessToken(deviceId, refreshToken);
+        }
+        result = await postTweet(accessToken, text);
+      } catch (refreshErr) {
+        console.error("X token refresh failed:", refreshErr);
+        return NextResponse.json(
+          { error: "Xのトークンが期限切れです。設定→アプリ連携からXを再連携してください" },
+          { status: 401 },
+        );
       }
-      result = await postTweet(accessToken, text);
     }
 
     if (result.status !== 201) {
-      console.error("X post failed:", result.data);
+      console.error("X post failed:", JSON.stringify(result.data));
+      const errorMsg = result.data?.detail || result.data?.errors?.[0]?.message || result.data?.title || "投稿に失敗しました";
       return NextResponse.json(
-        { error: result.data?.detail || "Tweet failed" },
+        { error: errorMsg },
         { status: result.status },
       );
     }
