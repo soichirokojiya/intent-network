@@ -387,6 +387,20 @@ function detectScheduleIntent(text: string): { action: "set_schedule_times"; tim
   return null;
 }
 
+// Translate X API error messages to user-friendly Japanese
+function translateXError(error: string | undefined): string {
+  if (!error) return "原因不明のエラーが発生した。もう一度試してみて";
+  const lower = error.toLowerCase();
+  if (lower.includes("duplicate")) return "同じ内容のツイートが既に投稿されてるよ。文面を変えてもう一度試してみて";
+  if (lower.includes("too many") || lower.includes("rate limit")) return "短時間に投稿しすぎた。少し時間を置いてから再投稿してね";
+  if (lower.includes("not allowed") || lower.includes("forbidden") || lower.includes("403")) return "Xの投稿権限がない状態。アプリ連携を一度解除して再連携してみて";
+  if (lower.includes("unauthorized") || lower.includes("401") || lower.includes("トークン")) return "Xとの接続が切れてる。設定→アプリ連携からXを再連携してね";
+  if (lower.includes("未連携")) return error; // Already Japanese
+  if (lower.includes("too long") || lower.includes("character")) return "文字数がオーバーしてる。もう少し短くしてみて";
+  if (lower.includes("suspended")) return "このXアカウントが凍結されてる可能性がある。X側を確認してみて";
+  return `うまくいかなかった（${error}）。もう一度試すか、アプリ連携を再設定してみて`;
+}
+
 // Detect @mention in message text (supports names with spaces)
 function detectMention(text: string, agents: { id: string; config: { name: string } }[]): string | null {
   if (!text.includes("@")) return null;
@@ -1171,7 +1185,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                             enqueueMessage({
                               id: `tweet-approved-${Date.now()}`, type: "agent",
                               agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
-                              text: data.ok ? "投稿しました！" : `投稿に失敗しました: ${data.error || "不明なエラー"}`,
+                              text: data.ok ? "投稿しました！" : `投稿できなかった。${translateXError(data.error)}`,
                               timestamp: Date.now(),
                             });
                           } catch {
@@ -1247,7 +1261,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                               enqueueMessage({
                                 id: `x-posted-${Date.now()}`, type: "agent",
                                 agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
-                                text: data.ok ? "投稿しました！" : `投稿に失敗しました: ${data.error}`,
+                                text: data.ok ? "投稿しました！" : `投稿できなかった。${translateXError(data.error)}`,
                                 timestamp: Date.now(),
                               });
                             } catch {
