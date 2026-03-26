@@ -522,32 +522,36 @@ export async function POST(req: NextRequest) {
 
     const moodContext = getMoodModifier(agentMood || "normal");
 
-    // Check THIS agent's own X token (config->name matches agentName)
+    // Fetch all active agents for team awareness + X token check
     let agentHasXToken = false;
-    let xConnectedAgentName = "";
+    let teamContext = "";
     const possibleIds = [...new Set([deviceId, body.deviceId].filter(Boolean))];
     const uniqueIds = possibleIds;
-    // Fetch all agents for this user, find by config->name
     for (const id of uniqueIds) {
-      if (agentHasXToken) break;
       try {
         const { data: allAgents } = await supabase
           .from("owner_agents")
-          .select("config, x_access_token")
+          .select("config, x_access_token, is_active")
           .eq("device_id", id);
-        if (allAgents) {
-          for (const a of allAgents) {
-            const name = a.config?.name || "";
-            if (name === agentName && a.x_access_token) {
-              agentHasXToken = true;
-              break;
-            }
+        if (allAgents && allAgents.length > 0) {
+          // Check if this agent has X
+          const thisAgent = allAgents.find(a => a.config?.name === agentName);
+          if (thisAgent?.x_access_token) agentHasXToken = true;
+          // Build team member list
+          const activeAgents = allAgents.filter(a => a.is_active && a.config?.name);
+          const teamLines = activeAgents.map(a => {
+            const name = a.config.name;
+            const role = a.config.role || a.config.expertise || "";
+            const xInfo = a.x_access_token && a.config.twitterUsername
+              ? `X投稿可能(@${a.config.twitterUsername})`
+              : a.x_access_token ? "X投稿可能" : "";
+            const isMe = name === agentName ? "（あなた）" : "";
+            return `・${name}${isMe}（${role}）${xInfo ? "— " + xInfo : ""}`;
+          });
+          if (teamLines.length > 0) {
+            teamContext = `\n【チームメンバー】\n${teamLines.join("\n")}\n自分にできないことや、特定のサービス連携が必要な依頼は、上記メンバーから適切な人を案内すること`;
           }
-          // Find who has X connected (for helpful message if this agent doesn't)
-          if (!agentHasXToken) {
-            const xAgent = allAgents.find(a => a.x_access_token && a.config?.name !== agentName);
-            if (xAgent?.config?.name) xConnectedAgentName = xAgent.config.name;
-          }
+          break;
         }
       } catch { /* ignore */ }
     }
@@ -695,20 +699,14 @@ export async function POST(req: NextRequest) {
       freeeConnected: "freee",
       squareConnected: "Square",
     };
-    // Override X status with agent-level token if available
-    if (agentHasXToken) {
-      iStatus["xConnected"] = true;
-    }
+    // Build shared integration list (X is per-agent, handled in teamContext)
+    // Remove X from shared list since it's per-agent
+    delete serviceMap["xConnected"];
     for (const [key, label] of Object.entries(serviceMap)) {
       if (iStatus[key]) connectedServices.push(label);
       else disconnectedServices.push(label);
     }
-    const xStatusLine = agentHasXToken
-      ? "あなた自身がX投稿可能（OAuth連携済み）"
-      : xConnectedAgentName
-        ? `あなたはX未連携。X投稿は @${xConnectedAgentName} が連携済みなので、X投稿の依頼は @${xConnectedAgentName} に頼むようオーナーに案内すること`
-        : "チーム全体でX未連携。設定→アプリ連携からXを連携するよう案内すること";
-    const integrationContext = `\n【現在のアプリ連携状況】\n連携済み: ${connectedServices.length > 0 ? connectedServices.join("、") : "なし"}\n未連携: ${disconnectedServices.length > 0 ? disconnectedServices.join("、") : "なし"}\n※連携済みサービスはOAuth認証済み。パスワードやIDを聞く必要はない。未連携サービスは「設定→アカウント設定→アプリ連携から連携してください」と案内する\n※${xStatusLine}`;
+    const integrationContext = `\n【チーム共通の連携サービス】\n連携済み: ${connectedServices.length > 0 ? connectedServices.join("、") : "なし"}\n未連携: ${disconnectedServices.length > 0 ? disconnectedServices.join("、") : "なし"}\n※連携済みサービスはOAuth認証済み。パスワードやIDを聞く必要はない\n※X投稿はエージェントごとに個別連携。チームメンバー一覧で誰が連携しているか確認すること${teamContext}`;
 
     // Layer 2: Agent persona + user memory (same per agent+user combo)
     const personaLayer = `\n\nあなたは「${agentName}」というAIエージェントです。\n${persona}\n${moodContext}\nあなたはオーナー（あなたを育てている人間）のチームメンバーです。${integrationContext}${compressedMemory ? `\n【オーナーの記憶】${compressedMemory}` : ""}${ownerBusinessInfo ? `\n【オーナーの事業情報】${ownerBusinessInfo}\nオーナーが自社サービス名やURLに言及した場合、上記の事業情報を前提に対応すること。Web検索で同名の別サービスが出ても混同しないこと。` : ""}${factsContext}`;
