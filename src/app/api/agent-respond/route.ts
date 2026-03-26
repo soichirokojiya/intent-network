@@ -214,8 +214,22 @@ interface BrowserSessionContext {
   page: any;
 }
 
+// Record agent action as a project fact for experience memory
+async function recordAgentAction(deviceId: string, agentName: string, action: string) {
+  try {
+    const today = new Date().toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+    await supabase.from("project_facts").insert({
+      device_id: deviceId,
+      category: "action",
+      content: `${today} ${agentName}: ${action}`,
+      source_agent: agentName,
+      status: "active",
+    });
+  } catch { /* non-critical, ignore */ }
+}
+
 // Execute custom tool by calling internal APIs
-async function executeCustomTool(toolName: string, input: Record<string, unknown>, deviceId: string, browserCtx?: BrowserSessionContext): Promise<string> {
+async function executeCustomTool(toolName: string, input: Record<string, unknown>, deviceId: string, browserCtx?: BrowserSessionContext, agentName?: string): Promise<string> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musu.world";
   const internalHeaders = {
     "Content-Type": "application/json",
@@ -241,6 +255,9 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
           body: JSON.stringify({ title: input.title, sheetNames: input.sheetNames }),
         });
         const data = await res.json();
+        if (data.spreadsheetId && agentName) {
+          recordAgentAction(deviceId, agentName, `スプレッドシート「${input.title}」を新規作成`);
+        }
         return JSON.stringify(data);
       }
       case "sheets_write": {
@@ -250,6 +267,10 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
           body: JSON.stringify({ spreadsheetId: input.spreadsheetId, range: input.range, values: input.values }),
         });
         const data = await res.json();
+        if (!data.error && agentName) {
+          const rowCount = Array.isArray(input.values) ? (input.values as unknown[]).length : 0;
+          recordAgentAction(deviceId, agentName, `スプレッドシートに${rowCount}行書き込み（${input.range}）`);
+        }
         return JSON.stringify(data);
       }
       case "gmail_search": {
@@ -283,6 +304,9 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
           }),
         });
         const data = await res.json();
+        if (!data.error && agentName) {
+          recordAgentAction(deviceId, agentName, `自動化ルール「${input.name}」を作成`);
+        }
         return JSON.stringify(data);
       }
       case "browser_scrape": {
@@ -381,12 +405,13 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
 async function processCustomToolUses(
   toolUseBlocks: Anthropic.Messages.ToolUseBlock[],
   deviceId: string,
-  browserCtx?: BrowserSessionContext
+  browserCtx?: BrowserSessionContext,
+  agentName?: string
 ): Promise<Anthropic.Messages.ToolResultBlockParam[]> {
   const results: Anthropic.Messages.ToolResultBlockParam[] = [];
   for (const toolUse of toolUseBlocks) {
     if ((CUSTOM_TOOL_NAMES as readonly string[]).includes(toolUse.name)) {
-      const result = await executeCustomTool(toolUse.name, toolUse.input as Record<string, unknown>, deviceId, browserCtx);
+      const result = await executeCustomTool(toolUse.name, toolUse.input as Record<string, unknown>, deviceId, browserCtx, agentName);
       results.push({
         type: "tool_result" as const,
         tool_use_id: toolUse.id,
@@ -604,6 +629,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Fetch this agent's recent actions for experience memory
+    let actionContext = "";
+    try {
+      const { data: actions } = await supabase
+        .from("project_facts")
+        .select("content, created_at")
+        .eq("device_id", deviceId)
+        .eq("category", "action")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (actions && actions.length > 0) {
+        // Filter to this agent's actions (source_agent match) or general actions
+        const myActions = actions.filter(a =>
+          a.content.includes(agentName) || a.content.startsWith(`${new Date().toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}`)
+        ).slice(0, 5);
+        if (myActions.length > 0) {
+          actionContext = "\n【最近の行動履歴】\n" + myActions.map(a => "・" + a.content).join("\n");
+        }
+      }
+    } catch { /* ignore */ }
+
     // Build calendar context (all agents)
     let calendarContext = "";
     if (Array.isArray(calendarEvents) && calendarEvents.length > 0) {
@@ -744,7 +791,7 @@ export async function POST(req: NextRequest) {
       },
       {
         type: "text" as const,
-        text: `現在の日付: ${today}${toolContext}${calendarContext}${trelloContext}${gmailContext}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
+        text: `現在の日付: ${today}${toolContext}${actionContext}${calendarContext}${trelloContext}${gmailContext}${contextBlock ? `\n${contextBlock}` : ""}${urlContext}`,
       },
     ];
 
@@ -955,7 +1002,7 @@ export async function POST(req: NextRequest) {
                   }));
 
                 // Custom tool results (execute via internal APIs)
-                const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtx);
+                const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtx, agentName);
 
                 const allToolResults = [...webSearchResults, ...customToolResults];
                 if (allToolResults.length === 0) break;
@@ -1145,7 +1192,7 @@ export async function POST(req: NextRequest) {
         }));
 
       // Custom tool results
-      const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtxNS);
+      const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtxNS, agentName);
 
       const allToolResults = [...webSearchResults, ...customToolResults];
       if (allToolResults.length === 0) break;

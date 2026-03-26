@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "category and content required" }, { status: 400 });
     }
 
-    const validCategories = ["decision", "spec", "task", "policy"];
+    const validCategories = ["decision", "spec", "task", "policy", "action", "preference"];
     if (!validCategories.includes(category)) {
       return NextResponse.json({ error: `category must be one of: ${validCategories.join(", ")}` }, { status: 400 });
     }

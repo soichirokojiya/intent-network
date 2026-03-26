@@ -271,6 +271,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Record action fact for experience memory
+    try {
+      const snippet = text.length > 40 ? text.slice(0, 40) + "..." : text;
+      await supabase.from("project_facts").insert({
+        device_id: deviceId,
+        category: "action",
+        content: `${new Date().toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })} Xに投稿: 「${snippet}」`,
+        source_agent: "system",
+        status: "active",
+      });
+    } catch { /* non-critical */ }
+
     return NextResponse.json({
       ok: true,
       tweetId: result.data.data.id,
