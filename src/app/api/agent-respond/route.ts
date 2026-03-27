@@ -725,31 +725,35 @@ export async function POST(req: NextRequest) {
     let iStatus: Record<string, boolean> = {};
     try {
       // Try both possible IDs (middleware verified ID and client deviceId)
+      // DB column name → display key mapping (add new integrations here only)
+      const dbToKey: Record<string, string> = {
+        x_connected: "xConnected",
+        gmail_connected: "gmailConnected",
+        google_sheets_connected: "sheetsConnected",
+        google_calendar_connected: "googleCalendarConnected",
+        trello_connected: "trelloConnected",
+        slack_connected: "slackConnected",
+        notion_connected: "notionConnected",
+        meta_connected: "metaConnected",
+        youtube_connected: "youtubeConnected",
+        chatwork_connected: "chatworkConnected",
+        freee_connected: "freeeConnected",
+        square_connected: "squareConnected",
+        mf_connected: "moneyforwardConnected",
+      };
       let profileData = null;
       for (const id of uniqueIds) {
         const { data } = await supabase
           .from("profiles")
-          .select("google_calendar_connected, trello_connected, google_drive_connected, notion_connected, x_connected, gmail_connected, slack_connected, line_connected, google_sheets_connected, chatwork_connected, freee_connected, square_connected, meta_connected, youtube_connected, mf_connected")
+          .select("*")
           .eq("id", id)
           .maybeSingle();
         if (data) { profileData = data; break; }
       }
       if (profileData) {
-        iStatus = {
-          xConnected: !!profileData.x_connected,
-          gmailConnected: !!profileData.gmail_connected,
-          sheetsConnected: !!profileData.google_sheets_connected,
-          googleCalendarConnected: !!profileData.google_calendar_connected,
-          trelloConnected: !!profileData.trello_connected,
-          slackConnected: !!profileData.slack_connected,
-          notionConnected: !!profileData.notion_connected,
-          metaConnected: !!profileData.meta_connected,
-          youtubeConnected: !!profileData.youtube_connected,
-          chatworkConnected: !!profileData.chatwork_connected,
-          freeeConnected: !!profileData.freee_connected,
-          squareConnected: !!profileData.square_connected,
-          moneyforwardConnected: !!profileData.mf_connected,
-        };
+        for (const [dbCol, key] of Object.entries(dbToKey)) {
+          iStatus[key] = !!profileData[dbCol];
+        }
       }
     } catch { /* ignore */ }
     const connectedServices: string[] = [];
