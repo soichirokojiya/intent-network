@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "MoneyForward OAuth not configured" }, { status: 500 });
   }
 
-  const scope = "mfc/accounting/offices.read mfc/accounting/accounts.read mfc/accounting/departments.read mfc/accounting/journal.read mfc/accounting/journal.write";
+  const scope = "mfc/enterprise-accounting/office.read mfc/enterprise-accounting/master.read mfc/enterprise-accounting/journal.read mfc/enterprise-accounting/journal.write mfc/enterprise-accounting/report.read";
 
   const params = new URLSearchParams({
     response_type: "code",

@@ -32,9 +32,9 @@ function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: b
 }
 
 // Custom tool definitions
-const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact", "browser_scrape", "browser_screenshot", "browser_action", "save_credential", "get_credential"] as const;
+const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact", "browser_scrape", "browser_screenshot", "browser_action", "save_credential", "get_credential", "mf_offices", "mf_journals", "mf_accounts", "mf_departments", "mf_trial_balance"] as const;
 
-function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): Anthropic.Messages.Tool[] {
+function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean, mfConnected?: boolean): Anthropic.Messages.Tool[] {
   const tools: Anthropic.Messages.Tool[] = [];
 
   if (sheetsConnected) {
@@ -118,6 +118,60 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean): An
           messageId: { type: "string", description: "メールID" },
         },
         required: ["messageId"],
+      },
+    });
+  }
+
+  // MoneyForward Cloud Accounting tools
+  if (mfConnected) {
+    tools.push({
+      name: "mf_offices",
+      description: "マネーフォワード クラウド会計の事業者情報・会計期間を取得する。他のMFツールを使う前にまずこれでoffice情報を確認すること。",
+      input_schema: {
+        type: "object" as const,
+        properties: {},
+        required: [],
+      },
+    });
+    tools.push({
+      name: "mf_journals",
+      description: "マネーフォワード クラウド会計の仕訳一覧を取得する。期間やステータスで絞り込み可能。",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          limit: { type: "number", description: "取得件数（デフォルト20）" },
+          cursor: { type: "string", description: "ページネーション用カーソル" },
+        },
+        required: [],
+      },
+    });
+    tools.push({
+      name: "mf_accounts",
+      description: "マネーフォワード クラウド会計の勘定科目マスタ一覧を取得する。",
+      input_schema: {
+        type: "object" as const,
+        properties: {},
+        required: [],
+      },
+    });
+    tools.push({
+      name: "mf_departments",
+      description: "マネーフォワード クラウド会計の部門マスタ一覧を取得する。",
+      input_schema: {
+        type: "object" as const,
+        properties: {},
+        required: [],
+      },
+    });
+    tools.push({
+      name: "mf_trial_balance",
+      description: "マネーフォワード クラウド会計の試算表（残高試算表BS/PL）を取得する。",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          type: { type: "string", enum: ["bs", "pl"], description: "bs（貸借対照表）またはpl（損益計算書）" },
+        },
+        required: ["type"],
       },
     });
   }
@@ -309,6 +363,50 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
           recordAgentAction(deviceId, agentName, `自動化ルール「${input.name}」を作成`);
         }
         return JSON.stringify(data);
+      }
+      case "mf_offices": {
+        const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({ path: "/offices/accounting_periods", deviceId }),
+        });
+        return JSON.stringify(await res.json());
+      }
+      case "mf_journals": {
+        const params: Record<string, unknown> = {};
+        if (input.limit) params.limit = input.limit;
+        if (input.cursor) params.cursor = input.cursor;
+        const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({ path: "/journals", params, deviceId }),
+        });
+        return JSON.stringify(await res.json());
+      }
+      case "mf_accounts": {
+        const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({ path: "/masters/accounts", deviceId }),
+        });
+        return JSON.stringify(await res.json());
+      }
+      case "mf_departments": {
+        const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({ path: "/masters/departments", deviceId }),
+        });
+        return JSON.stringify(await res.json());
+      }
+      case "mf_trial_balance": {
+        const reportType = input.type === "pl" ? "trial_balance_pl" : "trial_balance_bs";
+        const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({ path: `/reports/${reportType}`, deviceId }),
+        });
+        return JSON.stringify(await res.json());
       }
       case "browser_scrape": {
         // Use shared fetchUrlContent (with cache + smart Steel/fetch routing)
@@ -798,6 +896,11 @@ export async function POST(req: NextRequest) {
     if (sheetsConnected && gmailConnected) {
       availableToolNames.push("create_automation（メール→シート自動化ルール作成）");
     }
+    if (mfConnected) {
+      availableToolNames.push("mf_offices / mf_journals / mf_accounts / mf_departments / mf_trial_balance（マネーフォワード会計データ）");
+    } else {
+      unavailableToolNames.push("マネーフォワード会計 → 未連携。「設定→アプリ連携」を案内");
+    }
     availableToolNames.push("browser_scrape / browser_screenshot / browser_action（Web閲覧・操作）");
     availableToolNames.push("forget_fact（記憶の削除）");
     const toolContext = `\n【今使えるツール】\n${availableToolNames.map(t => "・" + t).join("\n")}${unavailableToolNames.length > 0 ? `\n【使えないツール】\n${unavailableToolNames.map(t => "・" + t).join("\n")}` : ""}`;
@@ -910,7 +1013,8 @@ export async function POST(req: NextRequest) {
     const searchKeywords = ["調べ", "検索", "リサーチ", "最新", "トレンド", "市場", "競合", "ニュース", "URL", "サイト", "http", "https", ".com", ".jp", ".world", ".io"];
     const allText = intentText + " " + (history || []).map((h: { text: string }) => h.text).join(" ");
     const needsSearchModel = searchKeywords.some((kw) => allText.includes(kw));
-    const customTools = buildCustomTools(!!sheetsConnected, !!gmailConnected);
+    const mfConnected = iStatus.moneyforwardConnected;
+    const customTools = buildCustomTools(!!sheetsConnected, !!gmailConnected, !!mfConnected);
     const hasCustomTools = customTools.length > 0;
     const model = selectModel(complexity || "moderate", needsSearchModel, hasCustomTools);
     // Browser browsing needs more tokens for reasoning about page content
