@@ -493,7 +493,7 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
             const { default: Steel } = await import("steel-sdk");
             const { chromium } = await import("playwright-core");
             const steel = new Steel({ steelAPIKey: steelKey });
-            const session = await steel.sessions.create({ timeout: 90000 });
+            const session = await steel.sessions.create({ timeout: 300000 });
             const browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${steelKey}&sessionId=${session.id}`);
             const context = browser.contexts()[0];
             page = context.pages()[0] || await context.newPage();
