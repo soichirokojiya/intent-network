@@ -1125,7 +1125,7 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                     ? "bg-[var(--search-bg)] border border-[var(--accent)] border-opacity-50"
                     : "bg-[var(--search-bg)]"
                 }`}>
-                  <ChatMessageText text={msg.text.replace(/\\n/g, "\n").replace(/<cite[^>]*>|<\/cite>/g, "").replace("→ /billing", "").replace(/\n?\[proactive\]/g, "").replace(/\n?\[x-draft:[^\]]+\]/g, "")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
+                  <ChatMessageText text={msg.text.replace(/\\n/g, "\n").replace(/<cite[^>]*>|<\/cite>/g, "").replace("→ /billing", "").replace(/\n?\[proactive\]/g, "").replace(/\n?\[x-draft:[^\]]+\]/g, "").replace(/\n?\[mf-journal-draft:[^\]]+\]/g, "")} readMoreLabel={t("chat.readMore")} closeLabel={t("chat.close")} />
                   {msg.text.includes("/billing") && (
                     <div className="mt-2">
                       <button
@@ -1243,6 +1243,61 @@ export function IntentComposer({ roomId = "general" }: { roomId?: string }) {
                       </button>
                     </div>
                   )}
+                  {msg.text.includes("[mf-journal-draft:") && (() => {
+                    const draftIdMatch = msg.text.match(/\[mf-journal-draft:([^\]]+)\]/);
+                    const draftId = draftIdMatch?.[1];
+                    if (!draftId) return null;
+                    return (
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await authFetch("/api/moneyforward/journal-drafts", {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ id: draftId, action: "approve" }),
+                              });
+                              const data = await res.json();
+                              enqueueMessage({
+                                id: `mf-approved-${Date.now()}`, type: "agent",
+                                agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
+                                text: data.ok ? "仕訳を登録しました！" : `登録に失敗しました: ${data.error || "不明なエラー"}`,
+                                timestamp: Date.now(),
+                              });
+                            } catch {
+                              enqueueMessage({
+                                id: `mf-err-${Date.now()}`, type: "agent",
+                                agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
+                                text: "仕訳の登録に失敗しました。",
+                                timestamp: Date.now(),
+                              });
+                            }
+                          }}
+                          className="px-3 py-1 bg-[var(--accent)] text-white text-[12px] font-bold rounded-lg hover:bg-[var(--accent-hover)]"
+                        >
+                          登録する
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await authFetch("/api/moneyforward/journal-drafts", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ id: draftId, action: "reject" }),
+                            });
+                            enqueueMessage({
+                              id: `mf-skip-${Date.now()}`, type: "agent",
+                              agentName: msg.agentName, agentAvatar: msg.agentAvatar, agentId: msg.agentId,
+                              text: "スキップしました。",
+                              timestamp: Date.now(),
+                            });
+                          }}
+                          className="px-3 py-1 border border-[var(--card-border)] text-[12px] rounded-lg hover:bg-[var(--hover-bg)]"
+                        >
+                          スキップ
+                        </button>
+                      </div>
+                    );
+                  })()}
                   {msg.text.includes("[x-draft:") && (() => {
                     const draftIdMatch = msg.text.match(/\[x-draft:([^\]]+)\]/);
                     const draftId = draftIdMatch?.[1];

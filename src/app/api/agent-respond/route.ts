@@ -32,7 +32,7 @@ function selectModel(complexity: string, needsSearch: boolean, hasCustomTools: b
 }
 
 // Custom tool definitions
-const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact", "browser_scrape", "browser_screenshot", "browser_action", "save_credential", "get_credential", "mf_offices", "mf_journals", "mf_accounts", "mf_departments", "mf_trial_balance"] as const;
+const CUSTOM_TOOL_NAMES = ["sheets_read", "sheets_write", "sheets_create", "gmail_search", "gmail_read", "create_automation", "forget_fact", "browser_scrape", "browser_screenshot", "browser_action", "save_credential", "get_credential", "mf_offices", "mf_journals", "mf_accounts", "mf_departments", "mf_trial_balance", "mf_journal_create"] as const;
 
 function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean, mfConnected?: boolean): Anthropic.Messages.Tool[] {
   const tools: Anthropic.Messages.Tool[] = [];
@@ -174,6 +174,33 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean, mfC
           type: { type: "string", enum: ["bs", "pl"], description: "bs（貸借対照表）またはpl（損益計算書）" },
         },
         required: ["type"],
+      },
+    });
+    tools.push({
+      name: "mf_journal_create",
+      description: "マネーフォワード クラウド会計に仕訳を登録する提案を作成する。ユーザーの承認後にAPIで登録される。直接登録はしない。必ず事前にmf_accountsで勘定科目IDを確認すること。",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          transaction_date: { type: "string", description: "取引日（YYYY-MM-DD形式）" },
+          journal_type: { type: "string", enum: ["journal_entry", "adjusting_entry"], description: "仕訳種別（通常仕訳: journal_entry、決算整理仕訳: adjusting_entry）" },
+          memo: { type: "string", description: "摘要（例: 通信費 Anthropic API利用料）" },
+          branches: {
+            type: "array",
+            description: "借方・貸方の明細行の配列",
+            items: {
+              type: "object",
+              properties: {
+                debit_account_id: { type: "string", description: "借方勘定科目ID" },
+                debit_amount: { type: "number", description: "借方金額" },
+                credit_account_id: { type: "string", description: "貸方勘定科目ID" },
+                credit_amount: { type: "number", description: "貸方金額" },
+              },
+            },
+          },
+          summary: { type: "string", description: "ユーザーに表示する仕訳の説明（日本語）" },
+        },
+        required: ["transaction_date", "journal_type", "branches", "summary"],
       },
     });
   }
@@ -411,6 +438,33 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
           body: JSON.stringify({ path: `/api/v3/reports/${reportType}`, deviceId }),
         });
         return JSON.stringify(await res.json());
+      }
+      case "mf_journal_create": {
+        const journalData = {
+          transaction_date: input.transaction_date,
+          journal_type: input.journal_type || "journal_entry",
+          memo: input.memo || "",
+          tags: [],
+          branches: input.branches || [],
+        };
+        const res = await fetch(`${baseUrl}/api/moneyforward/journal-drafts`, {
+          method: "POST",
+          headers: internalHeaders,
+          body: JSON.stringify({
+            journal_data: journalData,
+            summary: input.summary || "",
+            agent_name: agentName || "Yabusaki",
+            deviceId,
+          }),
+        });
+        const draft = await res.json();
+        if (draft.id) {
+          if (agentName) {
+            recordAgentAction(deviceId, agentName, `仕訳下書き作成: ${input.summary}`);
+          }
+          return JSON.stringify({ ok: true, draft_id: draft.id, message: `仕訳の下書きを作成しました。\n\n${input.summary}\n\n[mf-journal-draft:${draft.id}]` });
+        }
+        return JSON.stringify(draft);
       }
       case "browser_scrape": {
         // Use shared fetchUrlContent (with cache + smart Steel/fetch routing)
