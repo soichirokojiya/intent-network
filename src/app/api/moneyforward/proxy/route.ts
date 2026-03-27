@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getVerifiedUserId } from "@/lib/serverAuth";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -13,15 +14,15 @@ const supabase = createClient(
  * POST body: { path, method?, params?, deviceId }
  */
 export async function POST(req: NextRequest) {
-  // Verify internal call
-  const secret = req.headers.get("x-internal-secret");
-  if (secret !== process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  const body = await req.json();
+  const deviceId = getVerifiedUserId(req) || body.deviceId;
+  if (!deviceId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { path, method = "GET", params, deviceId } = await req.json();
-  if (!path || !deviceId) {
-    return NextResponse.json({ error: "path and deviceId required" }, { status: 400 });
+  const { path, method = "GET", params } = body;
+  if (!path) {
+    return NextResponse.json({ error: "path required" }, { status: 400 });
   }
 
   // Get MF token
