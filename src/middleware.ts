@@ -61,10 +61,9 @@ export async function middleware(req: NextRequest) {
     return response;
   }
 
-  // Allow internal server-to-server calls
+  // Allow internal server-to-server calls (x-internal-secret alone is sufficient)
   const internalSecret = req.headers.get("x-internal-secret");
-  const existingUserId = req.headers.get("x-verified-user-id");
-  if (internalSecret && existingUserId && internalSecret === process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (internalSecret && internalSecret === process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return response;
   }
 
