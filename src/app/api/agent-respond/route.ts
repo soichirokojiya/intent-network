@@ -896,7 +896,7 @@ export async function POST(req: NextRequest) {
     if (sheetsConnected && gmailConnected) {
       availableToolNames.push("create_automation（メール→シート自動化ルール作成）");
     }
-    if (mfConnected) {
+    if (iStatus.moneyforwardConnected) {
       availableToolNames.push("mf_offices / mf_journals / mf_accounts / mf_departments / mf_trial_balance（マネーフォワード会計データ）");
     } else {
       unavailableToolNames.push("マネーフォワード会計 → 未連携。「設定→アプリ連携」を案内");
