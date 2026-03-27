@@ -25,25 +25,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/integrations?error=invalid_state", req.url));
   }
   const deviceId = stateData.deviceId as string;
-  const codeVerifier = stateData.codeVerifier as string;
 
   try {
-    // Exchange code for tokens (MoneyForward uses Basic Auth + PKCE)
-    const credentials = Buffer.from(
-      `${process.env.MF_CLIENT_ID}:${process.env.MF_CLIENT_SECRET}`
-    ).toString("base64");
-
+    // Exchange code for tokens (CLIENT_SECRET_POST: client_id/secret in body)
     const tokenRes = await fetch("https://api.biz.moneyforward.com/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${credentials}`,
       },
       body: new URLSearchParams({
         grant_type: "authorization_code",
+        client_id: process.env.MF_CLIENT_ID!,
+        client_secret: process.env.MF_CLIENT_SECRET!,
         code,
         redirect_uri: "https://musu.world/api/moneyforward/callback",
-        code_verifier: codeVerifier,
       }),
     });
 
