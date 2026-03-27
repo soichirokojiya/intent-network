@@ -135,12 +135,14 @@ function buildCustomTools(sheetsConnected: boolean, gmailConnected: boolean, mfC
     });
     tools.push({
       name: "mf_journals",
-      description: "マネーフォワード クラウド会計の仕訳一覧を取得する。期間やステータスで絞り込み可能。",
+      description: "マネーフォワード クラウド会計の仕訳一覧を取得する。start_dateまたはend_dateのいずれかが必須。",
       input_schema: {
         type: "object" as const,
         properties: {
-          limit: { type: "number", description: "取得件数（デフォルト20）" },
-          cursor: { type: "string", description: "ページネーション用カーソル" },
+          start_date: { type: "string", description: "開始日（YYYY-MM-DD形式）" },
+          end_date: { type: "string", description: "終了日（YYYY-MM-DD形式）" },
+          per_page: { type: "number", description: "1ページあたりの件数（デフォルト10、最大10000）" },
+          page: { type: "number", description: "ページ番号（デフォルト1）" },
         },
         required: [],
       },
@@ -368,18 +370,20 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
           method: "POST",
           headers: internalHeaders,
-          body: JSON.stringify({ path: "/offices/accounting_periods", deviceId }),
+          body: JSON.stringify({ path: "/api/v3/offices", deviceId }),
         });
         return JSON.stringify(await res.json());
       }
       case "mf_journals": {
         const params: Record<string, unknown> = {};
-        if (input.limit) params.limit = input.limit;
-        if (input.cursor) params.cursor = input.cursor;
+        if (input.start_date) params.start_date = input.start_date;
+        if (input.end_date) params.end_date = input.end_date;
+        if (input.per_page) params.per_page = input.per_page;
+        if (input.page) params.page = input.page;
         const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
           method: "POST",
           headers: internalHeaders,
-          body: JSON.stringify({ path: "/journals", params, deviceId }),
+          body: JSON.stringify({ path: "/api/v3/journals", params, deviceId }),
         });
         return JSON.stringify(await res.json());
       }
@@ -387,7 +391,7 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
           method: "POST",
           headers: internalHeaders,
-          body: JSON.stringify({ path: "/masters/accounts", deviceId }),
+          body: JSON.stringify({ path: "/api/v3/accounts", deviceId }),
         });
         return JSON.stringify(await res.json());
       }
@@ -395,7 +399,7 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
           method: "POST",
           headers: internalHeaders,
-          body: JSON.stringify({ path: "/masters/departments", deviceId }),
+          body: JSON.stringify({ path: "/api/v3/departments", deviceId }),
         });
         return JSON.stringify(await res.json());
       }
@@ -404,7 +408,7 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
         const res = await fetch(`${baseUrl}/api/moneyforward/proxy`, {
           method: "POST",
           headers: internalHeaders,
-          body: JSON.stringify({ path: `/reports/${reportType}`, deviceId }),
+          body: JSON.stringify({ path: `/api/v3/reports/${reportType}`, deviceId }),
         });
         return JSON.stringify(await res.json());
       }

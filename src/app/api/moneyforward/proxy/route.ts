@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   let token = profile.mf_token;
 
   // Build MF API URL
-  const url = new URL(path, "https://api.biz.moneyforward.com");
+  const url = new URL(path, "https://api-accounting.moneyforward.com");
   if (method === "GET" && params) {
     for (const [k, v] of Object.entries(params)) {
       url.searchParams.set(k, String(v));
