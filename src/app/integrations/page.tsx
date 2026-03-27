@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocale } from "@/context/LocaleContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line" | "sheets" | "chatwork" | "freee" | "square" | "meta" | "youtube";
+type IntegrationKey = "google" | "trello" | "gdrive" | "gmail" | "notion" | "x" | "slack" | "line" | "sheets" | "chatwork" | "freee" | "square" | "meta" | "youtube" | "moneyforward";
 
 interface Integration {
   key: IntegrationKey;
@@ -42,6 +42,7 @@ const LOGO_MAP: Record<IntegrationKey, string> = {
   square: "/logos/square.jpg",
   meta: "/logos/meta.png",
   youtube: "/logos/youtube.png",
+  moneyforward: "/logos/moneyforward.png",
 };
 
 const integrations: Integration[] = [
@@ -143,6 +144,15 @@ const integrations: Integration[] = [
     icon: <img src={LOGO_MAP.freee} alt="freee" width={20} height={20} className="rounded" />,
   },
   {
+    key: "moneyforward",
+    name: "マネーフォワード クラウド会計",
+    description: "チームが仕訳・勘定科目・部門などの会計データを確認できるようになります。",
+    authPath: "/api/moneyforward/auth",
+    disconnectPath: "/api/moneyforward/disconnect",
+    category: "accounting",
+    icon: <img src={LOGO_MAP.moneyforward} alt="マネーフォワード" width={20} height={20} className="rounded" />,
+  },
+  {
     key: "square",
     name: "Square",
     description: "チームが決済データを確認できるようになります。",
@@ -188,6 +198,7 @@ const STATUS_MAP: Record<IntegrationKey, string> = {
   square: "squareConnected",
   meta: "metaConnected",
   youtube: "youtubeConnected",
+  moneyforward: "moneyforwardConnected",
 };
 
 export default function IntegrationsPage() {
@@ -197,7 +208,7 @@ export default function IntegrationsPage() {
   const searchParams = useSearchParams();
 
   const [connected, setConnected] = useState<Record<IntegrationKey, boolean>>({
-    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false, sheets: false, chatwork: false, freee: false, square: false, meta: false, youtube: false,
+    google: false, trello: false, gdrive: false, gmail: false, notion: false, x: false, slack: false, line: false, sheets: false, chatwork: false, freee: false, square: false, meta: false, youtube: false, moneyforward: false,
   });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [notionAutoSave, setNotionAutoSave] = useState(false);

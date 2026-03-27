@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
     metaPageName: data?.meta_page_name || "",
     youtubeConnected: data?.youtube_connected ?? false,
     youtubeChannelName: data?.youtube_channel_name || "",
+    moneyforwardConnected: data?.mf_connected ?? false,
     memorySummary: data?.memory_summary || "",
   });
 }
