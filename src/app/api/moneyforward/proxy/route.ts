@@ -15,7 +15,12 @@ const supabase = createClient(
  */
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const deviceId = getVerifiedUserId(req) || body.deviceId;
+  // Internal calls from agent-respond pass x-internal-secret + x-verified-user-id
+  const internalSecret = req.headers.get("x-internal-secret");
+  const isInternalCall = internalSecret === process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const deviceId = isInternalCall
+    ? (req.headers.get("x-verified-user-id") || body.deviceId)
+    : getVerifiedUserId(req);
   if (!deviceId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
