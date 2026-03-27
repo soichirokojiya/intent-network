@@ -729,7 +729,7 @@ export async function POST(req: NextRequest) {
       for (const id of uniqueIds) {
         const { data } = await supabase
           .from("profiles")
-          .select("google_calendar_connected, trello_connected, google_drive_connected, notion_connected, x_connected, gmail_connected, slack_connected, line_connected, google_sheets_connected, chatwork_connected, freee_connected, square_connected, meta_connected, youtube_connected")
+          .select("google_calendar_connected, trello_connected, google_drive_connected, notion_connected, x_connected, gmail_connected, slack_connected, line_connected, google_sheets_connected, chatwork_connected, freee_connected, square_connected, meta_connected, youtube_connected, mf_connected")
           .eq("id", id)
           .maybeSingle();
         if (data) { profileData = data; break; }
@@ -748,6 +748,7 @@ export async function POST(req: NextRequest) {
           chatworkConnected: !!profileData.chatwork_connected,
           freeeConnected: !!profileData.freee_connected,
           squareConnected: !!profileData.square_connected,
+          moneyforwardConnected: !!profileData.mf_connected,
         };
       }
     } catch { /* ignore */ }
@@ -766,6 +767,7 @@ export async function POST(req: NextRequest) {
       chatworkConnected: "Chatwork",
       freeeConnected: "freee",
       squareConnected: "Square",
+      moneyforwardConnected: "マネーフォワード クラウド会計",
     };
     // Build shared integration list (X is per-agent, handled in teamContext)
     // Remove X from shared list since it's per-agent
