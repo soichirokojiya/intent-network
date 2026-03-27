@@ -6,6 +6,7 @@ import { fetchUrlContent, extractUrls, stripHtml } from "@/lib/fetchUrl";
 import { parseAgentJSON } from "@/lib/parseAgentJSON";
 import { getVerifiedUserId } from "@/lib/serverAuth";
 import { createClient } from "@supabase/supabase-js";
+import { getComposioToolsForClaude, executeComposioAction, getConnectedApps } from "@/lib/composio";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -406,7 +407,8 @@ async function processCustomToolUses(
   toolUseBlocks: Anthropic.Messages.ToolUseBlock[],
   deviceId: string,
   browserCtx?: BrowserSessionContext,
-  agentName?: string
+  agentName?: string,
+  composioToolNames?: Set<string>
 ): Promise<Anthropic.Messages.ToolResultBlockParam[]> {
   const results: Anthropic.Messages.ToolResultBlockParam[] = [];
   for (const toolUse of toolUseBlocks) {
@@ -417,6 +419,25 @@ async function processCustomToolUses(
         tool_use_id: toolUse.id,
         content: result,
       });
+    } else if (composioToolNames?.has(toolUse.name)) {
+      // Execute via Composio
+      try {
+        const result = await executeComposioAction(deviceId, toolUse.name, toolUse.input as Record<string, unknown>);
+        if (agentName) {
+          recordAgentAction(deviceId, agentName, `Composioアクション: ${toolUse.name}`);
+        }
+        results.push({
+          type: "tool_result" as const,
+          tool_use_id: toolUse.id,
+          content: JSON.stringify(result),
+        });
+      } catch (err) {
+        results.push({
+          type: "tool_result" as const,
+          tool_use_id: toolUse.id,
+          content: JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
+        });
+      }
     }
   }
   return results;
@@ -891,9 +912,25 @@ export async function POST(req: NextRequest) {
     const needsBrowser = browserKeywords.some((kw) => allText.includes(kw));
     const maxTokens = requestTweet ? 500 : (needsBrowser ? 2500 : hasCustomTools ? 1500 : 800);
 
+    // Fetch Composio tools for connected apps (if COMPOSIO_API_KEY is set)
+    let composioTools: Anthropic.Messages.Tool[] = [];
+    const composioToolNames: Set<string> = new Set();
+    if (process.env.COMPOSIO_API_KEY) {
+      try {
+        const connectedApps = await getConnectedApps(deviceId);
+        if (connectedApps.length > 0) {
+          composioTools = await getComposioToolsForClaude(deviceId, connectedApps);
+          composioTools.forEach(t => composioToolNames.add(t.name));
+        }
+      } catch (err) {
+        console.error("[agent-respond] Composio tools fetch failed:", err);
+      }
+    }
+
     const tools: (Anthropic.Messages.Tool | { type: "web_search_20250305"; name: "web_search"; max_uses: number })[] = [
       { type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 },
       ...customTools,
+      ...composioTools,
     ];
 
     // Build messages array: include conversation history for tool-use requests (wantsPost, wantsEmail, requestTweet)
@@ -1002,7 +1039,7 @@ export async function POST(req: NextRequest) {
                   }));
 
                 // Custom tool results (execute via internal APIs)
-                const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtx, agentName);
+                const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtx, agentName, composioToolNames);
 
                 const allToolResults = [...webSearchResults, ...customToolResults];
                 if (allToolResults.length === 0) break;
@@ -1192,7 +1229,7 @@ export async function POST(req: NextRequest) {
         }));
 
       // Custom tool results
-      const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtxNS, agentName);
+      const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtxNS, agentName, composioToolNames);
 
       const allToolResults = [...webSearchResults, ...customToolResults];
       if (allToolResults.length === 0) break;

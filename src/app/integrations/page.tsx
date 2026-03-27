@@ -16,6 +16,7 @@ interface Integration {
   disconnectPath: string;
   category: string;
   icon: React.ReactNode;
+  composioService?: string; // Composio service key (if supported)
 }
 
 const CATEGORIES = [
@@ -51,6 +52,7 @@ const integrations: Integration[] = [
     authPath: "/api/google/auth",
     disconnectPath: "/api/google/disconnect",
     category: "google",
+    composioService: "google_calendar",
     icon: <img src={LOGO_MAP.google} alt="Google Calendar" width={20} height={20} className="rounded" />,
   },
   {
@@ -60,6 +62,7 @@ const integrations: Integration[] = [
     authPath: "/api/gmail/auth",
     disconnectPath: "/api/gmail/disconnect",
     category: "google",
+    composioService: "gmail",
     icon: <img src={LOGO_MAP.gmail} alt="Gmail" width={20} height={20} className="rounded" />,
   },
   {
@@ -69,6 +72,7 @@ const integrations: Integration[] = [
     authPath: "/api/google-drive/auth",
     disconnectPath: "/api/google-drive/disconnect",
     category: "google",
+    composioService: "google_drive",
     icon: <img src={LOGO_MAP.gdrive} alt="Google Drive" width={20} height={20} className="rounded" />,
   },
   {
@@ -78,6 +82,7 @@ const integrations: Integration[] = [
     authPath: "/api/google-sheets/auth",
     disconnectPath: "/api/google-sheets/disconnect",
     category: "google",
+    composioService: "google_sheets",
     icon: <img src={LOGO_MAP.sheets} alt="Google Sheets" width={20} height={20} className="rounded" />,
   },
   {
@@ -87,6 +92,7 @@ const integrations: Integration[] = [
     authPath: "/api/trello/auth",
     disconnectPath: "/api/trello/disconnect",
     category: "project",
+    composioService: "trello",
     icon: <img src={LOGO_MAP.trello} alt="Trello" width={20} height={20} className="rounded" />,
   },
   {
@@ -96,6 +102,7 @@ const integrations: Integration[] = [
     authPath: "/api/notion/auth",
     disconnectPath: "/api/notion/disconnect",
     category: "project",
+    composioService: "notion",
     icon: <img src={LOGO_MAP.notion} alt="Notion" width={20} height={20} className="rounded" />,
   },
   {
@@ -105,6 +112,7 @@ const integrations: Integration[] = [
     authPath: "/api/slack/auth",
     disconnectPath: "/api/slack/disconnect",
     category: "communication",
+    composioService: "slack",
     icon: <img src={LOGO_MAP.slack} alt="Slack" width={20} height={20} className="rounded" />,
   },
   {
@@ -150,6 +158,7 @@ const integrations: Integration[] = [
     authPath: "/api/meta/auth",
     disconnectPath: "/api/meta/disconnect",
     category: "sns",
+    composioService: "meta",
     icon: <img src={LOGO_MAP.meta} alt="Meta" width={20} height={20} className="rounded" />,
   },
   {
@@ -159,6 +168,7 @@ const integrations: Integration[] = [
     authPath: "/api/youtube/auth",
     disconnectPath: "/api/youtube/disconnect",
     category: "sns",
+    composioService: "youtube",
     icon: <img src={LOGO_MAP.youtube} alt="YouTube" width={20} height={20} className="rounded" />,
   },
 ];
@@ -216,8 +226,18 @@ export default function IntegrationsPage() {
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
-  // Handle all OAuth callbacks
+  // Handle all OAuth callbacks (including Composio)
   useEffect(() => {
+    // Composio callback
+    if (searchParams.get("composio_connected") === "true") {
+      setMessage("連携が完了しました");
+      fetchStatus();
+    }
+    if (searchParams.get("composio_error")) {
+      setError(`連携に失敗しました: ${searchParams.get("composio_error")}`);
+    }
+
+    // Custom OAuth callbacks
     const callbackKeys: IntegrationKey[] = ["google", "trello", "gdrive", "gmail", "notion", "x", "slack", "line", "sheets", "chatwork", "freee", "square", "meta", "youtube"];
     for (const key of callbackKeys) {
       const param = searchParams.get(key);
@@ -230,8 +250,35 @@ export default function IntegrationsPage() {
     }
   }, [searchParams, fetchStatus]);
 
-  const handleConnect = (integration: Integration) => {
+  const handleConnect = async (integration: Integration) => {
     const deviceId = localStorage.getItem("musu_device_id") || "";
+
+    // Use Composio for supported services
+    if (integration.composioService) {
+      try {
+        setLoading(true);
+        const res = await authFetch("/api/composio/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ service: integration.composioService, deviceId }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.redirectUrl) {
+            window.location.href = data.redirectUrl;
+            return;
+          }
+        }
+        // Fallback to custom OAuth if Composio fails
+        console.warn("[integrations] Composio connect failed, falling back to custom OAuth");
+      } catch {
+        console.warn("[integrations] Composio unavailable, using custom OAuth");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // Custom OAuth fallback
     window.location.href = `${integration.authPath}?deviceId=${deviceId}`;
   };
 
