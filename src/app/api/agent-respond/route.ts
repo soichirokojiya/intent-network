@@ -1097,7 +1097,17 @@ export async function POST(req: NextRequest) {
       ? [...history].reverse().find((m) => m.role === "user" && m.text !== msgText && m.text.length > 5)?.text || ""
       : "";
 
-    const userPromptText = (wantsPost && isReferencePost && lastUserContent)
+    // /mf, /browser, /pc, /operate commands — strip prefix and build Computer Use prompt
+    const computerUseMatch = intentText.trim().match(/^\/(mf|browser|pc|operate)\s*([\s\S]*)/);
+    const computerUseInstruction = computerUseMatch
+      ? (computerUseMatch[1] === "mf"
+        ? `マネーフォワードにアクセスしてください。URL: https://biz.moneyforward.com${computerUseMatch[2] ? `\nオーナーの指示: ${computerUseMatch[2]}` : "\nまずログインページを開いてスクリーンショットを撮り、状況をオーナーに報告してください。"}`
+        : computerUseMatch[2] || "ブラウザを開いてスクリーンショットを撮り、状況をオーナーに報告してください。")
+      : null;
+
+    const userPromptText = computerUseInstruction
+      ? `オーナーのメッセージ:\n「${intentText}」\n\n${computerUseInstruction}\n\ncomputerツールを使って画面を操作してください。まずscreenshotアクションで画面を確認し、状況に応じてクリック・入力を行ってください。\n操作の結果はJSON（コードブロック不要）:\n{"toOwner": "操作結果の報告"}`
+      : (wantsPost && isReferencePost && lastUserContent)
       ? `オーナーが以下の内容をそのままX（Twitter）に投稿したいと言っています。\n\n投稿内容:\n「${lastUserContent}」\n\nこの内容をそのまま使ってください。勝手に変更・要約・リライトしないでください。\nJSON（コードブロック不要）:\n{"toOwner": "これでいく？\\n\\n「${lastUserContent.replace(/"/g, '\\"').replace(/\n/g, '\\n')}」", "toTimeline": "${lastUserContent.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}`
       : wantsPost
       ? `オーナーのメッセージ:\n「${msgText}」\n\nオーナーがX（Twitter）への投稿を依頼しています。投稿文を作成してください。\nJSON（コードブロック不要）:\n{"toOwner": "これでいく？\\n\\n「投稿文をここに書く」", "toTimeline": "投稿文（140文字以内、ハッシュタグ含めてOK）"}\n\n注意:\n- /post の後の内容を元に投稿文を作成する\n- 内容が曖昧でも推測して作成する。聞き返さない\n- オーナーの事業情報や文脈に合った投稿にする\n- toOwnerには必ず投稿文を「」で囲んで含める`
@@ -1135,9 +1145,8 @@ export async function POST(req: NextRequest) {
     // Browser browsing needs more tokens for reasoning about page content
     const browserKeywords = ["ログイン", "ブラウザ", "操作", "開いて", "アクセス", "サイト", "ページ", "スクレイピング", "調べて", "飛行機", "航空", "フライト", "予約", "ホテル", "旅行", "チケット"];
     const needsBrowser = browserKeywords.some((kw) => allText.includes(kw));
-    // Computer Use keywords — triggers pixel-level browser control via Claude vision
-    const computerUseKeywords = ["PC操作", "パソコン操作", "画面操作", "computer use", "未仕訳", "自動で経理", "ブラウザ操作"];
-    const needsComputerUse = needsBrowser || computerUseKeywords.some((kw) => allText.includes(kw));
+    // Computer Use — explicit command trigger only (e.g. /mf, /browser, /pc)
+    const needsComputerUse = /^\/(mf|browser|pc|operate)\b/.test(intentText.trim());
     // Computer Use requires Sonnet (vision-capable model)
     const model = needsComputerUse ? "claude-sonnet-4-6" : selectModel(complexity || "moderate", needsSearchModel, hasCustomTools);
     const maxTokens = requestTweet ? 500 : (needsComputerUse ? 4096 : needsBrowser ? 2500 : hasCustomTools ? 1500 : 800);
