@@ -7,6 +7,7 @@ import { parseAgentJSON } from "@/lib/parseAgentJSON";
 import { getVerifiedUserId } from "@/lib/serverAuth";
 import { createClient } from "@supabase/supabase-js";
 import { getComposioToolsForClaude, executeComposioAction, getConnectedApps } from "@/lib/composio";
+import { executeComputerUseAction, initComputerUsePage, DISPLAY_WIDTH, DISPLAY_HEIGHT, type ComputerUseAction } from "@/lib/computerUse";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -558,6 +559,25 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
   }
 }
 
+// Ensure Steel.dev browser session is initialized for Computer Use
+async function ensureComputerUseBrowser(browserCtx: BrowserSessionContext): Promise<void> {
+  if (browserCtx.browser) return;
+  const steelKey = process.env.STEEL_API_KEY;
+  if (!steelKey) throw new Error("Steel API key not configured");
+  const { default: Steel } = await import("steel-sdk");
+  const { chromium } = await import("playwright-core");
+  const steel = new Steel({ steelAPIKey: steelKey });
+  const session = await steel.sessions.create({ timeout: 1800000 });
+  const browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${steelKey}&sessionId=${session.id}`);
+  const context = browser.contexts()[0];
+  const page = context.pages()[0] || await context.newPage();
+  await initComputerUsePage(page);
+  browserCtx.steel = steel;
+  browserCtx.session = session;
+  browserCtx.browser = browser;
+  browserCtx.page = page;
+}
+
 // Build tool_result entries for custom tool_use blocks
 async function processCustomToolUses(
   toolUseBlocks: Anthropic.Messages.ToolUseBlock[],
@@ -565,10 +585,46 @@ async function processCustomToolUses(
   browserCtx?: BrowserSessionContext,
   agentName?: string,
   composioToolNames?: Set<string>
-): Promise<Anthropic.Messages.ToolResultBlockParam[]> {
-  const results: Anthropic.Messages.ToolResultBlockParam[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const results: any[] = [];
   for (const toolUse of toolUseBlocks) {
-    if ((CUSTOM_TOOL_NAMES as readonly string[]).includes(toolUse.name)) {
+    if (toolUse.name === "computer") {
+      // Computer Use tool — execute action and return screenshot
+      try {
+        if (!browserCtx) throw new Error("No browser context for computer use");
+        await ensureComputerUseBrowser(browserCtx);
+        const input = toolUse.input as ComputerUseAction;
+        const result = await executeComputerUseAction(browserCtx.page, input);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const content: any[] = [];
+        if (result.error) {
+          content.push({ type: "text", text: `Error: ${result.error}` });
+        }
+        if (result.screenshot) {
+          content.push({
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/png",
+              data: result.screenshot,
+            },
+          });
+        }
+        results.push({
+          type: "tool_result",
+          tool_use_id: toolUse.id,
+          content,
+        });
+      } catch (err) {
+        results.push({
+          type: "tool_result",
+          tool_use_id: toolUse.id,
+          content: JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
+        });
+      }
+    } else if ((CUSTOM_TOOL_NAMES as readonly string[]).includes(toolUse.name)) {
       const result = await executeCustomTool(toolUse.name, toolUse.input as Record<string, unknown>, deviceId, browserCtx, agentName);
       results.push({
         type: "tool_result" as const,
@@ -1076,11 +1132,15 @@ export async function POST(req: NextRequest) {
     const mfConnected = iStatus.moneyforwardConnected;
     const customTools = buildCustomTools(!!sheetsConnected, !!gmailConnected, !!mfConnected);
     const hasCustomTools = customTools.length > 0;
-    const model = selectModel(complexity || "moderate", needsSearchModel, hasCustomTools);
     // Browser browsing needs more tokens for reasoning about page content
     const browserKeywords = ["ログイン", "ブラウザ", "操作", "開いて", "アクセス", "サイト", "ページ", "スクレイピング", "調べて", "飛行機", "航空", "フライト", "予約", "ホテル", "旅行", "チケット"];
     const needsBrowser = browserKeywords.some((kw) => allText.includes(kw));
-    const maxTokens = requestTweet ? 500 : (needsBrowser ? 2500 : hasCustomTools ? 1500 : 800);
+    // Computer Use keywords — triggers pixel-level browser control via Claude vision
+    const computerUseKeywords = ["PC操作", "パソコン操作", "画面操作", "computer use", "未仕訳", "自動で経理", "ブラウザ操作"];
+    const needsComputerUse = needsBrowser || computerUseKeywords.some((kw) => allText.includes(kw));
+    // Computer Use requires Sonnet (vision-capable model)
+    const model = needsComputerUse ? "claude-sonnet-4-6" : selectModel(complexity || "moderate", needsSearchModel, hasCustomTools);
+    const maxTokens = requestTweet ? 500 : (needsComputerUse ? 4096 : needsBrowser ? 2500 : hasCustomTools ? 1500 : 800);
 
     // Fetch Composio tools for connected apps (if COMPOSIO_API_KEY is set)
     let composioTools: Anthropic.Messages.Tool[] = [];
@@ -1097,11 +1157,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const tools: (Anthropic.Messages.Tool | { type: "web_search_20250305"; name: "web_search"; max_uses: number })[] = [
+    // Build tools array — use beta types when Computer Use is active
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tools: any[] = [
       { type: "web_search_20250305" as const, name: "web_search" as const, max_uses: 3 },
       ...customTools,
       ...composioTools,
     ];
+
+    // Add Computer Use tool when browser interaction is likely needed
+    if (needsComputerUse) {
+      tools.push({
+        type: "computer_20250124",
+        name: "computer",
+        display_width_px: DISPLAY_WIDTH,
+        display_height_px: DISPLAY_HEIGHT,
+      });
+    }
 
     // Build messages array: include conversation history for tool-use requests (wantsPost, wantsEmail, requestTweet)
     // so the agent can resolve references like "これで投稿して" (post this)
@@ -1133,6 +1205,30 @@ export async function POST(req: NextRequest) {
       apiMessages.push({ role: "user", content: userPrompt });
     }
 
+    // Helper: create a message stream using beta API (needed for computer_20250124) or standard API
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function createStream(params: { model: string; max_tokens: number; system: any; tools?: any[]; messages: any[] }) {
+      if (needsComputerUse) {
+        return client.beta.messages.stream({
+          ...params,
+          betas: ["computer-use-2025-01-24"],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any;
+      }
+      return client.messages.stream(params);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function createMessage(params: { model: string; max_tokens: number; system: any; tools?: any[]; messages: any[] }) {
+      if (needsComputerUse) {
+        return client.beta.messages.create({
+          ...params,
+          betas: ["computer-use-2025-01-24"],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any;
+      }
+      return client.messages.create(params);
+    }
+
     // === STREAMING MODE ===
     if (wantStream) {
       const encoder = new TextEncoder();
@@ -1149,7 +1245,7 @@ export async function POST(req: NextRequest) {
 
             // First pass: streaming
             try {
-              const stream = client.messages.stream({
+              const stream = createStream({
                 model,
                 max_tokens: maxTokens,
                 system: systemPromptParts,
@@ -1188,7 +1284,7 @@ export async function POST(req: NextRequest) {
               // Tool use continuation loop (supports multiple rounds for web_search + custom tools)
               let messages: Anthropic.Messages.MessageParam[] = [...apiMessages];
               let currentAssistantContent = assistantContent;
-              let maxToolRounds = 8;
+              let maxToolRounds = needsComputerUse ? 30 : 8;
 
               while (needsContinuation && maxToolRounds > 0) {
                 maxToolRounds--;
@@ -1208,6 +1304,15 @@ export async function POST(req: NextRequest) {
                     content: "Search completed",
                   }));
 
+                // Notify user about Computer Use actions in progress
+                const computerBlocks = toolUseBlocks.filter((b) => b.name === "computer");
+                if (computerBlocks.length > 0) {
+                  for (const cb of computerBlocks) {
+                    const action = (cb.input as ComputerUseAction).action;
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "computer_use", action })}\n\n`));
+                  }
+                }
+
                 // Custom tool results (execute via internal APIs)
                 const customToolResults = await processCustomToolUses(toolUseBlocks, deviceId, browserCtx, agentName, composioToolNames);
 
@@ -1223,7 +1328,7 @@ export async function POST(req: NextRequest) {
                 needsContinuation = false;
                 currentAssistantContent = [];
 
-                const contStream = client.messages.stream({
+                const contStream = createStream({
                   model,
                   max_tokens: maxTokens,
                   system: systemPromptParts,
@@ -1260,7 +1365,7 @@ export async function POST(req: NextRequest) {
                 console.error(`Primary model ${model} failed, falling back to Sonnet:`, primaryError);
                 actualModel = "claude-sonnet-4-6";
                 fullText = "";
-                const fallbackStream = client.messages.stream({
+                const fallbackStream = createStream({
                   model: actualModel,
                   max_tokens: maxTokens,
                   system: systemPromptParts,
@@ -1346,7 +1451,7 @@ export async function POST(req: NextRequest) {
     let actualModel = model;
     let message;
     try {
-      message = await client.messages.create({
+      message = await createMessage({
         model,
         max_tokens: maxTokens,
         system: systemPromptParts,
@@ -1357,7 +1462,7 @@ export async function POST(req: NextRequest) {
       if (model !== "claude-sonnet-4-6") {
         console.error(`Primary model ${model} failed, falling back to Sonnet:`, primaryError);
         actualModel = "claude-sonnet-4-6";
-        message = await client.messages.create({
+        message = await createMessage({
           model: actualModel,
           max_tokens: maxTokens,
           system: systemPromptParts,
@@ -1374,25 +1479,28 @@ export async function POST(req: NextRequest) {
     totalOutputTokens += message.usage?.output_tokens || 0;
 
     let finalText = "";
-    const textBlocks = message.content.filter((b) => b.type === "text");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const textBlocks = message.content.filter((b: any) => b.type === "text");
     if (textBlocks.length > 0) finalText = (textBlocks[textBlocks.length - 1] as { type: "text"; text: string }).text;
 
     // Tool use continuation loop (supports multiple rounds)
     let currentMessage = message;
-    let messages: Anthropic.Messages.MessageParam[] = [...apiMessages];
-    let maxToolRounds = 8;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let messages: any[] = [...apiMessages];
+    let maxToolRounds = needsComputerUse ? 30 : 8;
 
     while (currentMessage.stop_reason === "tool_use" && maxToolRounds > 0) {
       maxToolRounds--;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const toolUseBlocks = currentMessage.content.filter(
-        (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use"
+        (b: any): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use"
       );
 
       // web_search tool results
       const webSearchResults = toolUseBlocks
-        .filter((b) => b.name === "web_search")
-        .map((b) => ({
+        .filter((b: Anthropic.Messages.ToolUseBlock) => b.name === "web_search")
+        .map((b: Anthropic.Messages.ToolUseBlock) => ({
           type: "tool_result" as const,
           tool_use_id: b.id,
           content: "Search completed",
@@ -1410,7 +1518,7 @@ export async function POST(req: NextRequest) {
         { role: "user", content: allToolResults },
       ];
 
-      const continuation = await client.messages.create({
+      const continuation = await createMessage({
         model,
         max_tokens: maxTokens,
         system: systemPromptParts,
@@ -1422,7 +1530,8 @@ export async function POST(req: NextRequest) {
       totalInputTokens += getTotalInputTokens(continuation.usage);
       totalOutputTokens += continuation.usage?.output_tokens || 0;
 
-      const contTextBlocks = continuation.content.filter((b) => b.type === "text");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contTextBlocks = continuation.content.filter((b: any) => b.type === "text");
       if (contTextBlocks.length > 0) finalText = (contTextBlocks[contTextBlocks.length - 1] as { type: "text"; text: string }).text;
 
       currentMessage = continuation;
