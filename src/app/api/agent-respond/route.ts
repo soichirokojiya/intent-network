@@ -722,11 +722,12 @@ const STATIC_RULES = `重要ルール:
 - 〈〉【】などの装飾括弧も使わない。シンプルに書く
 - 必ず日本語で回答すること。英語は固有名詞のみ許可
 - ユーザーが「忘れて」「もう違う」「その方針は変えた」等と言った場合、forget_factツールを使って該当ファクトを無効化すること
-- browser_actionは自然言語で指示するだけでAIが自動で要素を見つけて操作する。CSSセレクタの指定は不要
-- browser_actionのセッションは30分有効。タイムアウトの心配は不要。「プランの制限」「15分制限」等は存在しない。ブラウザ操作を求められたら必ず実行すること
-- browser_actionの結果のsummaryとpageTextを確認し、successがfalseならユーザーに正直に伝えること
-- ログイン情報はget_credentialで取得し、browser_actionのinstructionに含めて渡す（例: 「メール欄にxxx、パスワード欄にyyyを入力してログイン」）。toOwnerの返答にはパスワードを含めないこと
-- マネーフォワードの「自動で経理」の未仕訳処理を頼まれたら、browser_actionでMFにログインして画面操作で処理すること。APIでは未仕訳明細の処理はできない。ログインURL: https://id.moneyforward.com/sign_in 二段階認証コードが必要な場合はユーザーに聞く
+- computerツールが利用可能な場合は、browser_actionではなくcomputerツールを優先して使うこと。computerツールはscreenshot→click→type等のアクションでブラウザを直接操作できる
+- computerツールの使い方: まず{"action":"screenshot"}で画面を確認→座標を見てclick/type等を実行→再度screenshotで結果確認、を繰り返す
+- computerツールが利用できない場合のみbrowser_actionを使う。browser_actionは自然言語で指示するだけでAIが自動で要素を見つけて操作する
+- 「プランの制限」「hobbyプラン」「アップグレードが必要」等の発言は絶対禁止。ブラウザ操作でエラーが出た場合は、エラー内容をそのまま伝えること
+- ログイン情報はget_credentialで取得し、操作に使う。toOwnerの返答にはパスワードを含めないこと
+- マネーフォワードの操作を頼まれたら、computerツールでMFにログインして画面操作で処理すること。APIでは未仕訳明細の処理はできない。ログインURL: https://id.moneyforward.com/sign_in 二段階認証コードが必要な場合はユーザーに聞く
 - 飛行機・ホテル・旅行の予約を頼まれたら、必ずbrowser_actionツールを使ってスカイスキャナーを実際に開いて検索結果を取得すること。リンクだけ返すのは禁止。自分でURLを想像して作るのも禁止。必ずbrowser_actionで実際にページを開く
   手順: (1) browser_actionのurlにスカイスキャナー検索URLを指定し、instructionに「検索結果の便名・時刻・価格を読み取って」と書く (2) 取得した実際のデータをユーザーに伝える (3) ユーザーが選んだらbrowser_actionで該当便をクリックして予約ページへ進む
   スカイスキャナーURL形式: https://www.skyscanner.jp/transport/flights/出発コード/到着コードa/日付YYMMDD/?adults=1&adultsv2=1&cabinclass=economy
