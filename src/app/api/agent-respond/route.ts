@@ -1168,7 +1168,7 @@ export async function POST(req: NextRequest) {
     // Add Computer Use tool when browser interaction is likely needed
     if (needsComputerUse) {
       tools.push({
-        type: "computer_20250124",
+        type: "computer_20251124",
         name: "computer",
         display_width_px: DISPLAY_WIDTH,
         display_height_px: DISPLAY_HEIGHT,
@@ -1205,13 +1205,13 @@ export async function POST(req: NextRequest) {
       apiMessages.push({ role: "user", content: userPrompt });
     }
 
-    // Helper: create a message stream using beta API (needed for computer_20250124) or standard API
+    // Helper: create a message stream using beta API (needed for computer_20251124) or standard API
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function createStream(params: { model: string; max_tokens: number; system: any; tools?: any[]; messages: any[] }) {
       if (needsComputerUse) {
         return client.beta.messages.stream({
           ...params,
-          betas: ["computer-use-2025-01-24"],
+          betas: ["computer-use-2025-11-24"],
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }) as any;
       }
@@ -1222,7 +1222,7 @@ export async function POST(req: NextRequest) {
       if (needsComputerUse) {
         return client.beta.messages.create({
           ...params,
-          betas: ["computer-use-2025-01-24"],
+          betas: ["computer-use-2025-11-24"],
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }) as any;
       }
