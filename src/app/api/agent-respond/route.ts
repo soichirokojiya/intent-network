@@ -569,22 +569,32 @@ async function ensureComputerUseBrowser(browserCtx: BrowserSessionContext): Prom
   const browserbaseProject = process.env.BROWSERBASE_PROJECT_ID;
 
   if (browserbaseKey && browserbaseProject) {
-    const { default: Browserbase } = await import("@browserbasehq/sdk");
-    const bb = new Browserbase({ apiKey: browserbaseKey });
-    const session = await bb.sessions.create({
-      projectId: browserbaseProject,
-      browserSettings: { blockAds: true },
-    });
-    console.log(`[computer-use] Browserbase session: ${session.id}`);
-    const browser = await chromium.connectOverCDP(session.connectUrl);
-    const context = browser.contexts()[0];
-    const page = context.pages()[0] || await context.newPage();
-    await initComputerUsePage(page);
-    browserCtx.steel = bb; // reuse field for cleanup
-    browserCtx.session = session;
-    browserCtx.browser = browser;
-    browserCtx.page = page;
-    return;
+    try {
+      const { default: Browserbase } = await import("@browserbasehq/sdk");
+      const bb = new Browserbase({ apiKey: browserbaseKey });
+      console.log("[computer-use] Creating Browserbase session...");
+      const session = await bb.sessions.create({
+        projectId: browserbaseProject,
+        browserSettings: { blockAds: true },
+      });
+      console.log(`[computer-use] Browserbase session created: ${session.id}`);
+      console.log(`[computer-use] Connecting to CDP: ${session.connectUrl.substring(0, 60)}...`);
+      const browser = await chromium.connectOverCDP(session.connectUrl);
+      console.log("[computer-use] Browser connected");
+      const context = browser.contexts()[0];
+      const page = context.pages()[0] || await context.newPage();
+      await initComputerUsePage(page);
+      console.log("[computer-use] Page ready, viewport set");
+      browserCtx.steel = bb; // reuse field for cleanup
+      browserCtx.session = session;
+      browserCtx.browser = browser;
+      browserCtx.page = page;
+      return;
+    } catch (err) {
+      console.error("[computer-use] Browserbase failed:", err instanceof Error ? err.message : err);
+      // Don't fall through to Steel.dev — throw the actual error
+      throw new Error(`Browserbase接続エラー: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   // Fallback: Steel.dev
