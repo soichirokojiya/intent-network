@@ -1099,14 +1099,22 @@ export async function POST(req: NextRequest) {
 
     // /mf, /browser, /pc, /operate commands — strip prefix and build Computer Use prompt
     const computerUseMatch = intentText.trim().match(/^\/(mf|browser|pc|operate)\s*([\s\S]*)/);
+    const computerUseArg = computerUseMatch ? computerUseMatch[2].trim() : "";
     const computerUseInstruction = computerUseMatch
       ? (computerUseMatch[1] === "mf"
-        ? `マネーフォワードにアクセスしてください。URL: https://biz.moneyforward.com${computerUseMatch[2] ? `\nオーナーの指示: ${computerUseMatch[2]}` : "\nまずログインページを開いてスクリーンショットを撮り、状況をオーナーに報告してください。"}`
-        : computerUseMatch[2] || "ブラウザを開いてスクリーンショットを撮り、状況をオーナーに報告してください。")
+        ? `マネーフォワードにブラウザでアクセスしてください。
+手順:
+1. まずget_credentialツールでsiteName「moneyforward」のログイン情報を取得する
+2. computerツールのscreenshotアクションで現在の画面を確認する
+3. https://biz.moneyforward.com にアクセスする
+4. ログインが必要なら、取得した認証情報でログインする（二段階認証が求められたらオーナーに聞く）
+5. ログイン後、オーナーの指示を実行する
+${computerUseArg ? `\nオーナーの指示: ${computerUseArg}` : "\nログインできたら状況をオーナーに報告してください。"}`
+        : computerUseArg || "ブラウザを開いてスクリーンショットを撮り、状況をオーナーに報告してください。")
       : null;
 
     const userPromptText = computerUseInstruction
-      ? `オーナーのメッセージ:\n「${intentText}」\n\n${computerUseInstruction}\n\ncomputerツールを使って画面を操作してください。まずscreenshotアクションで画面を確認し、状況に応じてクリック・入力を行ってください。\n操作の結果はJSON（コードブロック不要）:\n{"toOwner": "操作結果の報告"}`
+      ? `オーナーのメッセージ:\n「${intentText}」\n\n${computerUseInstruction}\n\ncomputerツールを使って画面を操作してください。まずscreenshotアクションで画面を確認し、状況に応じてクリック・入力を行ってください。\ntoOwnerにはパスワード等の認証情報を絶対に含めないこと。\n操作の結果はJSON（コードブロック不要）:\n{"toOwner": "操作結果の報告"}`
       : (wantsPost && isReferencePost && lastUserContent)
       ? `オーナーが以下の内容をそのままX（Twitter）に投稿したいと言っています。\n\n投稿内容:\n「${lastUserContent}」\n\nこの内容をそのまま使ってください。勝手に変更・要約・リライトしないでください。\nJSON（コードブロック不要）:\n{"toOwner": "これでいく？\\n\\n「${lastUserContent.replace(/"/g, '\\"').replace(/\n/g, '\\n')}」", "toTimeline": "${lastUserContent.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}`
       : wantsPost
