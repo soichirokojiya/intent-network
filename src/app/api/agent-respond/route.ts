@@ -559,13 +559,38 @@ async function executeCustomTool(toolName: string, input: Record<string, unknown
   }
 }
 
-// Ensure Steel.dev browser session is initialized for Computer Use
+// Ensure browser session is initialized for Computer Use (Browserbase or Steel.dev fallback)
 async function ensureComputerUseBrowser(browserCtx: BrowserSessionContext): Promise<void> {
   if (browserCtx.browser) return;
-  const steelKey = process.env.STEEL_API_KEY;
-  if (!steelKey) throw new Error("Steel API key not configured");
-  const { default: Steel } = await import("steel-sdk");
   const { chromium } = await import("playwright-core");
+
+  // Try Browserbase first, then Steel.dev as fallback
+  const browserbaseKey = process.env.BROWSERBASE_API_KEY;
+  const browserbaseProject = process.env.BROWSERBASE_PROJECT_ID;
+
+  if (browserbaseKey && browserbaseProject) {
+    const { default: Browserbase } = await import("@browserbasehq/sdk");
+    const bb = new Browserbase({ apiKey: browserbaseKey });
+    const session = await bb.sessions.create({
+      projectId: browserbaseProject,
+      browserSettings: { blockAds: true },
+    });
+    console.log(`[computer-use] Browserbase session: ${session.id}`);
+    const browser = await chromium.connectOverCDP(session.connectUrl);
+    const context = browser.contexts()[0];
+    const page = context.pages()[0] || await context.newPage();
+    await initComputerUsePage(page);
+    browserCtx.steel = bb; // reuse field for cleanup
+    browserCtx.session = session;
+    browserCtx.browser = browser;
+    browserCtx.page = page;
+    return;
+  }
+
+  // Fallback: Steel.dev
+  const steelKey = process.env.STEEL_API_KEY;
+  if (!steelKey) throw new Error("BROWSERBASE_API_KEY or STEEL_API_KEY が未設定です");
+  const { default: Steel } = await import("steel-sdk");
   const steel = new Steel({ steelAPIKey: steelKey });
   const session = await steel.sessions.create({ timeout: 1800000 });
   const browser = await chromium.connectOverCDP(`wss://connect.steel.dev?apiKey=${steelKey}&sessionId=${session.id}`);
