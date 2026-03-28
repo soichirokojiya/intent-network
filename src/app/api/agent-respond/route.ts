@@ -574,7 +574,7 @@ async function ensureComputerUseBrowser(browserCtx: BrowserSessionContext): Prom
       const bbRes = await fetch("https://api.browserbase.com/v1/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-bb-api-key": browserbaseKey },
-        body: JSON.stringify({ projectId: browserbaseProject, browserSettings: { blockAds: true } }),
+        body: JSON.stringify({ projectId: browserbaseProject, timeout: 900, browserSettings: { blockAds: true } }),
       });
       if (!bbRes.ok) {
         const errData = await bbRes.json().catch(() => ({}));
@@ -1145,8 +1145,11 @@ export async function POST(req: NextRequest) {
 1. まずget_credentialツールでsiteName「moneyforward」のログイン情報を取得する
 2. computerツールのscreenshotアクションで現在の画面を確認する
 3. https://biz.moneyforward.com にアクセスする
-4. ログインが必要なら、取得した認証情報でログインする（二段階認証が求められたらオーナーに聞く）
-5. ログイン後、オーナーの指示を実行する
+4. ログインが必要なら、取得した認証情報でログインする
+5. 二段階認証コードが求められたら、gmail_searchツールで「from:noreply@moneyforward.com」を検索して最新のメールからコードを取得し、自動入力する。Gmailから取得できない場合のみオーナーに聞く
+6. ログイン後、オーナーの指示を実行する
+
+重要: セッションのタイムアウトが限られているので、素早く操作すること。スクリーンショットは必要最小限にする。
 ${computerUseArg ? `\nオーナーの指示: ${computerUseArg}` : "\nログインできたら状況をオーナーに報告してください。"}`
         : computerUseArg || "ブラウザを開いてスクリーンショットを撮り、状況をオーナーに報告してください。")
       : null;
