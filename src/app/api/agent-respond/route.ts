@@ -570,29 +570,31 @@ async function ensureComputerUseBrowser(browserCtx: BrowserSessionContext): Prom
 
   if (browserbaseKey && browserbaseProject) {
     try {
-      const { default: Browserbase } = await import("@browserbasehq/sdk");
-      const bb = new Browserbase({ apiKey: browserbaseKey });
-      console.log("[computer-use] Creating Browserbase session...");
-      const session = await bb.sessions.create({
-        projectId: browserbaseProject,
-        browserSettings: { blockAds: true },
+      console.log("[computer-use] Creating Browserbase session via REST API...");
+      const bbRes = await fetch("https://api.browserbase.com/v1/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-bb-api-key": browserbaseKey },
+        body: JSON.stringify({ projectId: browserbaseProject, browserSettings: { blockAds: true } }),
       });
+      if (!bbRes.ok) {
+        const errData = await bbRes.json().catch(() => ({}));
+        throw new Error(`Browserbase API ${bbRes.status}: ${JSON.stringify(errData)}`);
+      }
+      const session = await bbRes.json();
       console.log(`[computer-use] Browserbase session created: ${session.id}`);
-      console.log(`[computer-use] Connecting to CDP: ${session.connectUrl.substring(0, 60)}...`);
       const browser = await chromium.connectOverCDP(session.connectUrl);
       console.log("[computer-use] Browser connected");
       const context = browser.contexts()[0];
       const page = context.pages()[0] || await context.newPage();
       await initComputerUsePage(page);
       console.log("[computer-use] Page ready, viewport set");
-      browserCtx.steel = bb; // reuse field for cleanup
+      browserCtx.steel = null; // no SDK client needed for cleanup
       browserCtx.session = session;
       browserCtx.browser = browser;
       browserCtx.page = page;
       return;
     } catch (err) {
       console.error("[computer-use] Browserbase failed:", err instanceof Error ? err.message : err);
-      // Don't fall through to Steel.dev — throw the actual error
       throw new Error(`Browserbase接続エラー: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
