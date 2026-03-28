@@ -12,33 +12,44 @@ export async function GET() {
       return NextResponse.json({ ok: false, steps, error: "Missing env vars" });
     }
 
-    const { default: Browserbase } = await import("@browserbasehq/sdk");
-    steps.push("SDK imported");
+    // Try direct REST API instead of SDK (to diagnose SDK vs network issue)
+    steps.push("Trying direct REST API...");
+    const res = await fetch("https://api.browserbase.com/v1/sessions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-bb-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        projectId,
+        browserSettings: { blockAds: true },
+      }),
+    });
+    steps.push(`REST status: ${res.status}`);
+    const data = await res.json();
 
-    const bb = new Browserbase({ apiKey });
-    steps.push("Client created");
+    if (!res.ok) {
+      steps.push(`REST error: ${JSON.stringify(data)}`);
+      return NextResponse.json({ ok: false, steps });
+    }
 
-    const session = await bb.sessions.create({ projectId, browserSettings: { blockAds: true } });
-    steps.push(`Session created: ${session.id}`);
-    steps.push(`connectUrl: ${session.connectUrl.substring(0, 60)}...`);
+    steps.push(`Session ID: ${data.id}`);
+    steps.push(`connectUrl: ${data.connectUrl?.substring(0, 60) || "N/A"}...`);
 
-    const { chromium } = await import("playwright-core");
-    steps.push("Playwright imported");
-
-    const browser = await chromium.connectOverCDP(session.connectUrl);
-    steps.push("Browser connected");
-
-    const context = browser.contexts()[0];
-    const page = context.pages()[0] || await context.newPage();
-    steps.push("Page ready");
-
-    await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto("https://example.com", { timeout: 15000 });
-    const title = await page.title();
-    steps.push(`Title: ${title}`);
-
-    await browser.close();
-    steps.push("Browser closed");
+    // Try Playwright connection
+    if (data.connectUrl) {
+      const { chromium } = await import("playwright-core");
+      steps.push("Connecting Playwright...");
+      const browser = await chromium.connectOverCDP(data.connectUrl);
+      steps.push("Browser connected!");
+      const context = browser.contexts()[0];
+      const page = context.pages()[0] || await context.newPage();
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await page.goto("https://example.com", { timeout: 15000 });
+      steps.push(`Title: ${await page.title()}`);
+      await browser.close();
+      steps.push("Done!");
+    }
 
     return NextResponse.json({ ok: true, steps });
   } catch (err) {
